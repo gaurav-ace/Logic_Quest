@@ -882,3 +882,173 @@ button.link {
 .track > summary .track-name {
   flex: 1;
 }
+
+/* Data-structure views (Phase 4). */
+.stack {
+  display: inline-grid;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.queue {
+  display: flex;
+  gap: 4px;
+}
+
+.stack .slot,
+.queue .slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 48px;
+  padding: 6px 10px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.queue .slot {
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.slot .tag {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--blue);
+}
+
+.slot.hl {
+  background: var(--hi);
+  color: var(--hi-ink);
+}
+
+.slot.hl .tag {
+  color: var(--hi-ink);
+}
+
+.slot.empty {
+  color: var(--mute);
+  border-style: dashed;
+  font-weight: 600;
+}
+
+.buckets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.buckets li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.buckets li.hl .bucket-no {
+  background: var(--hi);
+  color: var(--hi-ink);
+}
+
+.bucket-no {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 0.875rem;
+}
+
+.chain {
+  padding: 3px 8px;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Roboto Mono', monospace;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.chain.empty {
+  border: 0;
+  color: var(--mute);
+}
+
+.svg-view {
+  display: block;
+  max-width: none;
+}
+
+.svg-view text {
+  font: 800 15px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  fill: var(--ink);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.svg-view text.ptr {
+  font-size: 14px;
+  fill: var(--blue);
+}
+
+.svg-view text.note,
+.svg-view text.weight {
+  font-size: 14px;
+  font-weight: 700;
+  fill: var(--mute);
+}
+
+.svg-view .weight-bg {
+  fill: var(--card);
+  stroke: var(--mute);
+  stroke-width: 1;
+}
+
+.svg-view .link {
+  fill: none;
+  stroke: var(--mute);
+  stroke-width: 2;
+}
+
+.svg-view .link.on {
+  stroke: var(--blue);
+  stroke-width: 3.5;
+}
+
+.svg-view .arrow-head {
+  fill: var(--mute);
+}
+
+.svg-view rect,
+.svg-view circle {
+  fill: var(--card);
+  stroke: var(--line);
+  stroke-width: 2.5;
+}
+
+.svg-view .hl rect,
+.svg-view .hl circle {
+  fill: var(--hi);
+}
+
+.svg-view .hl text {
+  fill: var(--hi-ink);
+}
+
+.svg-view .done circle {
+  fill: color-mix(in srgb, var(--ok) 30%, var(--card));
+}
+
+.view-table td.hl-cell {
+  background: var(--hi);
+  color: var(--hi-ink);
+  font-weight: 800;
+  outline: 2px solid var(--line);
+}

@@ -30,7 +30,70 @@ export type View =
       columns: string[];
       rows: Value[][];
       highlightRow?: number;
+      /** [row, column] of one cell in focus, e.g. the DP entry being filled. */
+      highlightCell?: [number, number];
+    }
+  | {
+      /** Bottom of the stack first; the last item is the top. */
+      type: 'stack';
+      label?: string;
+      items: Value[];
+      highlightTop?: boolean;
+    }
+  | {
+      /** Front of the queue first. */
+      type: 'queue';
+      label?: string;
+      items: Value[];
+      highlightFront?: boolean;
+      highlightBack?: boolean;
+    }
+  | {
+      /** Linked list: nodes drawn left to right in array order; `next` may point anywhere (or loop). */
+      type: 'list';
+      label?: string;
+      nodes: { value: Value; next: number | null }[];
+      head: number | null;
+      pointers?: Pointer[];
+      highlight?: number[];
+    }
+  | {
+      type: 'buckets';
+      label?: string;
+      buckets: Value[][];
+      highlight?: number;
+    }
+  | {
+      type: 'tree';
+      label?: string;
+      /** binary: children are [left, right] (null for a missing side). nary: any number, in order. */
+      shape: 'binary' | 'nary';
+      nodes: TreeNode[];
+      root: string | null;
+      highlight?: string[];
+      done?: string[];
+      /** Small text under a node (e.g. "end" in a trie). */
+      notes?: Record<string, string>;
+    }
+  | {
+      /** Nodes are placed by the program, in a 320 x 200 px area. */
+      type: 'graph';
+      label?: string;
+      nodes: { id: string; label: string; x: number; y: number }[];
+      edges: { from: string; to: string; weight?: number }[];
+      directed?: boolean;
+      highlight?: string[];
+      done?: string[];
+      activeEdges?: [string, string][];
+      /** Small text under a node (e.g. its distance). */
+      notes?: Record<string, string>;
     };
+
+export interface TreeNode {
+  id: string;
+  value: Value;
+  children: (string | null)[];
+}
 
 export interface Frame {
   /** 1-based line of `code` that just ran, or null for the setup or summary. */
