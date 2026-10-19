@@ -48,6 +48,7 @@ Treat the prototype as a reference for look and behaviour, not as code to extend
 - Work happens in small phases with testing. Phase list and exit criteria are in `CLAUDE.md` section 9.
 - Agentic AI lessons use simulated, rule-based agents. No live model calls and no API keys.
 - 2026-10-19, tech stack: vanilla TypeScript (no UI framework), Vite for dev server and build, Vitest for tests. The owner left the choice to Claude. Reasons: the core is an SVG animation engine, so a framework adds little; typed lesson schema; small bundle for mid-range phones.
+- 2026-10-19, toolchain: Node 24 LTS (v24.22.0), installed for the user only in `~/.local/node`. TypeScript is pinned to 6.0.x, not 7.x, because typescript-eslint 8.71.2 supports only `typescript >=4.8.4 <6.1.0`. Upgrade when typescript-eslint supports 7.
 - 2026-10-19, hosting: GitHub Pages (HTTPS, so the PWA can install), with GitHub Actions running the tests as CI. Owner approved.
 - 2026-10-19, layout: docs moved into `docs/`, prototype into `prototype/`, git repo initialised. Owner approved.
 
