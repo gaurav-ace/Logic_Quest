@@ -1,6 +1,8 @@
 # Curriculum
 
-Status: **draft for the owner's review** (2026-10-19). Edit freely: reorder, cut, add. Once approved, each phase builds the lessons in its section.
+Status: **approved by the owner** (2026-10-19), with Phase 5c (real-world systems) added at the owner's request.
+
+**Goal of the whole curriculum:** after finishing it, the learner is confident working as a senior SDE: they can break down unfamiliar problems, choose and justify data structures and algorithms, and lead a design discussion for a large real-world system. Edit freely: reorder, cut, add. Once approved, each phase builds the lessons in its section.
 
 This is a planning list, not lesson content. Facts, sources and quiz questions are written and checked when each lesson is built (CLAUDE.md section 5). Extra lessons can be requested at any time and go through the same "Claude drafts, owner reviews" process.
 
@@ -140,6 +142,50 @@ Every lesson ends with a quiz in which each option is explained, and hard lesson
 | O13 | Design: rate limiter class | Turn the S12 algorithm into a clean, testable class | H | Trace |
 | O14 | Design: tool-calling agent | Classes for an agent: Tool, Memory, Planner, Guardrail | H | Trace |
 
+## Phase 5c: Real-world systems (20 lessons)
+
+Taught like a senior design review: clarify requirements, estimate scale, design the API and data model, draw the high-level design, deep-dive the hardest parts, weigh trade-offs, then inject failures. Each case study ends with the learner critiquing a flawed design.
+
+**Accuracy rule:** company names are used for context only. Any claim about how a real company's system works must cite that company's own published article. Anything else is labelled "a plausible design, not <company>'s actual architecture".
+
+### Case studies
+| # | Lesson | Hard parts covered | Level | Animates |
+|---|---|---|---|---|
+| R1 | Payment gateway | Authorise and capture, idempotency keys, double-entry ledger, webhooks with retries, reconciliation | H | Sim |
+| R2 | Food delivery (Swiggy-style) | Order state machine, restaurant and delivery-partner matching, ETAs, dinner-time peaks | H | Sim |
+| R3 | Ride-hailing (Uber-style) | Live driver locations, geospatial indexing, matching, surge pricing | H | Sim |
+| R4 | Train ticket booking (IRCTC Tatkal-style) | Traffic spike at opening time, waiting rooms and queues, seat inventory without double booking, seat holds during payment | H | Sim |
+| R5 | Chat at scale | Delivery receipts, ordering, presence, storing huge message histories | H | Sim |
+| R6 | Video streaming | CDNs, adaptive bitrate, encoding pipeline | M | Diagram |
+| R7 | News feed | Fan-out on write versus on read, the celebrity problem | H | Sim |
+| R8 | E-commerce flash sale | Inventory reservation, overselling, cart expiry | H | Sim |
+| R9 | Notification system | Fan-out, user preferences, retries, rate limits per channel | M | Sim |
+| R10 | Search autocomplete | Tries versus precomputed top-k, freshness | M | Computed |
+| R11 | Unique ID generator | Time-ordered IDs without a central counter | M | Computed |
+| R12 | Collaborative editing | Concurrent edits, conflict resolution, presence | H | Sim |
+
+### Incident and engineering-article studies
+
+Built from the company's own write-up. Format: a timeline the learner steps through, predicting what fails next, then "how they fixed it" and "what you'd change".
+
+| # | Lesson | Source (checked to load 2026-10-19 unless marked) | Level |
+|---|---|---|---|
+| I1 | Meta outage, 4 Oct 2021 | Engineering at Meta, "More details about the October 4 outage" | H |
+| I2 | Cloudflare outage, 2 Jul 2019 | Cloudflare Blog, "Details of the Cloudflare outage on July 2, 2019" | H |
+| I3 | Amazon S3 disruption, Feb 2017 | AWS, "Summary of the Amazon S3 Service Disruption in the Northern Virginia (US-EAST-1) Region" | M |
+| I4 | GitHub incident, 21 Oct 2018 | The GitHub Blog, "October 21 post-incident analysis" | H |
+| I5 | Slack outage, 4 Jan 2021 | Engineering at Slack, "Slack's Outage on January 4th 2021" | M |
+| I6 | Storing trillions of messages | Discord Blog, "How Discord Stores Trillions of Messages" | H |
+| I7 | Safe retries for payments | Stripe Blog, "Designing robust and predictable APIs with idempotency" | M |
+| I8 | Geospatial indexing at Uber | Uber engineering blog on H3 (`TODO-VERIFY`: page refused automated access) | H |
+
+More articles can be added on request. Netflix and Swiggy engineering blogs are candidates (`TODO-VERIFY`: they could not be reached automatically on 2026-10-19).
+
+### Capstone
+| # | Lesson | Goal | Level |
+|---|---|---|---|
+| C1 | Senior design review | Given a flawed design for a new system, find the risks, rank them and propose fixes, with no hints | H |
+
 ## Phase 6: Agentic AI (10 lessons)
 
 | # | Lesson | Goal | Level | Animates |
@@ -168,5 +214,6 @@ Turn a real codebase's HLD and LLD into a lesson, reusing existing analysis tool
 | DSA | 30 |
 | HLD | 16 |
 | LLD | 14 |
+| Real-world systems (case studies, incidents, capstone) | 21 |
 | Agentic AI | 10 |
-| **Planned total** | **82** |
+| **Planned total** | **103** |
