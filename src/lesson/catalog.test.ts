@@ -90,6 +90,10 @@ describe('lesson catalog', () => {
       'observer',
       'decorator-adapter',
       'state-machines',
+      'design-parking-lot',
+      'design-lru-cache',
+      'design-rate-limiter',
+      'design-agent-classes',
       'agent-loop',
     ]);
   });

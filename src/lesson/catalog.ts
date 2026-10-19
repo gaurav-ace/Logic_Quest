@@ -66,6 +66,10 @@ import strategyFactoryLesson from '../../lessons/strategy-factory.json';
 import observerLesson from '../../lessons/observer.json';
 import decoratorAdapterLesson from '../../lessons/decorator-adapter.json';
 import stateMachinesLesson from '../../lessons/state-machines.json';
+import designParkingLotLesson from '../../lessons/design-parking-lot.json';
+import designLruCacheLesson from '../../lessons/design-lru-cache.json';
+import designRateLimiterLesson from '../../lessons/design-rate-limiter.json';
+import designAgentClassesLesson from '../../lessons/design-agent-classes.json';
 import { getModel } from '../sim/registry';
 import { getProgram } from '../trace/registry';
 import type { Lesson, SimLesson } from './schema';
@@ -143,6 +147,10 @@ export const LESSON_DATA: unknown[] = [
   observerLesson,
   decoratorAdapterLesson,
   stateMachinesLesson,
+  designParkingLotLesson,
+  designLruCacheLesson,
+  designRateLimiterLesson,
+  designAgentClassesLesson,
   agentLoop,
 ];
 

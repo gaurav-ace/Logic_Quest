@@ -1,6 +1,6 @@
 # Phase 5b plan: Low-level design (LLD)
 
-Status: draft, awaiting the owner's approval.
+Status: approved 2026-10-19 ("Approve, build all of it"). All four batches built 2026-10-19; awaiting the owner's review.
 
 **Goal (CLAUDE.md section 9):** classes and responsibilities, interfaces, composition versus inheritance, SOLID, key design patterns, and worked design problems, with tap-based exercises (assign responsibilities, pick the pattern, spot the violation).
 
@@ -10,7 +10,7 @@ Status: draft, awaiting the owner's approval.
 
 LLD is about the *shape* of code, so Phase 5b adds three things to the engine:
 
-- **Class diagram view:** boxes with a class name, a few fields and methods, and labelled arrows for "inherits", "implements", "has" (composition) and "uses". It works as a step view in diagram lessons and as a frame view in traces, so one implementation serves both. Laid out for a 360 px phone: at most about 4 classes on screen, in two columns, text at least 14 px. A long method list folds to "+2 more" instead of shrinking the text.
+- **Class diagram view:** boxes with a class name, a few fields and methods, and labelled arrows for "inherits", "implements", "has" (composition) and "uses". It works as a step view in diagram lessons and as a frame view in traces, so one implementation serves both. Laid out for a 360 px phone: at most about 4 classes on screen, in two columns, text at least 14 px. As built: the validator allows at most 5 members per class instead of folding long lists, so nothing is hidden.
 - **Sequence diagram view:** a few objects across the top and the calls between them as numbered arrows, for flows such as Observer notifying listeners, or an agent calling a tool. Each step can highlight one call.
 - **"Improve the design" exercise (new lesson part, after the steps and before the quiz):** the learner sees a flawed class diagram and a change request (for example "add an electric-vehicle spot"). They tap the classes they'd have to edit (spot the problem), then pick the fix from options, each explained. The diagram then changes to the improved design, and the same change request runs again: now one class changes instead of four. That before/after count is the "see why it is better". Correct first try earns XP, as quizzes do; wrong taps get a hint, never a penalty.
 - **Short code panels on steps:** a few lines of Python (at most 34 characters a line, as in the traces) to show what the diagram means in code.

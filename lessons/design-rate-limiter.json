@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "design-rate-limiter",
+  "title": "Design: rate limiter class",
+  "track": "lld",
+  "level": "hard",
+  "objective": "Turn the token bucket into a clean class: one bucket per user, and a clock passed in so tests don't have to wait.",
+  "program": "limiter-class",
+  "requires": [
+    "design-lru-cache",
+    "rate-limiting"
+  ],
+  "sources": [
+    {
+      "title": "IETF RFC 6585: 429 Too Many Requests",
+      "url": "https://www.rfc-editor.org/rfc/rfc6585"
+    },
+    {
+      "title": "Robert C. Martin, Solid Relevance (Clean Coder Blog, 2020): one-line definitions of all five SOLID principles",
+      "url": "https://blog.cleancoder.com/uncle-bob/2020/10/18/Solid-Relevance.html"
+    }
+  ],
+  "simplifies": "Buckets live in one process's memory and are never cleaned up. Real limiters share state across servers (often in Redis), expire idle users' buckets, and tell clients when to retry.",
+  "diagrams": {
+    "copies": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "gateway",
+          "name": "Gateway",
+          "col": 0,
+          "row": 0,
+          "fields": [
+            "counts"
+          ],
+          "methods": [
+            "handle(req)"
+          ]
+        },
+        {
+          "id": "login",
+          "name": "Login",
+          "col": 1,
+          "row": 0,
+          "fields": [
+            "counts"
+          ],
+          "methods": [
+            "attempt(u)"
+          ]
+        },
+        {
+          "id": "upload",
+          "name": "Upload",
+          "col": 0,
+          "row": 1,
+          "fields": [
+            "counts"
+          ],
+          "methods": [
+            "put(file)"
+          ]
+        }
+      ],
+      "relations": []
+    },
+    "shared": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "gateway",
+          "name": "Gateway",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "handle(req)"
+          ]
+        },
+        {
+          "id": "login",
+          "name": "Login",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "attempt(u)"
+          ]
+        },
+        {
+          "id": "limiter",
+          "name": "Limiter",
+          "col": "both",
+          "row": 1,
+          "fields": [
+            "users: user → Bucket"
+          ],
+          "methods": [
+            "allow(user)"
+          ]
+        },
+        {
+          "id": "upload",
+          "name": "Upload",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "put(file)"
+          ]
+        },
+        {
+          "id": "clock",
+          "name": "Clock",
+          "col": 1,
+          "row": 2,
+          "kind": "interface",
+          "methods": [
+            "() → now"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "gateway",
+          "to": "limiter",
+          "type": "uses"
+        },
+        {
+          "from": "login",
+          "to": "limiter",
+          "type": "uses"
+        },
+        {
+          "from": "upload",
+          "to": "limiter",
+          "type": "uses"
+        },
+        {
+          "from": "limiter",
+          "to": "clock",
+          "type": "uses"
+        }
+      ]
+    }
+  },
+  "exercise": {
+    "change": "Log every blocked request, with the user and the time.",
+    "flawed": "copies",
+    "fixed": "shared",
+    "edits": {
+      "flawed": [
+        "gateway",
+        "login",
+        "upload"
+      ],
+      "fixed": [
+        "limiter"
+      ]
+    },
+    "hint": "Each class counts requests in its own way. Where is the decision to block made?",
+    "fix": {
+      "prompt": "How should the design change?",
+      "options": [
+        {
+          "text": "Put the limiting in one Limiter class (per-user buckets, a clock passed in) that all three use",
+          "explanation": "Right. The block decision happens in one place, so logging it is one edit."
+        },
+        {
+          "text": "Add a log line to each class's own counting code",
+          "explanation": "Three edits, and three slightly different limiters to keep in step."
+        },
+        {
+          "text": "Remove rate limiting from Login",
+          "explanation": "Login is where limits matter most: it slows password guessing."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Gateway, Login and Upload ask Limiter.allow(user). The decision is made in one place, so logging blocked requests is one edit, and the fake clock makes it easy to test."
+  },
+  "quiz": [
+    {
+      "prompt": "Why pass a clock into the Limiter instead of calling time.time() inside it?",
+      "options": [
+        {
+          "text": "Tests can use a fake clock and run a minute of traffic instantly, with exact times",
+          "explanation": "Right. Hidden calls to the real clock make tests slow and flaky."
+        },
+        {
+          "text": "time.time() is inaccurate",
+          "explanation": "It's accurate enough; the problem is testing."
+        },
+        {
+          "text": "Python doesn't allow time.time() in classes",
+          "explanation": "It does; passing the clock in is a design choice."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Asha has used all her tokens. Ravi sends his first request. What happens?",
+      "options": [
+        {
+          "text": "It's allowed: Ravi has his own bucket",
+          "explanation": "Right. Per-user buckets stop one busy user from blocking everyone."
+        },
+        {
+          "text": "It's blocked: the limiter is out of tokens",
+          "explanation": "Tokens are per user here, not shared."
+        },
+        {
+          "text": "It waits until Asha's bucket refills",
+          "explanation": "Ravi's request doesn't depend on Asha's bucket at all."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

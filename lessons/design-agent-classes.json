@@ -1,0 +1,443 @@
+{
+  "schemaVersion": 1,
+  "kind": "design",
+  "id": "design-agent-classes",
+  "title": "Design: tool-calling agent",
+  "track": "lld",
+  "level": "hard",
+  "objective": "Split a tool-calling agent into parts (loop, model, tools, memory, guardrail) so each can change and be tested on its own.",
+  "requires": [
+    "design-rate-limiter",
+    "agent-loop"
+  ],
+  "sources": [
+    {
+      "title": "Anthropic: Building effective agents (agents as models using tools in a loop, with stopping conditions such as a maximum number of iterations)",
+      "url": "https://www.anthropic.com/engineering/building-effective-agents"
+    },
+    {
+      "title": "Yao et al. (2022), ReAct: Synergizing Reasoning and Acting in Language Models",
+      "url": "https://arxiv.org/abs/2210.03629"
+    }
+  ],
+  "simplifies": "The model is an interface here; in tests (and in this app) it's a scripted fake, so there are no live model calls. Real agents also handle tool errors, time limits, cost limits and asking a person for approval.",
+  "diagrams": {
+    "blob": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "agent",
+          "name": "Agent",
+          "col": "both",
+          "row": 0,
+          "fields": [
+            "history",
+            "max_turns"
+          ],
+          "methods": [
+            "run(goal)"
+          ]
+        }
+      ],
+      "relations": []
+    },
+    "parts": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "model",
+          "name": "Model",
+          "col": 0,
+          "row": 0,
+          "kind": "interface",
+          "methods": [
+            "next_step(h)"
+          ]
+        },
+        {
+          "id": "tool",
+          "name": "Tool",
+          "col": 1,
+          "row": 0,
+          "kind": "interface",
+          "fields": [
+            "name"
+          ],
+          "methods": [
+            "run(args)"
+          ]
+        },
+        {
+          "id": "agent",
+          "name": "Agent",
+          "col": "both",
+          "row": 1,
+          "fields": [
+            "max_turns"
+          ],
+          "methods": [
+            "run(goal)"
+          ]
+        },
+        {
+          "id": "memory",
+          "name": "Memory",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "add(msg)",
+            "recent(n)"
+          ]
+        },
+        {
+          "id": "guard",
+          "name": "Guardrail",
+          "col": 1,
+          "row": 2,
+          "methods": [
+            "check(step)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "agent",
+          "to": "model",
+          "type": "uses"
+        },
+        {
+          "from": "agent",
+          "to": "tool",
+          "type": "uses"
+        },
+        {
+          "from": "agent",
+          "to": "memory",
+          "type": "has"
+        },
+        {
+          "from": "agent",
+          "to": "guard",
+          "type": "uses"
+        }
+      ]
+    },
+    "turn": {
+      "type": "sequence",
+      "actors": [
+        "Agent",
+        "Model",
+        "Guard",
+        "Tool"
+      ],
+      "calls": [
+        {
+          "from": "Agent",
+          "to": "Model",
+          "label": "next_step(history)"
+        },
+        {
+          "from": "Model",
+          "to": "Agent",
+          "label": "call search(...)",
+          "reply": true
+        },
+        {
+          "from": "Agent",
+          "to": "Guard",
+          "label": "check(step)"
+        },
+        {
+          "from": "Guard",
+          "to": "Agent",
+          "label": "allowed",
+          "reply": true
+        },
+        {
+          "from": "Agent",
+          "to": "Tool",
+          "label": "run(args)"
+        },
+        {
+          "from": "Tool",
+          "to": "Agent",
+          "label": "3 results",
+          "reply": true
+        }
+      ]
+    },
+    "hardcoded": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "agent",
+          "name": "Agent",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "run(goal)"
+          ]
+        },
+        {
+          "id": "prompt",
+          "name": "Prompt",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "tools_text()"
+          ]
+        },
+        {
+          "id": "guard",
+          "name": "Guardrail",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "allowed(name)"
+          ]
+        }
+      ],
+      "relations": []
+    },
+    "registry": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "agent",
+          "name": "Agent",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "run(goal)"
+          ]
+        },
+        {
+          "id": "prompt",
+          "name": "Prompt",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "tools_text()"
+          ]
+        },
+        {
+          "id": "registry",
+          "name": "ToolRegistry",
+          "col": "both",
+          "row": 1,
+          "fields": [
+            "tools"
+          ],
+          "methods": [
+            "get(name)",
+            "all()"
+          ]
+        },
+        {
+          "id": "guard",
+          "name": "Guardrail",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "allowed(name)"
+          ]
+        },
+        {
+          "id": "tool",
+          "name": "Tool",
+          "col": 1,
+          "row": 2,
+          "kind": "interface",
+          "fields": [
+            "name, about"
+          ],
+          "methods": [
+            "run(args)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "agent",
+          "to": "registry",
+          "type": "uses"
+        },
+        {
+          "from": "prompt",
+          "to": "registry",
+          "type": "uses"
+        },
+        {
+          "from": "guard",
+          "to": "registry",
+          "type": "uses"
+        },
+        {
+          "from": "registry",
+          "to": "tool",
+          "type": "has"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "caption": "A first agent is often one big function: call the model, parse its reply, run a tool with an if/elif on its name, append to a list, and stop after N turns.",
+      "diagram": "blob",
+      "highlight": [
+        "agent"
+      ]
+    },
+    {
+      "caption": "Split it by job. Agent runs the loop; the Model decides the next step; Tools act; Memory holds history; a Guardrail checks each step.",
+      "diagram": "parts",
+      "highlight": [
+        "agent"
+      ]
+    },
+    {
+      "caption": "One turn: the agent sends the history to the model…",
+      "diagram": "turn",
+      "call": 0
+    },
+    {
+      "caption": "…the model asks for a tool…",
+      "diagram": "turn",
+      "call": 1,
+      "predict": {
+        "prompt": "The model asks to call delete_files(). Who should stop it?",
+        "options": [
+          {
+            "text": "The guardrail, before the tool runs",
+            "explanation": "Right. Checking every step before acting is the guardrail's one job."
+          },
+          {
+            "text": "The tool itself, after it has started",
+            "explanation": "By then the damage may be done."
+          },
+          {
+            "text": "Nobody: the model knows best",
+            "explanation": "Models make mistakes; tools have real effects."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "…the guardrail checks the step…",
+      "diagram": "turn",
+      "call": 3
+    },
+    {
+      "caption": "…and the tool runs. Its result goes back into memory, and the loop goes round again.",
+      "diagram": "turn",
+      "call": 5
+    },
+    {
+      "caption": "Because Model is an interface, a test can pass a scripted FakeModel and check the loop's rules (the turn limit, the guardrail) without any real model calls.",
+      "diagram": "parts",
+      "highlight": [
+        "model",
+        "guard"
+      ],
+      "code": [
+        "agent = Agent(",
+        "    model=FakeModel(script),",
+        "    tools=[Search()],",
+        "    max_turns=5)",
+        "agent.run('find flights')"
+      ],
+      "predict": {
+        "prompt": "How do you test that the agent stops after 5 turns, without paying for model calls?",
+        "options": [
+          {
+            "text": "Pass a FakeModel that never says it's finished, and check the agent stops at 5",
+            "explanation": "Right. The loop's rules are tested on their own."
+          },
+          {
+            "text": "Run the real model many times and hope it loops",
+            "explanation": "Slow, costly and flaky."
+          },
+          {
+            "text": "You can't test agents",
+            "explanation": "The loop is ordinary code; only the model needs faking."
+          }
+        ],
+        "answer": 0
+      }
+    }
+  ],
+  "exercise": {
+    "change": "Add a web-browsing tool.",
+    "flawed": "hardcoded",
+    "fixed": "registry",
+    "edits": {
+      "flawed": [
+        "agent",
+        "prompt",
+        "guard"
+      ],
+      "fixed": [
+        "registry"
+      ]
+    },
+    "hint": "Each of these classes has its own hand-written list of tool names.",
+    "fix": {
+      "prompt": "How should the design change?",
+      "options": [
+        {
+          "text": "Give every tool a Tool interface (name, description, run) and keep them in one registry that Agent, Prompt and Guardrail read",
+          "explanation": "Right. A new tool is a new class plus one line registering it."
+        },
+        {
+          "text": "Add a browse branch to each class's list",
+          "explanation": "Three edits now and for every future tool, and the lists drift apart."
+        },
+        {
+          "text": "Let the model call any Python function by name",
+          "explanation": "Then nothing limits what it can run; the guardrail has nothing to check against."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Agent looks tools up in the registry, Prompt describes the registered tools to the model, and Guardrail checks names against it. Adding browsing is a BrowseTool class plus one line to register it."
+  },
+  "quiz": [
+    {
+      "prompt": "Why put the model behind a Model interface?",
+      "options": [
+        {
+          "text": "Tests can swap in a scripted fake, and you can change providers without touching the loop",
+          "explanation": "Right. The loop depends on what a model does, not which one it is."
+        },
+        {
+          "text": "Model providers require it",
+          "explanation": "It's a design choice on your side."
+        },
+        {
+          "text": "It makes the model smarter",
+          "explanation": "It changes the code's structure, not the model."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "What should stop an agent that keeps calling the same tool forever?",
+      "options": [
+        {
+          "text": "A turn limit checked in the loop every turn, with the guardrail as a second line",
+          "explanation": "Right. Stopping conditions belong in the loop's code, not in hope."
+        },
+        {
+          "text": "Waiting for the model to notice",
+          "explanation": "It may never notice."
+        },
+        {
+          "text": "A bigger context window",
+          "explanation": "That only lets the loop run longer."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

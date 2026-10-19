@@ -1,0 +1,519 @@
+{
+  "schemaVersion": 1,
+  "kind": "design",
+  "id": "design-parking-lot",
+  "title": "Design: parking lot",
+  "track": "lld",
+  "level": "hard",
+  "objective": "Go from requirements to classes for a parking lot: who holds which data, how a car is parked, how fees are worked out, and what breaks with two gates.",
+  "requires": [
+    "state-machines"
+  ],
+  "sources": [
+    {
+      "title": "Gamma, Helm, Johnson and Vlissides, Design Patterns (Addison-Wesley, 1994): the Strategy pattern (fee policies)"
+    },
+    {
+      "title": "Python docs: math.ceil (round up)",
+      "url": "https://docs.python.org/3/library/math.html#math.ceil"
+    },
+    {
+      "title": "Python docs: threading Lock objects (one thread at a time)",
+      "url": "https://docs.python.org/3/library/threading.html#lock-objects"
+    }
+  ],
+  "simplifies": "One lot in one process. A real system keeps spots in a database, where a transaction (not a Python lock) makes taking a spot atomic across many gates. Rates (₹40 an hour) are illustrative.",
+  "diagrams": {
+    "core": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "lot",
+          "name": "ParkingLot",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "park(v)",
+            "leave(ticket)"
+          ]
+        },
+        {
+          "id": "ticket",
+          "name": "Ticket",
+          "col": 1,
+          "row": 0,
+          "fields": [
+            "spot",
+            "entered"
+          ]
+        },
+        {
+          "id": "floor",
+          "name": "Floor",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "free_spot(v)"
+          ]
+        },
+        {
+          "id": "spot",
+          "name": "Spot",
+          "col": 1,
+          "row": 1,
+          "fields": [
+            "size",
+            "vehicle"
+          ],
+          "methods": [
+            "fits(v)"
+          ]
+        },
+        {
+          "id": "vehicle",
+          "name": "Vehicle",
+          "col": 1,
+          "row": 2,
+          "fields": [
+            "size"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "lot",
+          "to": "floor",
+          "type": "has"
+        },
+        {
+          "from": "floor",
+          "to": "spot",
+          "type": "has"
+        },
+        {
+          "from": "ticket",
+          "to": "spot",
+          "type": "uses"
+        },
+        {
+          "from": "spot",
+          "to": "vehicle",
+          "type": "uses"
+        }
+      ]
+    },
+    "park": {
+      "type": "sequence",
+      "actors": [
+        "Lot",
+        "Floor",
+        "Spot",
+        "Ticket"
+      ],
+      "calls": [
+        {
+          "from": "Lot",
+          "to": "Floor",
+          "label": "free_spot(car)"
+        },
+        {
+          "from": "Floor",
+          "to": "Spot",
+          "label": "fits(car)"
+        },
+        {
+          "from": "Spot",
+          "to": "Floor",
+          "label": "yes",
+          "reply": true
+        },
+        {
+          "from": "Floor",
+          "to": "Lot",
+          "label": "spot B12",
+          "reply": true
+        },
+        {
+          "from": "Lot",
+          "to": "Ticket",
+          "label": "new(B12, 10:05)"
+        }
+      ]
+    },
+    "fees": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "ticket",
+          "name": "Ticket",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "fee(now)"
+          ]
+        },
+        {
+          "id": "policy",
+          "name": "FeePolicy",
+          "col": 1,
+          "row": 0,
+          "kind": "interface",
+          "methods": [
+            "fee(t, now)"
+          ]
+        },
+        {
+          "id": "hourly",
+          "name": "Hourly",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "fee(t, now)"
+          ]
+        },
+        {
+          "id": "flat",
+          "name": "FlatRate",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "fee(t, now)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "ticket",
+          "to": "policy",
+          "type": "uses"
+        },
+        {
+          "from": "hourly",
+          "to": "policy",
+          "type": "implements"
+        },
+        {
+          "from": "flat",
+          "to": "policy",
+          "type": "implements"
+        }
+      ]
+    },
+    "kinds": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "lot",
+          "name": "ParkingLot",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "park(v)"
+          ]
+        },
+        {
+          "id": "ticket",
+          "name": "Ticket",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "fee()"
+          ]
+        },
+        {
+          "id": "board",
+          "name": "Board",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "free_count()"
+          ]
+        },
+        {
+          "id": "spot",
+          "name": "Spot",
+          "col": 1,
+          "row": 1,
+          "fields": [
+            "kind: str"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "lot",
+          "to": "spot",
+          "type": "uses"
+        },
+        {
+          "from": "ticket",
+          "to": "spot",
+          "type": "uses"
+        },
+        {
+          "from": "board",
+          "to": "spot",
+          "type": "uses"
+        }
+      ]
+    },
+    "types": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "lot",
+          "name": "ParkingLot",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "park(v)"
+          ]
+        },
+        {
+          "id": "ticket",
+          "name": "Ticket",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "fee()"
+          ]
+        },
+        {
+          "id": "floor",
+          "name": "Floor",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "build_spots()"
+          ]
+        },
+        {
+          "id": "spot",
+          "name": "Spot",
+          "col": 1,
+          "row": 1,
+          "kind": "abstract",
+          "methods": [
+            "fits(v)",
+            "fee_policy()"
+          ]
+        },
+        {
+          "id": "board",
+          "name": "Board",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "free_count()"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "lot",
+          "to": "floor",
+          "type": "has"
+        },
+        {
+          "from": "ticket",
+          "to": "spot",
+          "type": "uses"
+        },
+        {
+          "from": "floor",
+          "to": "spot",
+          "type": "has"
+        },
+        {
+          "from": "board",
+          "to": "spot",
+          "type": "uses"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "caption": "Requirements first: cars, bikes and trucks; small, medium and large spots on several floors; a ticket at entry; pay by time at exit. The nouns are candidate classes.",
+      "diagram": "core",
+      "highlight": [
+        "lot",
+        "floor",
+        "spot",
+        "ticket",
+        "vehicle"
+      ]
+    },
+    {
+      "caption": "Give each job to the class that has the data. Floor knows its spots, so Floor finds a free one.",
+      "diagram": "core",
+      "highlight": [
+        "floor"
+      ],
+      "predict": {
+        "prompt": "Who should decide whether a bike fits a spot?",
+        "options": [
+          {
+            "text": "Spot, with fits(vehicle): it knows its own size",
+            "explanation": "Right. The rule lives next to the data it needs."
+          },
+          {
+            "text": "ParkingLot, by checking every spot's size itself",
+            "explanation": "Then ParkingLot needs to know every spot type's rules."
+          },
+          {
+            "text": "The driver",
+            "explanation": "The system has to check; drivers don't always choose well."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Parking a car: the lot asks a floor for a free spot…",
+      "diagram": "park",
+      "call": 0
+    },
+    {
+      "caption": "…the floor asks each spot whether the car fits…",
+      "diagram": "park",
+      "call": 2
+    },
+    {
+      "caption": "…and the lot writes a ticket for the spot it got.",
+      "diagram": "park",
+      "call": 4
+    },
+    {
+      "caption": "Fees vary (hourly in malls, flat at events), so the ticket asks a FeePolicy: the Strategy pattern again.",
+      "diagram": "fees",
+      "highlight": [
+        "policy"
+      ],
+      "code": [
+        "class Hourly(FeePolicy):",
+        "    def fee(self, t, now):",
+        "        mins = now - t.entered",
+        "        hours = ceil(mins / 60)",
+        "        return 40 * hours"
+      ],
+      "predict": {
+        "prompt": "A car stays 2 hours 10 minutes at ₹40 an hour, rounded up. What's the fee?",
+        "options": [
+          {
+            "text": "₹120",
+            "explanation": "Right. ceil rounds 2.17 hours up to 3, and 3 × 40 = 120."
+          },
+          {
+            "text": "₹80",
+            "explanation": "That rounds down to 2 hours; ceil rounds up."
+          },
+          {
+            "text": "₹86.67",
+            "explanation": "That charges for exact minutes; this policy rounds up to whole hours."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Two gates ask for a free spot at the same moment. If both read \"B12 is free\" before either marks it taken, both cars get B12. Taking a spot must happen one at a time (a lock here; a database transaction in real systems).",
+      "diagram": "core",
+      "highlight": [
+        "floor",
+        "spot"
+      ],
+      "predict": {
+        "prompt": "Two entry gates call free_spot() at the same instant. What can go wrong?",
+        "options": [
+          {
+            "text": "Both get the same spot, unless finding and taking it happen as one step",
+            "explanation": "Right. Check-then-act races are a classic concurrency bug."
+          },
+          {
+            "text": "Nothing: computers do one thing at a time",
+            "explanation": "Two gates are two threads (or two servers); their steps can interleave."
+          },
+          {
+            "text": "The lot runs out of spots",
+            "explanation": "There are spots; the problem is two cars getting the same one."
+          }
+        ],
+        "answer": 0
+      }
+    }
+  ],
+  "exercise": {
+    "change": "Add electric-vehicle spots that charge by the hour.",
+    "flawed": "kinds",
+    "fixed": "types",
+    "edits": {
+      "flawed": [
+        "lot",
+        "ticket",
+        "board"
+      ],
+      "fixed": [
+        "floor"
+      ]
+    },
+    "hint": "Spot just stores a kind string. Which classes have an if/elif on spot.kind?",
+    "fix": {
+      "prompt": "How should the design change?",
+      "options": [
+        {
+          "text": "Let each spot type decide fits() and its own fee policy, so callers never branch on the kind; Floor creates the spots",
+          "explanation": "Right. An EV spot is a new Spot subclass, plus one change where spots are built."
+        },
+        {
+          "text": "Add an 'ev' branch to each if-chain",
+          "explanation": "That's three edits now, and three more for the next spot type."
+        },
+        {
+          "text": "Make a second ParkingLot just for EV spots",
+          "explanation": "That copies the whole lot's logic and splits one car park in two."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Spot types carry their own rules (fits, fee policy), so ParkingLot, Ticket and Board never mention kinds. Adding EV spots is a new EvSpot class, plus one change to Floor, which builds the spots."
+  },
+  "quiz": [
+    {
+      "prompt": "In a design interview, what do you do first for \"design a parking lot\"?",
+      "options": [
+        {
+          "text": "Ask about requirements: vehicle types, spot sizes, payment, how many gates",
+          "explanation": "Right. Classes come from requirements; guessing them wastes the interview."
+        },
+        {
+          "text": "Start writing the Spot class",
+          "explanation": "Without requirements you don't know what Spot needs."
+        },
+        {
+          "text": "Pick a database",
+          "explanation": "Storage comes after you know the objects and how they behave."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why give Spot a fits(vehicle) method instead of checking sizes in ParkingLot?",
+      "options": [
+        {
+          "text": "Spot has the size data, so the rule lives next to it, and new spot types bring their own rule",
+          "explanation": "Right. Callers ask; they don't need to know the rules."
+        },
+        {
+          "text": "It runs faster",
+          "explanation": "Speed isn't the reason."
+        },
+        {
+          "text": "ParkingLot can't read a spot's size",
+          "explanation": "It could; the point is where the rule belongs."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

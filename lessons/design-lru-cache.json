@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "design-lru-cache",
+  "title": "Design: LRU cache",
+  "track": "lld",
+  "level": "hard",
+  "objective": "Build a least-recently-used cache where get and put both take constant time, using a hash map and a doubly linked list together.",
+  "program": "lru-cache",
+  "requires": [
+    "design-parking-lot",
+    "linked-lists",
+    "hash-maps"
+  ],
+  "sources": [
+    {
+      "title": "Python docs: functools.lru_cache (an LRU cache works best when recent calls predict upcoming ones)",
+      "url": "https://docs.python.org/3/library/functools.html#functools.lru_cache"
+    },
+    {
+      "title": "Python docs: collections.OrderedDict, suited to implementing LRU caches (move_to_end)",
+      "url": "https://docs.python.org/3/library/collections.html#collections.OrderedDict.move_to_end"
+    }
+  ],
+  "simplifies": "The list is drawn singly linked, newest first; the real one also has prev pointers, so a node can be unlinked from the middle in one step. One thread only: a cache shared between threads needs a lock around get and put.",
+  "diagrams": {
+    "copies": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "users",
+          "name": "UserService",
+          "col": 0,
+          "row": 0,
+          "fields": [
+            "cache, order"
+          ]
+        },
+        {
+          "id": "products",
+          "name": "Products",
+          "col": 1,
+          "row": 0,
+          "fields": [
+            "cache, order"
+          ]
+        },
+        {
+          "id": "prices",
+          "name": "Prices",
+          "col": 0,
+          "row": 1,
+          "fields": [
+            "cache, order"
+          ]
+        }
+      ],
+      "relations": []
+    },
+    "shared": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "users",
+          "name": "UserService",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "get_user(id)"
+          ]
+        },
+        {
+          "id": "products",
+          "name": "Products",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "get(id)"
+          ]
+        },
+        {
+          "id": "cache",
+          "name": "LRUCache",
+          "col": "both",
+          "row": 1,
+          "methods": [
+            "get(key)",
+            "put(key, val)"
+          ]
+        },
+        {
+          "id": "prices",
+          "name": "Prices",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "quote(id)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "users",
+          "to": "cache",
+          "type": "uses"
+        },
+        {
+          "from": "products",
+          "to": "cache",
+          "type": "uses"
+        },
+        {
+          "from": "prices",
+          "to": "cache",
+          "type": "uses"
+        }
+      ]
+    }
+  },
+  "exercise": {
+    "change": "Count cache hits and misses for a dashboard.",
+    "flawed": "copies",
+    "fixed": "shared",
+    "edits": {
+      "flawed": [
+        "users",
+        "products",
+        "prices"
+      ],
+      "fixed": [
+        "cache"
+      ]
+    },
+    "hint": "Each service keeps its own dict and order list, with its own copy of the eviction code.",
+    "fix": {
+      "prompt": "How should the design change?",
+      "options": [
+        {
+          "text": "Write one LRUCache class with get and put, and have each service use its own instance",
+          "explanation": "Right. The caching logic exists once, so counting hits is one edit."
+        },
+        {
+          "text": "Add hit counters to each service's copy",
+          "explanation": "Three edits now, and the copies drift apart over time."
+        },
+        {
+          "text": "Make the services inherit from each other to share the code",
+          "explanation": "They aren't kinds of each other; composition (each has a cache) fits."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "All three services now use LRUCache. Counting hits and misses is one change inside get(), and every service gets it at once."
+  },
+  "quiz": [
+    {
+      "prompt": "Why does an LRU cache need both a hash map and a linked list?",
+      "options": [
+        {
+          "text": "The map finds a key's node in O(1); the list moves and evicts nodes in O(1)",
+          "explanation": "Right. Either one alone makes some operation O(n)."
+        },
+        {
+          "text": "The list makes lookups faster",
+          "explanation": "Finding a key in a list means walking it: O(n)."
+        },
+        {
+          "text": "Python requires both",
+          "explanation": "It's a design choice for speed."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "A cache of 2 holds A (used just now) and B (used earlier). put(C) evicts…",
+      "options": [
+        {
+          "text": "B, the least recently used",
+          "explanation": "Right. A was used more recently, so B goes."
+        },
+        {
+          "text": "A, because it went in first",
+          "explanation": "LRU goes by last use, not by when an item was added."
+        },
+        {
+          "text": "C",
+          "explanation": "C is the new item being added."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}
