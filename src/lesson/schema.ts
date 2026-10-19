@@ -3,6 +3,12 @@
 
 export const SCHEMA_VERSION = 1;
 
+/** Diagram coordinate space and node box size, shared by the validator and the renderer. */
+export const DIAGRAM_W = 420;
+export const DIAGRAM_H = 200;
+export const DEFAULT_NODE_W = 104;
+export const NODE_H = 46;
+
 export interface Source {
   title: string;
   /** https only. Omit for books; put edition and chapter in the title instead. */
@@ -12,9 +18,11 @@ export interface Source {
 export interface LessonNode {
   id: string;
   label: string;
-  /** Position in the diagram's 420x200 coordinate space. */
+  /** Centre of the box in the diagram's 420x200 coordinate space. */
   x: number;
   y: number;
+  /** Box width in diagram units (default 104). Wider boxes fit longer labels at a readable size. */
+  width?: number;
 }
 
 /** Edges are undirected: a packet may travel either way along one. */

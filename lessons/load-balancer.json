@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "load-balancer",
+  "title": "Load balancer",
+  "objective": "See how a load balancer spreads requests across servers, and what it does when one of them fails.",
+  "sources": [
+    {
+      "title": "NGINX docs: Using nginx as HTTP load balancer (methods, round robin default, health checks)",
+      "url": "https://nginx.org/en/docs/http/load_balancing.html"
+    }
+  ],
+  "simplifies": "Every request here takes the same effort, so taking turns is fair. Real requests differ, which is why balancers also offer other methods, such as sending to the server with the fewest active connections, and server weights. Failure handling is simplified too: NGINX, for example, marks a server as failed only after a request to it fails, avoids it for a while, then tries it again with real requests.",
+  "nodes": [
+    { "id": "client", "label": "User", "x": 60, "y": 100, "width": 96 },
+    { "id": "balancer", "label": "Balancer", "x": 205, "y": 100, "width": 110 },
+    { "id": "s1", "label": "Server 1", "x": 355, "y": 36, "width": 110 },
+    { "id": "s2", "label": "Server 2", "x": 355, "y": 100, "width": 110 },
+    { "id": "s3", "label": "Server 3", "x": 355, "y": 164, "width": 110 }
+  ],
+  "edges": [
+    ["client", "balancer"],
+    ["balancer", "s1"],
+    ["balancer", "s2"],
+    ["balancer", "s3"]
+  ],
+  "steps": [
+    {
+      "caption": "A user opens your app. Their request goes to the load balancer, not straight to a server.",
+      "highlight": ["client"],
+      "path": [["client", "balancer"]]
+    },
+    {
+      "caption": "The balancer keeps track of which servers have been failing. Right now all three are working, so any of them can be picked.",
+      "highlight": ["s1", "s2", "s3"],
+      "path": []
+    },
+    {
+      "caption": "It picks Server 1. With round robin, the servers simply take turns in order.",
+      "highlight": ["balancer", "s1"],
+      "path": [["balancer", "s1"]]
+    },
+    {
+      "caption": "Server 1 handles the request. The reply goes back through the balancer to the user.",
+      "highlight": ["s1"],
+      "path": [["s1", "balancer"], ["balancer", "client"]]
+    },
+    {
+      "caption": "The next request goes to Server 2, and the one after that to Server 3. The work spreads across all three.",
+      "highlight": ["s2"],
+      "path": [["client", "balancer"], ["balancer", "s2"]]
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Server 2 starts returning errors. What should the balancer do?",
+      "options": [
+        {
+          "text": "Keep sending it every third request",
+          "explanation": "No. Those users would get errors, even though two working servers are free."
+        },
+        {
+          "text": "Stop sending it requests for a while, then try it again",
+          "explanation": "Right. The balancer marks the server as failed and skips it, then later tries it again in case it has recovered."
+        },
+        {
+          "text": "Send everything to Server 1",
+          "explanation": "No. Server 3 is still working. Piling every request onto one server can overload it too."
+        }
+      ],
+      "answer": 1
+    },
+    {
+      "prompt": "With round robin and three working servers, where does the 4th request go?",
+      "options": [
+        {
+          "text": "Server 1",
+          "explanation": "Right. After Server 3 has had its turn, the turn comes back round to Server 1."
+        },
+        {
+          "text": "Server 3",
+          "explanation": "No. Server 3 just took request 3. Round robin moves on to the next server in order."
+        },
+        {
+          "text": "Whichever server answered fastest",
+          "explanation": "No. That is a different method. Round robin only follows the order; it doesn't measure speed."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

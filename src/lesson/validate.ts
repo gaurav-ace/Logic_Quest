@@ -1,4 +1,8 @@
 import {
+  DEFAULT_NODE_W,
+  DIAGRAM_H,
+  DIAGRAM_W,
+  NODE_H,
   SCHEMA_VERSION,
   type Edge,
   type Lesson,
@@ -84,6 +88,15 @@ function checkNode(n: unknown, p: string, bad: Bad, ids: Set<string>): void {
   if (!isText(node.label)) bad(`${p}.label`, 'must be non-empty text');
   for (const axis of ['x', 'y'] as const) {
     if (typeof node[axis] !== 'number' || !Number.isFinite(node[axis])) bad(`${p}.${axis}`, 'must be a number');
+  }
+  if (node.width !== undefined && !(typeof node.width === 'number' && node.width >= 40 && node.width <= 200)) {
+    bad(`${p}.width`, 'must be a number from 40 to 200');
+  }
+  for (const key of Object.keys(n)) if (!['id', 'label', 'x', 'y', 'width'].includes(key)) bad(`${p}.${key}`, 'unknown field');
+  const w = typeof node.width === 'number' ? node.width : DEFAULT_NODE_W;
+  if (typeof node.x === 'number' && typeof node.y === 'number') {
+    const fits = node.x - w / 2 >= 0 && node.x + w / 2 <= DIAGRAM_W && node.y - NODE_H / 2 >= 0 && node.y + NODE_H / 2 <= DIAGRAM_H;
+    if (!fits) bad(p, `box does not fit inside the ${DIAGRAM_W}x${DIAGRAM_H} diagram`);
   }
 }
 

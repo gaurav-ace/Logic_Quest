@@ -1,9 +1,7 @@
 import type { Point } from '../engine/packet';
-import type { Lesson } from '../lesson/schema';
+import { DEFAULT_NODE_W, DIAGRAM_H, DIAGRAM_W, NODE_H, type Lesson } from '../lesson/schema';
 import { svg } from './dom';
 
-export const NODE_W = 104;
-const NODE_H = 46;
 
 export interface Diagram {
   element: SVGElement;
@@ -14,7 +12,7 @@ export interface Diagram {
 
 export function buildDiagram(lesson: Lesson): Diagram {
   const byId = new Map(lesson.nodes.map((n) => [n.id, n]));
-  const root = svg('svg', { viewBox: '0 0 420 200', role: 'img', 'aria-label': `Diagram: ${lesson.title}` });
+  const root = svg('svg', { viewBox: `0 0 ${DIAGRAM_W} ${DIAGRAM_H}`, role: 'img', 'aria-label': `Diagram: ${lesson.title}` });
 
   for (const [a, b] of lesson.edges) {
     const p = byId.get(a)!;
@@ -27,7 +25,7 @@ export function buildDiagram(lesson: Lesson): Diagram {
 
   const nodeEls = new Map<string, SVGElement>();
   for (const n of lesson.nodes) {
-    const w = NODE_W;
+    const w = n.width ?? DEFAULT_NODE_W;
     const g = svg('g', { class: 'node' });
     g.append(svg('rect', { x: n.x - w / 2, y: n.y - NODE_H / 2, width: w, height: NODE_H, rx: 10 }));
     const label = svg('text', { x: n.x, y: n.y });

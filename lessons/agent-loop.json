@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "agent-loop",
+  "title": "AI agent loop",
+  "objective": "See the loop that makes an AI agent: decide, act with a tool, look at the result, and repeat until done.",
+  "sources": [
+    {
+      "title": "Anthropic: Building effective agents",
+      "url": "https://www.anthropic.com/engineering/building-effective-agents"
+    },
+    {
+      "title": "Yao et al. (2022), ReAct: Synergizing Reasoning and Acting in Language Models",
+      "url": "https://arxiv.org/abs/2210.03629"
+    }
+  ],
+  "simplifies": "This agent always picks the right tool, and the tool never fails. Real agents can choose badly, get errors, or loop without making progress, which is why they need stopping conditions such as a maximum number of steps. Memory is drawn as one box; real agents store it in different ways. The flight search is an illustrative example.",
+  "nodes": [
+    { "id": "user", "label": "User", "x": 60, "y": 100, "width": 90 },
+    { "id": "llm", "label": "LLM", "x": 210, "y": 40, "width": 96 },
+    { "id": "tool", "label": "Tool", "x": 360, "y": 100, "width": 90 },
+    { "id": "memory", "label": "Memory", "x": 210, "y": 160, "width": 110 }
+  ],
+  "edges": [
+    ["user", "llm"],
+    ["llm", "tool"],
+    ["llm", "memory"]
+  ],
+  "steps": [
+    {
+      "caption": "The user gives a goal: “Find the cheapest flight to Pune next Friday.”",
+      "highlight": ["user"],
+      "path": [["user", "llm"]]
+    },
+    {
+      "caption": "The LLM can't know today's prices from its training, so it decides to call the flight-search tool.",
+      "highlight": ["llm"],
+      "path": [["llm", "tool"]]
+    },
+    {
+      "caption": "The tool runs and returns real results. This is the observation: facts from outside the model.",
+      "highlight": ["tool"],
+      "path": [["tool", "llm"]]
+    },
+    {
+      "caption": "The LLM saves what it found to memory, then checks: is the goal met yet?",
+      "highlight": ["llm", "memory"],
+      "path": [["llm", "memory"], ["memory", "llm"]]
+    },
+    {
+      "caption": "Not yet, so it loops: another search, another observation. When the goal is met, or a step limit is reached, it answers the user.",
+      "highlight": ["llm"],
+      "path": [["llm", "tool"], ["tool", "llm"], ["llm", "user"]]
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "What makes this an agent, and not a plain chatbot?",
+      "options": [
+        {
+          "text": "It uses a bigger model",
+          "explanation": "No. Model size doesn't make an agent. A small model working in a tool loop is still an agent."
+        },
+        {
+          "text": "It loops: it acts with tools, looks at the results, and decides again",
+          "explanation": "Right. An agent uses tools in a loop, guided by the feedback from each step, until the goal is done."
+        },
+        {
+          "text": "It answers faster",
+          "explanation": "No. Looping usually takes longer than a single reply. The gain is that it can act and check real data."
+        }
+      ],
+      "answer": 1
+    },
+    {
+      "prompt": "Why give an agent a maximum number of steps?",
+      "options": [
+        {
+          "text": "So the model thinks more carefully",
+          "explanation": "No. A limit doesn't change how the model reasons. It only caps how long the loop can run."
+        },
+        {
+          "text": "So it stops if it gets stuck repeating itself",
+          "explanation": "Right. A step limit is a stopping condition: it keeps a stuck agent from looping forever."
+        },
+        {
+          "text": "Because each tool can only be called once",
+          "explanation": "No. Tools can be called many times. Repeating calls is what the loop is for."
+        }
+      ],
+      "answer": 1
+    }
+  ]
+}

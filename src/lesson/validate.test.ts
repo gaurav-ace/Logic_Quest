@@ -102,6 +102,26 @@ describe('validateLesson', () => {
     expect(problemsOf(l)).toContain('nodes[2].id: duplicate node id "server"');
   });
 
+  it('accepts an optional node width and rejects a silly one', () => {
+    const l = lesson();
+    (l.nodes as { width?: unknown }[])[0]!.width = 120;
+    expect(() => validateLesson(l)).not.toThrow();
+    (l.nodes as { width?: unknown }[])[0]!.width = 5;
+    expect(problemsOf(l)).toContain('nodes[0].width: must be a number from 40 to 200');
+  });
+
+  it('rejects a node box that sticks out of the diagram', () => {
+    const l = lesson();
+    (l.nodes as { x: number }[])[1]!.x = 400; // 400 + 104/2 > 420
+    expect(problemsOf(l)).toContain('nodes[1]: box does not fit inside the 420x200 diagram');
+  });
+
+  it('rejects a misspelt node field', () => {
+    const l = lesson();
+    (l.nodes as Record<string, unknown>[])[0]!.widht = 120;
+    expect(problemsOf(l)).toContain('nodes[0].widht: unknown field');
+  });
+
   it('rejects a misspelt field instead of ignoring it', () => {
     expect(problemsOf({ ...lesson(), simplify: 'typo' })).toContain('simplify: unknown field');
   });
