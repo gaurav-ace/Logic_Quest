@@ -1,6 +1,6 @@
 # Phase 1 plan: Animation engine
 
-Status: approved 2026-10-19 (all of 1.1–1.4). The headless-Chrome check script is added to the repo as part of 1.2.
+Status: 1.1–1.4 built 2026-10-19. Waiting for the owner's content review, push, phone check and approval.
 
 **Goal (CLAUDE.md section 9):** a generic engine for nodes, edges, moving packets, highlights, captions, step back/forward, play/pause and speed control.
 

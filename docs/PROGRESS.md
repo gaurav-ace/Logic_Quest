@@ -4,9 +4,17 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 ## Current phase
 
-Phase 1, Animation engine. Plan in `docs/PHASE1_PLAN.md`, waiting for the owner's approval.
+Phase 1, Animation engine. Tasks 1.1–1.4 built and committed locally (not pushed). Not finished until: (1) the owner reviews the three lessons' content (agreed: Claude drafts, owner reviews), (2) push and green CI, (3) the owner's check on phone and desktop, (4) the owner approves the phase.
 
-Phase 0, Foundations: **done**, approved by the owner on 2026-10-19 after testing on web and on their Android phone. Live at https://gaurav-ace.github.io/Logic_Quest/.
+Phase 0, Foundations: **done**, approved 2026-10-19 after the owner tested on web and Android. Live at https://gaurav-ace.github.io/Logic_Quest/.
+
+## Done (Phase 1)
+
+- 1.1 Step player (`src/engine/player.ts`): 31 unit tests. Mutation check: disabling "play at the end restarts" made its test fail.
+- 1.2 Renderer on the player, new controls (dots, speed, Back/Play/Next), pause when hidden. `scripts/browser-check.mjs` committed.
+- 1.3 Load balancer, cache and agent loop lessons as JSON, each with sources whose wording was checked on 2026-10-19 (NGINX load balancing docs, Azure Cache-Aside pattern, Anthropic "Building effective agents", ReAct paper on arXiv). No `TODO-VERIFY` items. Validator now checks node fields and diagram bounds; catalog test fails if a lesson file is not listed.
+- 1.4 Lesson list, hash routes (router unit tests), Android back button, "Leave the quiz?" sheet.
+- Checks run: `npm run check` 72/72 tests; fresh clone `npm ci && npm run check && npm run build` passes; headless Chrome `browser-check.mjs ui` 69/69 (360 px phone with reduced motion, 740x360 landscape with motion, 1280 desktop, dark scheme) and `pwa` 7/7. Screenshots of every lesson reviewed.
 
 ## Done (Phase 0)
 
@@ -19,12 +27,13 @@ Phase 0, Foundations: **done**, approved by the owner on 2026-10-19 after testin
 
 ## Next step
 
-1. Owner approves `docs/PHASE1_PLAN.md` and answers its two questions.
-2. Build Phase 1 tasks 1.1–1.4, one commit each.
+1. Owner reviews the lesson text in `lessons/load-balancer.json`, `cache.json`, `agent-loop.json` (or in the app).
+2. Owner approves `git push origin main` (Phase 1 commits).
+3. Owner checks on phone and desktop, then approves Phase 1 → Phase 2 plan (rewards and progress).
 
 ## Blockers and questions for the owner
 
-- Phase 1 plan approval, lesson authoring approach, and whether to commit the browser check script (see the plan).
+- Lesson content review, push approval and the phone check (above).
 
 ## Not tested yet
 
@@ -32,6 +41,8 @@ Phase 0, Foundations: **done**, approved by the owner on 2026-10-19 after testin
 - Service worker update path (new deploy replacing the old cache) is reasoned about, not tested.
 - `vite.config.ts` is not type-checked (it would need `@types/node`, not approved). See `docs/IDEAS.md`.
 - Screen reader behaviour has not been tested; captions use `aria-live`.
+- Phase 1 has only been checked in headless Chrome emulation, not yet on the owner's Android phone.
+- The Android back button is simulated in tests by stepping back one browser history entry; the installed PWA's back gesture has not been checked.
 
 ## Environment notes
 
@@ -46,3 +57,4 @@ Phase 0, Foundations: **done**, approved by the owner on 2026-10-19 after testin
 - 2026-10-19: Owner approved the plan and asked for the whole phase at once. Installed Node 24 LTS user-level (nvm failed because of the IPv6 issue). Built tasks 0.1–0.5, one commit each.
 - 2026-10-19: Owner pushed. CI checks green on GitHub; deploy blocked until Pages source is set to GitHub Actions.
 - 2026-10-19: CI green and Pages live. Owner tested on web and Android: works. Phase 0 closed. Phase 1 plan written.
+- 2026-10-19: Owner approved the Phase 1 plan, chose "Claude drafts, owner reviews" for lessons, and asked for the check script in the repo. Built 1.1–1.4, one commit each. Not pushed.
