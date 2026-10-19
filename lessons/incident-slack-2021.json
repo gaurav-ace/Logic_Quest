@@ -24,7 +24,7 @@
       "url": "https://slack.engineering/slacks-outage-on-january-4th-2021/"
     }
   ],
-  "simplifies": "Simplified to its key moments from Slack's own write-up (times PST). Some times are approximate in the write-up itself (\"around 7:00am\"). AWS's Transit Gateways, the network links between Slack's networks, are shown as one box.",
+  "simplifies": "Simplified to its key moments from Slack's own write-up (times PST). Some times are approximate in the write-up itself (\"around 8:15am PST\", \"by around 9:15am PST\"). AWS's Transit Gateways, the network links between Slack's networks, are shown as one box.",
   "nodes": [
     {
       "id": "clients",
@@ -94,7 +94,7 @@
       ]
     },
     {
-      "caption": "Error rates rose: only 99% of messages were being sent successfully, against Slack's usual 99.999%. The network between Slack's systems was dropping packets.",
+      "caption": "Error rates rose: only 99% of messages were being sent successfully, when the rate is usually over 99.999%. The network between Slack's systems was dropping packets.",
       "highlight": [
         "net"
       ],

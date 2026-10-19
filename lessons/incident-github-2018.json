@@ -163,13 +163,13 @@
       "time": "23:19 UTC, 21 Oct"
     },
     {
-      "caption": "Restoring from backups began. \"The time required to restore multiple terabytes of backup data caused the process to take hours\", and replicas then caught up more slowly than estimated.",
+      "caption": "By 00:41, a restore from backups had been started for all affected database clusters. \"The time required to restore multiple terabytes of backup data caused the process to take hours\", and replicas then caught up more slowly than estimated.",
       "highlight": [
         "east",
         "west"
       ],
       "path": [],
-      "time": "00:05 UTC, 22 Oct"
+      "time": "00:41 UTC, 22 Oct"
     },
     {
       "caption": "The status returned to green. In all, the incident \"resulted in degraded service for 24 hours and 11 minutes.\"",

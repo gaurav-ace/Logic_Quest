@@ -257,7 +257,7 @@
         "why": "Free-text questions are fine; the risk is turning that text into database queries."
       }
     ],
-    "hint": "No hints in the capstone. Look again at anything that moves money, touches data, or retries.",
+    "hint": "Not quite. There are no hints in the capstone: go back over each choice in the proposal and check your picks again.",
     "first": {
       "prompt": "Which would you fix first?",
       "options": [

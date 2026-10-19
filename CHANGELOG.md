@@ -63,3 +63,5 @@
 - 5c.3 Case studies: chat at scale, video streaming, news feed (sim), flash sale (sim), notification system, search autocomplete (new `autocomplete` trace: each trie node keeps its top 2; tested against a full search of every prefix on 500 random search logs), unique ID generator, collaborative editing. Each fix-first question starts from a symptom, so one answer is clearly right.
 - 5c.4 Incidents and articles, each built only from the company's own write-up, with predictions along the timeline: Meta 2021, Cloudflare 2019, Amazon S3 2017, GitHub 2018, Slack 2021, Discord's message storage, Stripe's safe retries, and H3 (Uber's hexagonal grid, from h3geo.org). Capstone: a senior design review of an AI support assistant, with no hints. 93 lessons in all.
 - The validator now requires diagram boxes to be at least 6 units apart and 4 units inside the frame. Touching boxes had passed every check (two 5c.4 lessons and one 5c.3 critique).
+- 5c.4 review fixes: GitHub incident restore time corrected to 00:41 UTC (00:05 was when the plan began), two Slack wordings matched to the write-up, and the capstone's retry message no longer gives a hint.
+
