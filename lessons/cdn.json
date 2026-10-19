@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "kind": "sim",
+  "id": "cdn",
+  "title": "CDNs",
+  "track": "hld",
+  "level": "easy",
+  "objective": "See how serving files from servers near users cuts their wait and takes load off the origin.",
+  "model": "cdn",
+  "requires": [
+    "request-journey"
+  ],
+  "sources": [
+    {
+      "title": "MDN Glossary: CDN",
+      "url": "https://developer.mozilla.org/en-US/docs/Glossary/CDN"
+    }
+  ],
+  "simplifies": "Three groups of users at illustrative distances (20, 80 and 200 ms round trips); an edge answers every cacheable request (as if always warm); the origin handles 4 requests at a time. Real CDNs miss sometimes, need cache rules (headers like Cache-Control), and cost money per gigabyte.",
+  "challenges": [
+    {
+      "id": "far-users",
+      "title": "Far-away users",
+      "prompt": "Keep the typical wait for far users at 100 ms or less for 10 seconds.",
+      "predict": {
+        "prompt": "Far users are 200 ms away (round trip). Without a CDN, roughly how long is their typical wait for a file?",
+        "options": [
+          {
+            "text": "Over 400 ms",
+            "explanation": "Right. The request and the connection both cross the distance: the round trips add up."
+          },
+          {
+            "text": "About 20 ms",
+            "explanation": "That is the near users' distance."
+          },
+          {
+            "text": "Instant",
+            "explanation": "Distance always costs time; signals don't travel instantly."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "rate": 60,
+          "cacheable": 90,
+          "cdn": false
+        },
+        "lock": [
+          "rate",
+          "cacheable"
+        ]
+      },
+      "goal": {
+        "metric": "farP50",
+        "op": "<=",
+        "value": 100,
+        "forSeconds": 10
+      },
+      "hint": "You can't move the users closer. Can you move copies of the files closer to them?",
+      "explain": "With CDN edges, cacheable files are answered from a server near each group of users, so far users stop paying for the long trip.",
+      "solution": {
+        "cdn": true
+      }
+    },
+    {
+      "id": "origin-overload",
+      "title": "Origin overload",
+      "prompt": "Traffic is 150 requests a second and the CDN is on, but little is cacheable. Keep errors at 1% or less for 10 seconds.",
+      "setup": {
+        "params": {
+          "rate": 150,
+          "cacheable": 20,
+          "cdn": true
+        },
+        "lock": [
+          "rate",
+          "cdn"
+        ]
+      },
+      "goal": {
+        "metric": "errorRate",
+        "op": "<=",
+        "value": 0.01,
+        "forSeconds": 10
+      },
+      "hint": "Everything the edges can't answer still goes to the origin. How could more of it be answered at the edge?",
+      "explain": "Making more responses cacheable (static files, sensible cache rules) means the edges answer them, and the origin only sees what truly has to come from it.",
+      "solution": {
+        "cacheable": 80
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "What does a CDN mostly speed up?",
+      "options": [
+        {
+          "text": "Files that can be cached, for users far from the origin",
+          "explanation": "Right. Copies near users cut the distance; dynamic, per-user answers still come from the origin."
+        },
+        {
+          "text": "Database writes",
+          "explanation": "Writes still go to the origin."
+        },
+        {
+          "text": "Every request equally",
+          "explanation": "Only what an edge can answer from a copy."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Besides speed, what else does a CDN give the origin?",
+      "options": [
+        {
+          "text": "Less traffic, because edges answer cacheable requests",
+          "explanation": "Right. The origin then only handles what can't be cached."
+        },
+        {
+          "text": "More traffic",
+          "explanation": "Edges absorb traffic; they don't add to it."
+        },
+        {
+          "text": "Nothing else",
+          "explanation": "Taking load off the origin is a big part of the point."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

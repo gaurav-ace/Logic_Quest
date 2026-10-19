@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "kind": "sim",
+  "id": "load-balancing-sim",
+  "title": "Load balancing under pressure",
+  "track": "hld",
+  "level": "medium",
+  "objective": "Keep a service up when a server dies, requests vary in cost, and traffic spikes, by choosing how the balancer routes.",
+  "model": "load-balancing",
+  "requires": [
+    "load-balancer"
+  ],
+  "sources": [
+    {
+      "title": "NGINX docs: Using nginx as HTTP load balancer (least-connected method, passive health checks)",
+      "url": "https://nginx.org/en/docs/http/load_balancing.html"
+    }
+  ],
+  "simplifies": "Requests take one of two fixed amounts of work (100 ms or 1 s), each server works on 2 at a time and queues up to 8, and failed requests are not retried. Health checks are modelled as a fixed 1-second delay before a dead server is skipped. Real balancers also weigh servers, retry failed requests on another server, and can probe servers actively. All numbers are illustrative.",
+  "challenges": [
+    {
+      "id": "survive-crash",
+      "title": "Survive a crash",
+      "prompt": "Server 2 will crash 3 seconds in. Keep errors at 2% or less for 8 seconds after that.",
+      "predict": {
+        "prompt": "Health checks are off. When Server 2 crashes, what happens to errors?",
+        "options": [
+          {
+            "text": "About a third of requests fail, and it stays that way",
+            "explanation": "Right. Round robin keeps sending every third request to the dead server, because nothing tells it the server is gone."
+          },
+          {
+            "text": "Nothing much: the other two servers cover for it",
+            "explanation": "They could, but the balancer doesn't know Server 2 is dead without health checks, so it keeps sending it work."
+          },
+          {
+            "text": "Every request fails",
+            "explanation": "Only the share sent to Server 2 fails; the other two keep working."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "rate": 15,
+          "servers": 3,
+          "healthChecks": false,
+          "leastConn": false
+        },
+        "lock": [
+          "rate",
+          "servers"
+        ],
+        "actions": [
+          {
+            "at": 3000,
+            "action": "kill:s2"
+          }
+        ]
+      },
+      "goal": {
+        "metric": "errorRate",
+        "op": "<=",
+        "value": 0.02,
+        "forSeconds": 8
+      },
+      "hint": "The balancer doesn't know Server 2 is dead. Which setting lets it notice?",
+      "explain": "With health checks on, the balancer marks Server 2 as failed once its requests fail, and stops sending it traffic. Two servers have enough room for 15 requests a second.",
+      "solution": {
+        "healthChecks": true
+      }
+    },
+    {
+      "id": "slow-requests",
+      "title": "Uneven work",
+      "prompt": "Four servers take 35 requests a second, and 1 in 10 requests is slow. Keep errors at 1% or less for 15 seconds, without adding servers.",
+      "predict": {
+        "prompt": "With round robin, what happens to a quick request that lands on a server stuck on a slow one?",
+        "options": [
+          {
+            "text": "It waits in that server's queue, even if another server is free",
+            "explanation": "Right. Round robin only takes turns; it doesn't look at how busy each server is."
+          },
+          {
+            "text": "The balancer moves it to a free server",
+            "explanation": "Round robin doesn't look at load. That is what least connections does."
+          },
+          {
+            "text": "It finishes just as fast as on an idle server",
+            "explanation": "It has to wait for the slow requests ahead of it."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "rate": 35,
+          "slowShare": 10,
+          "servers": 4,
+          "leastConn": false,
+          "healthChecks": true
+        },
+        "lock": [
+          "rate",
+          "slowShare",
+          "servers"
+        ]
+      },
+      "goal": {
+        "metric": "errorRate",
+        "op": "<=",
+        "value": 0.01,
+        "forSeconds": 15
+      },
+      "hint": "Instead of taking turns, could the balancer pick the server with the least work right now?",
+      "explain": "Least connections sends each request to the server with the fewest requests in progress, so quick requests stop piling up behind slow ones and fewer time out. Same servers, better use of them.",
+      "solution": {
+        "leastConn": true
+      }
+    },
+    {
+      "id": "traffic-spike",
+      "title": "Traffic spike",
+      "prompt": "Traffic jumps to 30 requests a second. Keep errors at 1% or less for 15 seconds.",
+      "setup": {
+        "params": {
+          "rate": 30,
+          "slowShare": 10,
+          "servers": 3,
+          "leastConn": false,
+          "healthChecks": true
+        },
+        "lock": [
+          "rate",
+          "slowShare"
+        ]
+      },
+      "goal": {
+        "metric": "errorRate",
+        "op": "<=",
+        "value": 0.01,
+        "forSeconds": 15
+      },
+      "hint": "Three servers can't keep up with this much traffic. What can you add? And what did the last challenge teach you?",
+      "explain": "Three servers don't have the capacity, so a fourth adds it (scaling out). Least connections then uses that capacity evenly, which keeps errors low with room to spare.",
+      "solution": {
+        "servers": 4,
+        "leastConn": true
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Why can a load balancer still send traffic to a dead server for a moment, even with health checks?",
+      "options": [
+        {
+          "text": "It only learns the server is dead after some requests to it fail or a check times out",
+          "explanation": "Right. Detection takes time, so a few requests fail before the server is skipped."
+        },
+        {
+          "text": "Health checks are always off by default",
+          "explanation": "This is about timing: even when checks are on, noticing a failure isn't instant."
+        },
+        {
+          "text": "Dead servers still answer some requests",
+          "explanation": "A dead server answers nothing; the balancer just hasn't noticed yet."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "When does least connections beat round robin?",
+      "options": [
+        {
+          "text": "When requests take very different amounts of time",
+          "explanation": "Right. Taking turns ignores how busy each server is; least connections reacts to it."
+        },
+        {
+          "text": "When every request takes exactly the same time",
+          "explanation": "Then both spread work evenly; there is little to gain."
+        },
+        {
+          "text": "Never: round robin is always better",
+          "explanation": "Round robin is simpler, not better, when work is uneven."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

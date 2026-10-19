@@ -134,7 +134,7 @@ describe('validateLesson', () => {
   it('requires a known kind', () => {
     const l = lesson();
     delete l.kind;
-    expect(problemsOf(l)).toContain('kind: must be one of diagram, trace');
+    expect(problemsOf(l)).toContain('kind: must be one of diagram, trace, sim');
   });
 
   it('checks a step prediction like a quiz question', () => {

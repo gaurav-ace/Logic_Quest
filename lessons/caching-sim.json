@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "kind": "sim",
+  "id": "caching-sim",
+  "title": "Caching in action",
+  "track": "hld",
+  "level": "medium",
+  "objective": "Size a cache to protect the database, keep cached data fresh, and survive a cold restart without a stampede.",
+  "model": "caching",
+  "requires": [
+    "cache"
+  ],
+  "sources": [
+    {
+      "title": "Microsoft Azure Architecture Center: Cache-Aside pattern (expiry, invalidation on update)",
+      "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside"
+    },
+    {
+      "title": "Wikipedia: Cache stampede",
+      "url": "https://en.wikipedia.org/wiki/Cache_stampede"
+    }
+  ],
+  "simplifies": "200 items with a few very popular ones; the cache evicts the least recently used item when full; the database handles 4 reads at a time (150 ms each, illustrative) and queues up to 40. Coalescing is shown as \"one database read per missing item, others wait for it\"; real systems do this with locks or a single-flight helper, and also stagger expiry times.",
+  "challenges": [
+    {
+      "id": "protect-db",
+      "title": "Protect the database",
+      "prompt": "60 reads a second, and no cache. Keep errors at 1% or less for 10 seconds.",
+      "predict": {
+        "prompt": "Without a cache, every read goes to the database, which handles about 26 a second here. What happens at 60 a second?",
+        "options": [
+          {
+            "text": "Its queue overflows and many reads fail",
+            "explanation": "Right. More than twice what it can handle arrives, so reads time out or are refused."
+          },
+          {
+            "text": "Reads just take a little longer",
+            "explanation": "Past its capacity, the queue fills and reads fail outright."
+          },
+          {
+            "text": "The database speeds up to match",
+            "explanation": "It has fixed capacity."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "rate": 60,
+          "cacheSize": 0,
+          "writes": 0,
+          "ttl": 30
+        },
+        "lock": [
+          "rate"
+        ]
+      },
+      "goal": {
+        "metric": "errorRate",
+        "op": "<=",
+        "value": 0.01,
+        "forSeconds": 10
+      },
+      "hint": "Popular items are read again and again. Where could you keep a copy?",
+      "explain": "A cache of 50 items holds the popular ones, so most reads never reach the database, and the database stays within its capacity.",
+      "solution": {
+        "cacheSize": 50
+      }
+    },
+    {
+      "id": "fresh-data",
+      "title": "Stale data",
+      "prompt": "Data now changes 5 times a second. Keep stale reads at 1% or less for 10 seconds.",
+      "predict": {
+        "prompt": "A copy is cached for 30 seconds, and the database copy changes. What do readers see?",
+        "options": [
+          {
+            "text": "The old copy, until it expires",
+            "explanation": "Right. The cache doesn't know the database changed, so it keeps serving the old version."
+          },
+          {
+            "text": "The new copy at once",
+            "explanation": "Only if something removes or updates the cached copy."
+          },
+          {
+            "text": "An error",
+            "explanation": "Reads still succeed; they are just out of date."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "rate": 40,
+          "cacheSize": 50,
+          "writes": 5,
+          "ttl": 30,
+          "invalidate": false
+        },
+        "lock": [
+          "rate",
+          "writes"
+        ]
+      },
+      "goal": {
+        "metric": "staleRate",
+        "op": "<=",
+        "value": 0.01,
+        "forSeconds": 10
+      },
+      "hint": "A shorter expiry helps a little. Is there a way to remove the old copy the moment the data changes?",
+      "explain": "Deleting the cached copy on every write (invalidation) means the next read fetches the new version. A short expiry only shrinks the stale window; invalidation closes it.",
+      "solution": {
+        "invalidate": true
+      }
+    },
+    {
+      "id": "stampede",
+      "title": "Cold restart",
+      "prompt": "100 reads a second on a warm cache. 8 seconds in, the cache restarts empty. Keep errors at 1% or less the whole time for 8 seconds after that.",
+      "predict": {
+        "prompt": "The cache restarts empty while 100 reads a second arrive. What happens first?",
+        "options": [
+          {
+            "text": "Many reads for the same popular items all miss and hit the database at once",
+            "explanation": "Right. That is a cache stampede: the database is flooded with duplicate reads."
+          },
+          {
+            "text": "Nothing: the cache refills instantly",
+            "explanation": "It refills one database read at a time, while the reads keep coming."
+          },
+          {
+            "text": "Only the first read is slow",
+            "explanation": "Every read that arrives before the copy is back also misses."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "rate": 100,
+          "cacheSize": 100,
+          "ttl": 60,
+          "writes": 0,
+          "coalesce": false
+        },
+        "lock": [
+          "rate",
+          "cacheSize"
+        ],
+        "actions": [
+          {
+            "at": 8000,
+            "action": "flush"
+          }
+        ]
+      },
+      "goal": {
+        "metric": "errorRate",
+        "op": "<=",
+        "value": 0.01,
+        "forSeconds": 8,
+        "fromStart": true
+      },
+      "hint": "When 30 reads miss on the same item, does the database need to be asked 30 times?",
+      "explain": "Coalescing lets the first miss fetch the item while the others wait for that one result, so the database sees one read per item instead of a flood.",
+      "solution": {
+        "coalesce": true
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Why does a small cache often give a high hit rate?",
+      "options": [
+        {
+          "text": "A few items are read far more than the rest",
+          "explanation": "Right. Popular items fit in a small cache and answer most reads."
+        },
+        {
+          "text": "Caches compress data",
+          "explanation": "Hit rate comes from popularity, not compression."
+        },
+        {
+          "text": "It doesn't: hit rate depends only on cache size",
+          "explanation": "Popularity matters as much as size."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Which keeps cached data closest to fresh?",
+      "options": [
+        {
+          "text": "Delete (or update) the cached copy whenever the data changes",
+          "explanation": "Right. Invalidation removes the stale copy at once; expiry only limits how long it can live."
+        },
+        {
+          "text": "A very long expiry time",
+          "explanation": "A long expiry keeps stale copies around longer."
+        },
+        {
+          "text": "A bigger cache",
+          "explanation": "Size affects hit rate, not freshness."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

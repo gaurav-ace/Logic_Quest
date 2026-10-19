@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "kind": "sim",
+  "id": "scaling",
+  "title": "Scaling up versus out",
+  "track": "hld",
+  "level": "easy",
+  "objective": "Handle more traffic with a bigger server (scale up) or more servers (scale out), and see why more servers also survive a crash.",
+  "model": "scaling",
+  "requires": [
+    "load-balancer"
+  ],
+  "sources": [
+    {
+      "title": "Microsoft Azure Architecture Center: Design to scale out",
+      "url": "https://learn.microsoft.com/en-us/azure/architecture/guide/design-principles/scale-out"
+    }
+  ],
+  "simplifies": "Cost here is simply servers × size. In real clouds, prices per unit differ by machine size, bigger machines top out at some limit, and adding servers also needs the application to be stateless (any server can answer any request). Requests take 80–120 ms of work; all numbers are illustrative.",
+  "challenges": [
+    {
+      "id": "scale-up",
+      "title": "Scale up",
+      "prompt": "Traffic is 50 requests a second on a single server. Keep errors at 1% or less for 10 seconds without adding servers.",
+      "predict": {
+        "prompt": "A size-1 server handles about 20 requests a second here. At 50 a second, what happens?",
+        "options": [
+          {
+            "text": "Most requests fail or time out",
+            "explanation": "Right. More than twice its capacity arrives, so the queue fills and requests are refused."
+          },
+          {
+            "text": "Everything is just a bit slower",
+            "explanation": "It doesn't just slow down: once the queue is full, requests are refused."
+          },
+          {
+            "text": "It handles them all",
+            "explanation": "It can only work on so many at once."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "rate": 50,
+          "servers": 1,
+          "size": 1
+        },
+        "lock": [
+          "rate",
+          "servers"
+        ]
+      },
+      "goal": {
+        "metric": "errorRate",
+        "op": "<=",
+        "value": 0.01,
+        "forSeconds": 10
+      },
+      "hint": "You can't add servers here, but you can make this one bigger.",
+      "explain": "A bigger server works on more requests at once. Size 4 has room for the traffic. It's still one machine, though, as the next challenge shows.",
+      "solution": {
+        "size": 4
+      }
+    },
+    {
+      "id": "no-single-point",
+      "title": "Survive a crash",
+      "prompt": "Same traffic. Server 1 will crash 3 seconds in. Keep errors at 2% or less for 10 seconds after the crash.",
+      "predict": {
+        "prompt": "With everything on one big server, what happens when it crashes?",
+        "options": [
+          {
+            "text": "Every request fails",
+            "explanation": "Right. With one server there is nothing left to answer: a single point of failure."
+          },
+          {
+            "text": "The balancer moves traffic to another server",
+            "explanation": "There is no other server to move it to."
+          },
+          {
+            "text": "Only a few requests fail",
+            "explanation": "All of them do; the only server is gone."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "rate": 50,
+          "servers": 1,
+          "size": 4
+        },
+        "lock": [
+          "rate"
+        ],
+        "actions": [
+          {
+            "at": 3000,
+            "action": "kill:s1"
+          }
+        ]
+      },
+      "goal": {
+        "metric": "errorRate",
+        "op": "<=",
+        "value": 0.02,
+        "forSeconds": 10
+      },
+      "hint": "Spread the same capacity over several servers, with enough spare that losing one still leaves room.",
+      "explain": "Several servers behind a balancer keep going when one dies, as long as the rest have room for the traffic. That is the main reason to scale out, not just cost.",
+      "solution": {
+        "servers": 3,
+        "size": 2
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "What is the main risk of running everything on one big server?",
+      "options": [
+        {
+          "text": "If it fails, everything fails",
+          "explanation": "Right. One machine is a single point of failure, however big it is."
+        },
+        {
+          "text": "It is always slower",
+          "explanation": "A big server can be fast; the risk is that it is the only one."
+        },
+        {
+          "text": "It can't run databases",
+          "explanation": "It can; the problem is having just one."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "After losing one of four servers, the other three are overloaded. What was missing?",
+      "options": [
+        {
+          "text": "Spare capacity (headroom)",
+          "explanation": "Right. Plan for the traffic with one server down, not only for the normal case."
+        },
+        {
+          "text": "A faster network",
+          "explanation": "The servers ran out of room, not the network."
+        },
+        {
+          "text": "Nothing: overload after a crash is unavoidable",
+          "explanation": "Enough spare capacity avoids it."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

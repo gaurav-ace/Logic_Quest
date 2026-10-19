@@ -89,6 +89,44 @@ export interface TraceLesson extends LessonBase {
   program: string;
 }
 
-export type Lesson = DiagramLesson | TraceLesson;
+/** One goal to reach in a sim, e.g. "keep errors under 1% for 10 s with a server killed". */
+export interface Challenge {
+  id: string;
+  title: string;
+  /** What to do, in plain words. */
+  prompt: string;
+  /** Asked before the challenge starts: what do you expect will happen? */
+  predict?: QuizQuestion;
+  setup?: {
+    /** Settings applied when the challenge starts. */
+    params?: Record<string, number | boolean>;
+    /** Controls the learner can't change during this challenge. */
+    lock?: string[];
+    /** One-off actions, in simulated ms after the start (e.g. kill a server after 3 s). */
+    actions?: { at: number; action: string }[];
+  };
+  /**
+   * fromStart: the goal must hold for the whole first `forSeconds` after the setup (no waiting for
+   * things to settle). Used where the point is surviving a sudden event, like a cold cache.
+   */
+  goal: { metric: string; op: '<=' | '>='; value: number; forSeconds: number; fromStart?: boolean };
+  hint: string;
+  /** Shown on success: why it worked. */
+  explain: string;
+  /** A known winning setting. Never shown; tests use it to prove the challenge can be done. */
+  solution: Record<string, number | boolean>;
+}
 
-export const KINDS = ['diagram', 'trace'] as const;
+/** A live simulation the learner can push and break (src/sim/models). */
+export interface SimLesson extends LessonBase {
+  kind: 'sim';
+  /** Id of a registered model. */
+  model: string;
+  /** Overrides for the model's starting settings. */
+  params?: Record<string, number | boolean>;
+  challenges: Challenge[];
+}
+
+export type Lesson = DiagramLesson | TraceLesson | SimLesson;
+
+export const KINDS = ['diagram', 'trace', 'sim'] as const;

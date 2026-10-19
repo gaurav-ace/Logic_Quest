@@ -46,7 +46,8 @@ export function validateLesson(data: unknown): Lesson {
 
   // A misspelt optional key (e.g. "simplify") would otherwise vanish silently.
   const common = ['schemaVersion', 'kind', 'id', 'title', 'track', 'level', 'objective', 'sources', 'simplifies', 'requires', 'quiz'];
-  const known = [...common, ...(kind === 'trace' ? ['program'] : ['nodes', 'edges', 'steps'])];
+  const own = kind === 'trace' ? ['program'] : kind === 'sim' ? ['model', 'params', 'challenges'] : ['nodes', 'edges', 'steps'];
+  const known = [...common, ...own];
   for (const key of Object.keys(data)) if (!known.includes(key)) bad(key, 'unknown field');
 
   if (data.schemaVersion !== SCHEMA_VERSION) bad('schemaVersion', `must be ${SCHEMA_VERSION}`);
@@ -63,6 +64,8 @@ export function validateLesson(data: unknown): Lesson {
   checkList(data.quiz, 'quiz', bad, (q, p) => checkQuestion(q, p, bad));
   if (kind === 'trace') {
     if (!isText(data.program) || !ID.test(data.program)) bad('program', 'must be a program id (lowercase words joined by hyphens)');
+  } else if (kind === 'sim') {
+    checkSim(data, bad);
   } else {
     checkDiagram(data);
   }
@@ -93,6 +96,41 @@ export function validateLesson(data: unknown): Lesson {
 }
 
 type Bad = (path: string, msg: string) => void;
+
+const isParams = (v: unknown) => isObj(v) && Object.values(v).every((x) => typeof x === 'boolean' || (typeof x === 'number' && Number.isFinite(x)));
+
+// Shape only: whether the model, metrics, controls and actions exist is checked by the catalog,
+// which knows the registered models.
+function checkSim(data: Obj, bad: Bad): void {
+  if (!isText(data.model) || !ID.test(data.model)) bad('model', 'must be a model id (lowercase words joined by hyphens)');
+  if (data.params !== undefined && !isParams(data.params)) bad('params', 'must map control ids to numbers or true/false');
+  const ids = new Set<string>();
+  checkList(data.challenges, 'challenges', bad, (c, p) => {
+    if (!isObj(c)) return void bad(p, 'must be an object');
+    for (const key of Object.keys(c)) if (!['id', 'title', 'prompt', 'predict', 'setup', 'goal', 'hint', 'explain', 'solution'].includes(key)) bad(`${p}.${key}`, 'unknown field');
+    if (!isText(c.id) || !ID.test(c.id)) bad(`${p}.id`, 'must be lowercase words joined by hyphens');
+    else if (ids.has(c.id)) bad(`${p}.id`, `duplicate challenge id "${c.id}"`);
+    else ids.add(c.id);
+    for (const key of ['title', 'prompt', 'hint', 'explain'] as const) if (!isText(c[key])) bad(`${p}.${key}`, 'must be non-empty text');
+    if (c.predict !== undefined) checkQuestion(c.predict, `${p}.predict`, bad);
+    if (!isParams(c.solution)) bad(`${p}.solution`, 'must map control ids to numbers or true/false');
+    const g = c.goal;
+    if (!isObj(g) || !isText(g.metric) || (g.op !== '<=' && g.op !== '>=') || typeof g.value !== 'number' || typeof g.forSeconds !== 'number' || g.forSeconds <= 0) {
+      bad(`${p}.goal`, 'needs metric, op ("<=" or ">="), value and forSeconds > 0');
+    } else if (g.fromStart !== undefined && typeof g.fromStart !== 'boolean') {
+      bad(`${p}.goal.fromStart`, 'must be true or false');
+    }
+    if (c.setup !== undefined) {
+      const st = c.setup;
+      if (!isObj(st)) return void bad(`${p}.setup`, 'must be an object');
+      if (st.params !== undefined && !isParams(st.params)) bad(`${p}.setup.params`, 'must map control ids to numbers or true/false');
+      if (st.lock !== undefined && !(Array.isArray(st.lock) && st.lock.every(isText))) bad(`${p}.setup.lock`, 'must be a list of control ids');
+      if (st.actions !== undefined && !(Array.isArray(st.actions) && st.actions.every((a) => isObj(a) && typeof a.at === 'number' && a.at >= 0 && isText(a.action)))) {
+        bad(`${p}.setup.actions`, 'must be a list of { at, action }');
+      }
+    }
+  });
+}
 
 function checkList(v: unknown, path: string, bad: Bad, each: (item: unknown, path: string) => void): void {
   if (!Array.isArray(v) || v.length === 0) return void bad(path, 'must be a non-empty list');

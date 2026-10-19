@@ -3,6 +3,11 @@ import cache from '../../lessons/cache.json';
 import dryRun from '../../lessons/dry-run.json';
 import hello from '../../lessons/hello.json';
 import loadBalancer from '../../lessons/load-balancer.json';
+import loadBalancingSim from '../../lessons/load-balancing-sim.json';
+import requestJourney from '../../lessons/request-journey.json';
+import scaling from '../../lessons/scaling.json';
+import cachingSim from '../../lessons/caching-sim.json';
+import cdnLesson from '../../lessons/cdn.json';
 import breakItDown from '../../lessons/break-it-down.json';
 import spotPattern from '../../lessons/spot-pattern.json';
 import loopsLimits from '../../lessons/loops-limits.json';
@@ -40,8 +45,9 @@ import topologicalSortLesson from '../../lessons/topological-sort.json';
 import dijkstraLesson from '../../lessons/dijkstra.json';
 import unionFindLesson from '../../lessons/union-find.json';
 import dynamicProgrammingLesson from '../../lessons/dynamic-programming.json';
+import { getModel } from '../sim/registry';
 import { getProgram } from '../trace/registry';
-import type { Lesson } from './schema';
+import type { Lesson, SimLesson } from './schema';
 import { validateLesson } from './validate';
 
 /** Lesson order on the home screen. Every file in lessons/ must be listed (catalog.test.ts checks). */
@@ -88,8 +94,13 @@ export const LESSON_DATA: unknown[] = [
   unionFindLesson,
   dynamicProgrammingLesson,
   // System design and agentic AI
+  requestJourney,
   loadBalancer,
+  scaling,
+  loadBalancingSim,
   cache,
+  cachingSim,
+  cdnLesson,
   agentLoop,
 ];
 
@@ -103,6 +114,7 @@ export function loadCatalog(data: unknown[] = LESSON_DATA, hasProgram: (id: stri
   }
   for (const l of lessons) {
     if (l.kind === 'trace' && !hasProgram(l.program)) throw new Error(`Lesson "${l.id}" names unknown program "${l.program}"`);
+    if (l.kind === 'sim') checkSimAgainstModel(l);
     for (const r of l.requires ?? []) if (!byId.has(r)) throw new Error(`Lesson "${l.id}" requires unknown lesson "${r}"`);
   }
   // A cycle of requirements would lock every lesson in it forever.
@@ -116,4 +128,24 @@ export function loadCatalog(data: unknown[] = LESSON_DATA, hasProgram: (id: stri
   };
   for (const l of lessons) visit(l.id, []);
   return lessons;
+}
+
+/** A sim lesson may only name controls, actions and metrics its model really has. */
+function checkSimAgainstModel(l: SimLesson): void {
+  const model = getModel(l.model);
+  if (!model) throw new Error(`Lesson "${l.id}" names unknown model "${l.model}"`);
+  const settings = new Set(model.controls.filter((c) => c.kind !== 'action').map((c) => c.id));
+  const actions = new Set(model.controls.filter((c) => c.kind === 'action').map((c) => c.id));
+  const metrics = new Set(model.metrics.map((m) => m.id));
+  const fail = (msg: string) => {
+    throw new Error(`Lesson "${l.id}": ${msg}`);
+  };
+  for (const k of Object.keys(l.params ?? {})) if (!settings.has(k)) fail(`params names unknown control "${k}"`);
+  for (const c of l.challenges) {
+    if (!metrics.has(c.goal.metric)) fail(`challenge "${c.id}" goal uses unknown metric "${c.goal.metric}"`);
+    for (const k of [...Object.keys(c.setup?.params ?? {}), ...(c.setup?.lock ?? []), ...Object.keys(c.solution)]) {
+      if (!settings.has(k)) fail(`challenge "${c.id}" names unknown control "${k}"`);
+    }
+    for (const a of c.setup?.actions ?? []) if (!actions.has(a.action)) fail(`challenge "${c.id}" names unknown action "${a.action}"`);
+  }
 }

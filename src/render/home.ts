@@ -27,7 +27,7 @@ export function renderHome(root: HTMLElement, lessons: Lesson[], progress: Progr
     const locked = missing.length > 0;
     const b = el('button', { type: 'button', class: `lesson-card${done ? ' done' : ''}${locked ? ' locked' : ''}`, 'data-id': lesson.id });
     const questions = lesson.quiz.length === 1 ? '1 question' : `${lesson.quiz.length} questions`;
-    const kind = lesson.kind === 'trace' ? 'Trace' : `${lesson.steps.length} steps`;
+    const kind = lesson.kind === 'trace' ? 'Trace' : lesson.kind === 'sim' ? `Simulation · ${lesson.challenges.length} challenge${lesson.challenges.length === 1 ? '' : 's'}` : `${lesson.steps.length} steps`;
     const status = done ? '✓ Done · ' : locked ? '🔒 ' : '';
     const note = el('span', { class: 'lesson-lock', 'aria-live': 'polite' });
     b.append(

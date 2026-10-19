@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "request-journey",
+  "title": "How a request travels",
+  "track": "hld",
+  "level": "easy",
+  "objective": "Follow everything that happens between typing an address and the page arriving: DNS, TCP, TLS, then HTTP.",
+  "requires": [
+    "hello-request-response"
+  ],
+  "sources": [
+    {
+      "title": "MDN: Populating the page: how browsers work (DNS lookup, TCP handshake, TLS negotiation)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/Performance/Guides/How_browsers_work"
+    },
+    {
+      "title": "MDN Glossary: TCP handshake",
+      "url": "https://developer.mozilla.org/en-US/docs/Glossary/TCP_handshake"
+    },
+    {
+      "title": "MDN Glossary: DNS",
+      "url": "https://developer.mozilla.org/en-US/docs/Glossary/DNS"
+    }
+  ],
+  "simplifies": "One server and one file are shown. Real page loads also open connections for images, scripts and styles, reuse connections where they can, and may skip steps that are cached (a DNS answer, or a resumed TLS session). Newer protocols (HTTP/3 over QUIC) combine some of these handshakes.",
+  "nodes": [
+    {
+      "id": "browser",
+      "label": "Browser",
+      "x": 70,
+      "y": 100,
+      "width": 100
+    },
+    {
+      "id": "dns",
+      "label": "DNS",
+      "x": 215,
+      "y": 34,
+      "width": 90
+    },
+    {
+      "id": "server",
+      "label": "Server",
+      "x": 350,
+      "y": 100,
+      "width": 100
+    }
+  ],
+  "edges": [
+    [
+      "browser",
+      "dns"
+    ],
+    [
+      "browser",
+      "server"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "You type example.com. A name is no use for connecting: the browser first needs the server's IP address.",
+      "highlight": [
+        "browser"
+      ],
+      "path": []
+    },
+    {
+      "caption": "DNS lookup: the browser asks a DNS resolver which IP address belongs to example.com.",
+      "highlight": [
+        "browser",
+        "dns"
+      ],
+      "path": [
+        [
+          "browser",
+          "dns"
+        ]
+      ],
+      "predict": {
+        "prompt": "What does the browser need before it can contact the server?",
+        "options": [
+          {
+            "text": "The server's IP address, from DNS",
+            "explanation": "Right. Names are for people; connections need an address, so DNS comes first."
+          },
+          {
+            "text": "The page itself",
+            "explanation": "The page comes last; first it must find and connect to the server."
+          },
+          {
+            "text": "A password",
+            "explanation": "Public sites need no password to connect."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "DNS answers with the address. It is usually cached for a while, so the next visit can skip this step.",
+      "highlight": [
+        "dns"
+      ],
+      "path": [
+        [
+          "dns",
+          "browser"
+        ]
+      ]
+    },
+    {
+      "caption": "TCP handshake: three messages (SYN, SYN-ACK, ACK) set up a connection with the server. Still no page requested.",
+      "highlight": [
+        "browser",
+        "server"
+      ],
+      "path": [
+        [
+          "browser",
+          "server"
+        ],
+        [
+          "server",
+          "browser"
+        ],
+        [
+          "browser",
+          "server"
+        ]
+      ],
+      "predict": {
+        "prompt": "How many messages does TCP's handshake use to set up the connection?",
+        "options": [
+          {
+            "text": "1",
+            "explanation": "One message can't confirm that both sides are ready."
+          },
+          {
+            "text": "3",
+            "explanation": "Right. SYN, SYN-ACK, ACK: the three-way handshake."
+          },
+          {
+            "text": "10",
+            "explanation": "It is a short exchange: three messages."
+          }
+        ],
+        "answer": 1
+      }
+    },
+    {
+      "caption": "TLS handshake (for https): browser and server agree on encryption and the browser checks the server's certificate. More back and forth.",
+      "highlight": [
+        "browser",
+        "server"
+      ],
+      "path": [
+        [
+          "browser",
+          "server"
+        ],
+        [
+          "server",
+          "browser"
+        ]
+      ]
+    },
+    {
+      "caption": "Only now does the HTTP request go out: \"GET /\", the page please.",
+      "highlight": [
+        "browser"
+      ],
+      "path": [
+        [
+          "browser",
+          "server"
+        ]
+      ]
+    },
+    {
+      "caption": "The server responds with the page. The browser reads it, finds the styles, scripts and images it needs, and requests those too.",
+      "highlight": [
+        "server"
+      ],
+      "path": [
+        [
+          "server",
+          "browser"
+        ]
+      ]
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "In what order do these happen when you open a new https site?",
+      "options": [
+        {
+          "text": "DNS, then TCP, then TLS, then HTTP",
+          "explanation": "Right. Find the address, connect, secure the connection, then ask for the page."
+        },
+        {
+          "text": "HTTP, then DNS, then TCP",
+          "explanation": "The request can't go out before the browser knows where to send it and has connected."
+        },
+        {
+          "text": "TLS, then DNS, then HTTP",
+          "explanation": "TLS secures a connection that must exist first, and that needs the address from DNS."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "A server is far away but answers instantly. Why is the first page load still slow?",
+      "options": [
+        {
+          "text": "Every handshake is a round trip, and distance makes each one slow",
+          "explanation": "Right. DNS, TCP and TLS each cost round trips before the request is even sent."
+        },
+        {
+          "text": "Far servers send less data",
+          "explanation": "Distance adds delay per round trip; it doesn't shrink the data."
+        },
+        {
+          "text": "It isn't: distance doesn't matter for the web",
+          "explanation": "Distance matters a lot: each round trip waits for signals to travel there and back."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

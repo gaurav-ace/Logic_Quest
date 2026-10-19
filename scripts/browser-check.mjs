@@ -2,7 +2,7 @@
 // No dependencies: talks to Chrome over the DevTools protocol with Node's built-in WebSocket.
 //
 //   npm run build && npm run preview          (in another terminal)
-//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update] [url] [screenshot-dir]
+//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim] [url] [screenshot-dir]
 //   DIST_DIR=dist node scripts/browser-check.mjs update   (edits dist/ to simulate a deploy: rebuild after)
 //   LESSONS=binary-search,heaps node scripts/browser-check.mjs lessons   (walk only those)
 //
@@ -199,7 +199,7 @@ const layoutChecks = async (label) => {
     });
     const labelPx = sizes.length ? +Math.min(...sizes).toFixed(1) : null;
     // Every node label must fit inside its box (8 units of padding).
-    const overflow = [...document.querySelectorAll('svg .node')].filter((g) => g.querySelector('text').getBBox().width > g.querySelector('rect').getBBox().width - 8).map((g) => g.textContent);
+    const overflow = [...document.querySelectorAll('svg .node, svg .snode')].filter((g) => g.querySelector('text').getBBox().width > g.querySelector('rect').getBBox().width - 8).map((g) => g.querySelector('text').textContent);
     return { vw: document.documentElement.clientWidth, scrollW: document.documentElement.scrollWidth, targets, labelPx, overflow };
   })()`);
   check(`${label}: no horizontal scroll`, m.scrollW <= m.vw, `scrollWidth ${m.scrollW}, viewport ${m.vw}`);
@@ -221,6 +221,14 @@ async function walkLessons() {
     await load(url + '#/lesson/' + id);
     await layoutChecks(`${id}-360`);
     await shot(`${id}-360-step1`);
+    if (await evaluate(`!!document.querySelector('.stage.sim')`)) {
+      // Sims have no steps: check the layout, then open the quiz.
+      await sleep(600);
+      await shot(`${id}-360-mid`);
+      await tap('Take the quiz');
+      check(`${id}: sim runs and its quiz opens`, await evaluate(`!document.querySelector('.quiz').hidden`));
+      continue;
+    }
     let guard = 0;
     while ((await text('.controls .primary')) !== 'Take the quiz' && guard++ < 80) {
       await skipPrediction();
@@ -244,7 +252,7 @@ if (mode === 'ui') {
   await layoutChecks('home-360');
   await shot('home-360');
   const titles = await evaluate(`[...document.querySelectorAll('.lesson-title')].map((t) => t.textContent)`);
-  check('home lists every lesson', titles.length === 42 && titles[0] === 'Hello, request' && titles.includes('AI agent loop'), titles.join(', '));
+  check('home lists every lesson', titles.length === 47 && titles[0] === 'Hello, request' && titles.includes('AI agent loop'), titles.join(', '));
   check('no "← Lessons" button on home', !(await evaluate(`!!document.querySelector('.nav-back').offsetParent`)));
   check('lessons are grouped by track, with the first unfinished one open', JSON.stringify(await evaluate(`[...document.querySelectorAll('details.track')].map((d) => [d.dataset.track, d.open])`)) === JSON.stringify([['web', true], ['logic', false], ['dsa', false], ['hld', false], ['agentic', false]]));
   check('track headers count progress', (await text('details.track[data-track="logic"] summary')) === 'Logic foundations0 of 8 done', await text('details.track[data-track="logic"] summary'));
@@ -494,6 +502,69 @@ if (mode === 'lessons') {
   await media('reduce');
   await walkLessons();
 }
+
+async function simChecks() {
+  await viewport(360, 740, true);
+  await media('reduce');
+  await load(url + '#/lesson/load-balancing-sim');
+  await layoutChecks('sim-360');
+  await shot('sim-360-start');
+  const simTime = async () => Number((await text('.player .step-label')).match(/([0-9.]+) s simulated/)?.[1] ?? NaN);
+  const t0 = await simTime();
+  await sleep(1200);
+  check('the sim runs in simulated time', (await simTime()) > t0, `${t0} -> ${await simTime()}`);
+  await tap('Pause');
+  const t1 = await simTime();
+  await sleep(800);
+  check('Pause stops simulated time', (await simTime()) === t1 && (await text('.player .play')) === 'Play');
+  await tap('Play');
+  check('four live numbers with history lines', (await evaluate(`document.querySelectorAll('.sim-metrics .metric').length`)) === 4 && (await evaluate(`document.querySelectorAll('.sim-metrics .spark').length`)) === 4);
+  await tap('Health checks: on');
+  check('a switch flips by tap', await evaluate(`[...document.querySelectorAll('button')].some((b) => b.textContent === 'Health checks: off')`));
+  await tap('Health checks: off');
+  // A tap near the right end of the traffic slider moves it up (touch only, no keyboard).
+  const box = await evaluate(`(() => { const r = document.querySelector('#sim-rate').getBoundingClientRect(); document.querySelector('#sim-rate').scrollIntoView({ block: 'center' }); const q = document.querySelector('#sim-rate').getBoundingClientRect(); return { x: q.x + q.width * 0.97, y: q.y + q.height / 2, r: r.width }; })()`);
+  await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x, y: box.y }] });
+  await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await sleep(300);
+  check('a slider moves by tap', Number(await evaluate(`document.querySelector('#sim-rate').value`)) >= 55, await evaluate(`document.querySelector('#sim-rate').value`));
+  await tap('Kill server 2');
+  await sleep(300);
+  check('failure injection: server 2 is shown as down', await evaluate(`[...document.querySelectorAll('.snode')].some((g) => g.classList.contains('down') && g.textContent.includes('Server 2'))`));
+  await shot('sim-360-killed');
+  await tap('Reset');
+
+  // Challenge 1, end to end: predict, start, fix, succeed, earn XP.
+  check('a challenge asks for a prediction before it starts', (await text('.challenge h3')).startsWith('Challenge 1 of 3') && !(await evaluate(`[...document.querySelectorAll('button')].some((b) => b.textContent === 'Start challenge')`)));
+  await tap('About a third of requests fail, and it stays that way');
+  await tap('Start challenge');
+  check('starting locks the settings the challenge fixes', await evaluate(`document.querySelector('#sim-rate').disabled && document.querySelector('#sim-servers').disabled`));
+  // Speed cycles 1x -> 2x -> 4x: two taps to run the challenge faster.
+  await tap('1x');
+  await tap('2x');
+  check('speed reaches 4x', (await text('.player .speed')) === '4x');
+  await tap('Health checks: off');
+  let done = false;
+  for (let i = 0; i < 60 && !done; i++) {
+    await sleep(500);
+    done = (await text('.challenge h3')).startsWith('Challenge 1 done');
+  }
+  check('the challenge completes once the goal holds', done, await text('.challenge'));
+  check('completing a challenge earns XP', (await text('.challenge .reward')) === '+10 XP', await text('.challenge .reward'));
+  await shot('sim-360-challenge-done');
+  await layoutChecks('sim-360 after challenge');
+
+  // Hidden tab: simulated time must not move.
+  await evaluate(`Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange'))`);
+  const t2 = await simTime();
+  await sleep(800);
+  check('a hidden tab freezes the sim', (await simTime()) === t2);
+  await evaluate(`delete document.hidden; document.dispatchEvent(new Event('visibilitychange'))`);
+  await tap('Take the quiz');
+  check('the sim quiz opens', await evaluate(`!document.querySelector('.quiz').hidden`));
+}
+
+if (mode === 'sim') await simChecks();
 
 if (mode === 'pwa') {
   await viewport(360, 740, true);

@@ -62,8 +62,13 @@ describe('lesson catalog', () => {
       'dijkstra',
       'union-find',
       'dynamic-programming',
+      'request-journey',
       'load-balancer',
+      'scaling',
+      'load-balancing-sim',
       'cache',
+      'caching-sim',
+      'cdn',
       'agent-loop',
     ]);
   });
