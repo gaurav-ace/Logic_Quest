@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { initialState, readingTime, reduce, type PlayerAction, type PlayerConfig, type PlayerState } from './player';
+import { atEnd, initialState, readingTime, reduce, type PlayerAction, type PlayerConfig, type PlayerState } from './player';
 
 const config = (over: Partial<PlayerConfig> = {}): PlayerConfig => ({
   steps: [
@@ -107,6 +107,14 @@ describe('player timing', () => {
     expect(reduce(c, ended, { type: 'play' })).toMatchObject({ step: 0, playing: true });
     const finished = run(c, { type: 'goTo', step: 2 }, { type: 'next' });
     expect(reduce(c, finished, { type: 'play' })).toMatchObject({ step: 0, playing: true, finished: false });
+  });
+
+  it('atEnd is true only once the last step has fully played, or after finishing', () => {
+    const c = config();
+    expect(atEnd(c, run(c, { type: 'goTo', step: 2 }))).toBe(false);
+    expect(atEnd(c, run(c, { type: 'goTo', step: 2 }, { type: 'play' }, tick(999)))).toBe(false);
+    expect(atEnd(c, run(c, { type: 'goTo', step: 2 }, { type: 'play' }, tick(1000)))).toBe(true);
+    expect(atEnd(c, run(c, { type: 'goTo', step: 2 }, { type: 'next' }))).toBe(true);
   });
 
   it('play mid-lesson continues from where it is', () => {

@@ -121,10 +121,67 @@ h2 {
   stroke-width: 2;
 }
 
+.step-label {
+  margin: 12px 2px 0;
+  color: var(--mute);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
 .caption {
   font-size: 1.0625rem;
   min-height: 4.5em;
-  margin: 12px 2px;
+  margin: 2px 2px 8px;
+}
+
+.controls-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.dots {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+/* The visible dot is small, but the button around it is a full 48 px tap target. */
+button.dot {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  display: grid;
+  place-items: center;
+}
+
+button.dot::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--card);
+}
+
+button.dot.seen::before {
+  background: var(--blue);
+}
+
+button.dot[aria-current='step']::before {
+  width: 20px;
+  height: 20px;
+}
+
+button.dot:active {
+  transform: none;
+}
+
+button.speed {
+  min-width: 64px;
+  font-variant-numeric: tabular-nums;
 }
 
 .controls {
@@ -133,11 +190,8 @@ h2 {
   align-items: center;
 }
 
-.controls .count {
-  flex: 1;
-  text-align: center;
-  color: var(--mute);
-  font-weight: 600;
+button.play {
+  min-width: 96px;
 }
 
 button {
@@ -213,6 +267,13 @@ button.primary {
   color: #fff;
 }
 
+.quiz-count {
+  margin: 0 0 4px;
+  color: var(--mute);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
 .feedback {
   margin: 4px 0 10px;
 }
@@ -231,6 +292,10 @@ button.primary {
 
 .notes a {
   color: var(--blue);
+  /* Source links sit alone on their line, so they can be full-size tap targets. */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
 }
 
 .load-error {

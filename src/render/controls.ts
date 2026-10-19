@@ -1,0 +1,45 @@
+import type { PlayerAction, PlayerState } from '../engine/player';
+import { button, el } from './dom';
+
+export interface Controls {
+  element: HTMLElement;
+  update(state: PlayerState, atEnd: boolean): void;
+}
+
+// Two rows so everything fits at 360 px with 48 px targets: step dots and speed on top,
+// Back / Play / Next within thumb reach below.
+export function buildControls(stepCount: number, dispatch: (a: PlayerAction) => void): Controls {
+  const dots = Array.from({ length: stepCount }, (_, i) =>
+    button('', () => dispatch({ type: 'goTo', step: i }), { class: 'dot', 'aria-label': `Go to step ${i + 1}` }),
+  );
+  const speed = button('', () => dispatch({ type: 'cycleSpeed' }), { class: 'speed' });
+  const back = button('Back', () => dispatch({ type: 'back' }));
+  const play = button('', () => dispatch({ type: 'toggle' }), { class: 'play' });
+  const next = button('', () => dispatch({ type: 'next' }), { class: 'primary' });
+
+  const top = el('div', { class: 'controls-top' });
+  const dotRow = el('div', { class: 'dots', role: 'group', 'aria-label': 'Steps' });
+  dotRow.append(...dots);
+  top.append(dotRow, speed);
+  const bottom = el('div', { class: 'controls' });
+  bottom.append(back, play, next);
+  const element = el('div', { class: 'player-controls' });
+  element.append(top, bottom);
+
+  return {
+    element,
+    update(s, atEnd) {
+      dots.forEach((d, i) => {
+        d.classList.toggle('seen', i <= s.step);
+        if (i === s.step) d.setAttribute('aria-current', 'step');
+        else d.removeAttribute('aria-current');
+      });
+      speed.textContent = `${s.speed}x`;
+      speed.setAttribute('aria-label', `Speed ${s.speed}x. Tap to change.`);
+      back.disabled = s.step === 0;
+      play.textContent = s.playing ? 'Pause' : atEnd ? 'Replay' : 'Play';
+      play.setAttribute('aria-pressed', String(s.playing));
+      next.textContent = s.step === stepCount - 1 ? 'Take the quiz' : 'Next';
+    },
+  };
+}

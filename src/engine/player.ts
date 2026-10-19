@@ -73,7 +73,7 @@ export function reduce(config: PlayerConfig, s: PlayerState, action: PlayerActio
       return enter(config, s, action.step);
     case 'play':
       // Playing from the very end starts the lesson over instead of doing nothing.
-      if (s.finished || (s.step === last(config) && arrived(config, s) && s.read >= readMs(config, s))) {
+      if (atEnd(config, s)) {
         return { ...enter(config, s, 0), playing: true };
       }
       return { ...s, playing: true };
@@ -92,6 +92,11 @@ export function reduce(config: PlayerConfig, s: PlayerState, action: PlayerActio
     case 'tick':
       return tick(config, s, action.ms);
   }
+}
+
+/** True when there is nothing left to play, so Play would start over (the UI shows "Replay"). */
+export function atEnd(config: PlayerConfig, s: PlayerState): boolean {
+  return s.finished || (s.step === last(config) && arrived(config, s) && s.read >= readMs(config, s));
 }
 
 function hopsMs(config: PlayerConfig, s: PlayerState): number {

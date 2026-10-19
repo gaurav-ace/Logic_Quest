@@ -12,4 +12,10 @@ export default tseslint.config(
       globals: { self: 'readonly', caches: 'readonly', fetch: 'readonly', URL: 'readonly', __PRECACHE_LIST__: 'readonly' },
     },
   },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: { process: 'readonly', console: 'readonly', Buffer: 'readonly', fetch: 'readonly', WebSocket: 'readonly', setTimeout: 'readonly' },
+    },
+  },
 );

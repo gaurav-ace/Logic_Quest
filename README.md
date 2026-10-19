@@ -20,6 +20,14 @@ npm run preview   # serve dist/ to test the PWA and offline mode
 
 The service worker is only registered in production builds, so use `build` + `preview` to test offline behaviour.
 
+Phone and desktop checks in headless Chrome (layout, 48 px tap targets, touch-only taps through every control, offline and install checks), with `npm run preview` running:
+
+```sh
+node scripts/browser-check.mjs ui     # or: pwa
+```
+
+Set `CHROME_PATH` if Chrome is not in the default place. Screenshots go to your temp folder.
+
 ## Layout
 
 | Path | What lives there |
