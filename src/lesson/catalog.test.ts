@@ -80,6 +80,7 @@ describe('lesson catalog', () => {
       'idempotency',
       'design-url-shortener',
       'design-ai-chat',
+      'objects-and-responsibilities',
       'agent-loop',
     ]);
   });

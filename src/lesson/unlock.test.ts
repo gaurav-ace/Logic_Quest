@@ -23,7 +23,7 @@ describe('missingRequirements', () => {
 describe('groupByTrack', () => {
   it('groups in curriculum order and skips empty tracks', () => {
     const groups = groupByTrack(lessons, new Set());
-    expect(groups.map((g) => g.track)).toEqual(['web', 'logic', 'dsa', 'hld', 'agentic']);
+    expect(groups.map((g) => g.track)).toEqual(['web', 'logic', 'dsa', 'hld', 'lld', 'agentic']);
     expect(groups.find((g) => g.track === 'logic')!.lessons).toHaveLength(8);
   });
 

@@ -1,3 +1,4 @@
+import { classLayoutProblems, sequenceLayoutProblems, type ClassDiagram, type SequenceDiagram } from '../engine/uml';
 import {
   DEFAULT_NODE_W,
   KINDS,
@@ -46,7 +47,7 @@ export function validateLesson(data: unknown): Lesson {
 
   // A misspelt optional key (e.g. "simplify") would otherwise vanish silently.
   const common = ['schemaVersion', 'kind', 'id', 'title', 'track', 'level', 'objective', 'sources', 'simplifies', 'requires', 'quiz'];
-  const own = kind === 'trace' ? ['program'] : kind === 'sim' ? ['model', 'params', 'challenges'] : ['nodes', 'edges', 'steps'];
+  const own = kind === 'trace' ? ['program'] : kind === 'sim' ? ['model', 'params', 'challenges'] : kind === 'design' ? ['diagrams', 'steps', 'exercise'] : ['nodes', 'edges', 'steps'];
   const known = [...common, ...own];
   for (const key of Object.keys(data)) if (!known.includes(key)) bad(key, 'unknown field');
 
@@ -66,6 +67,8 @@ export function validateLesson(data: unknown): Lesson {
     if (!isText(data.program) || !ID.test(data.program)) bad('program', 'must be a program id (lowercase words joined by hyphens)');
   } else if (kind === 'sim') {
     checkSim(data, bad);
+  } else if (kind === 'design') {
+    checkDesign(data, bad);
   } else {
     checkDiagram(data);
   }
@@ -130,6 +133,131 @@ function checkSim(data: Obj, bad: Bad): void {
       }
     }
   });
+}
+
+const CODE_W = 34;
+const isTextList = (v: unknown): v is string[] => Array.isArray(v) && v.every(isText);
+
+function checkDesign(data: Obj, bad: Bad): void {
+  const diagrams = isObj(data.diagrams) ? data.diagrams : {};
+  if (!isObj(data.diagrams) || !Object.keys(diagrams).length) bad('diagrams', 'must map names to at least one diagram');
+  /** Class ids per class diagram; sequence diagrams map to null. */
+  const kinds = new Map<string, Set<string> | null>();
+  for (const [key, d] of Object.entries(diagrams)) {
+    const p = `diagrams.${key}`;
+    if (!isObj(d)) {
+      bad(p, 'must be an object');
+      continue;
+    }
+    if (d.type === 'class') {
+      const ids = checkClassDiagram(d, p, bad);
+      kinds.set(key, ids);
+    } else if (d.type === 'sequence') {
+      for (const k of Object.keys(d)) if (!['type', 'actors', 'calls'].includes(k)) bad(`${p}.${k}`, 'unknown field');
+      const callsOk = Array.isArray(d.calls) && d.calls.length > 0 && d.calls.every((c) => isObj(c) && isText(c.from) && isText(c.to) && isText(c.label) && (c.reply === undefined || typeof c.reply === 'boolean'));
+      if (!isTextList(d.actors)) bad(`${p}.actors`, 'must be a list of names');
+      else if (!callsOk) bad(`${p}.calls`, 'must be a non-empty list of { from, to, label, reply? }');
+      else for (const problem of sequenceLayoutProblems(d as unknown as SequenceDiagram)) bad(p, problem);
+      kinds.set(key, null);
+    } else {
+      bad(`${p}.type`, 'must be "class" or "sequence"');
+    }
+  }
+
+  checkList(data.steps, 'steps', bad, (st, p) => {
+    if (!isObj(st)) return void bad(p, 'must be an object');
+    for (const k of Object.keys(st)) if (!['caption', 'diagram', 'highlight', 'call', 'code', 'predict'].includes(k)) bad(`${p}.${k}`, 'unknown field');
+    if (!isText(st.caption)) bad(`${p}.caption`, 'must be non-empty text (it is the text alternative for the diagram)');
+    if (!isText(st.diagram) || !kinds.has(st.diagram)) return void bad(`${p}.diagram`, 'must name one of the lesson\'s diagrams');
+    const ids = kinds.get(st.diagram);
+    if (st.highlight !== undefined) {
+      if (!ids) bad(`${p}.highlight`, 'only class diagrams have classes to highlight');
+      else if (!isTextList(st.highlight)) bad(`${p}.highlight`, 'must be a list of class ids');
+      else for (const id of st.highlight) if (!ids.has(id)) bad(`${p}.highlight`, `unknown class "${id}"`);
+    }
+    if (st.call !== undefined) {
+      const seq = diagrams[st.diagram] as Obj;
+      const n = Array.isArray(seq.calls) ? seq.calls.length : 0;
+      if (ids !== null) bad(`${p}.call`, 'only sequence diagrams have calls');
+      else if (!(typeof st.call === 'number' && Number.isInteger(st.call) && st.call >= 0 && st.call < n)) bad(`${p}.call`, `must be a call index from 0 to ${n - 1}`);
+    }
+    if (st.code !== undefined) {
+      // Blank lines are allowed in code, so only the type is checked.
+      if (!(Array.isArray(st.code) && st.code.length && st.code.every((l) => typeof l === 'string'))) bad(`${p}.code`, 'must be a list of lines');
+      else st.code.forEach((line, i) => {
+        if (line.length > CODE_W) bad(`${p}.code[${i}]`, `is ${line.length} characters; at most ${CODE_W} fit a phone`);
+      });
+    }
+    if (st.predict !== undefined) checkQuestion(st.predict, `${p}.predict`, bad);
+  });
+
+  const ex = data.exercise;
+  if (!isObj(ex)) return void bad('exercise', 'must be an object');
+  for (const k of Object.keys(ex)) if (!['change', 'flawed', 'fixed', 'edits', 'hint', 'fix', 'explain'].includes(k)) bad(`exercise.${k}`, 'unknown field');
+  for (const k of ['change', 'hint', 'explain'] as const) if (!isText(ex[k])) bad(`exercise.${k}`, 'must be non-empty text');
+  checkQuestion(ex.fix, 'exercise.fix', bad);
+  const edits = isObj(ex.edits) ? ex.edits : {};
+  for (const side of ['flawed', 'fixed'] as const) {
+    const key = ex[side];
+    const ids = isText(key) ? kinds.get(key) : undefined;
+    if (!ids) {
+      bad(`exercise.${side}`, 'must name a class diagram');
+      continue;
+    }
+    const list = edits[side];
+    if (!isTextList(list) || !list.length) bad(`exercise.edits.${side}`, 'must list at least one class to edit');
+    else for (const id of list) if (!ids.has(id)) bad(`exercise.edits.${side}`, `unknown class "${id}" in the ${side} design`);
+  }
+  // The whole point of the exercise: the fixed design must make the same change smaller.
+  if (isTextList(edits.flawed) && isTextList(edits.fixed) && edits.fixed.length >= edits.flawed.length) {
+    bad('exercise.edits', `the fixed design needs ${edits.fixed.length} edits and the flawed one ${edits.flawed.length}; the fix must need fewer`);
+  }
+  if (isText(ex.flawed) && ex.flawed === ex.fixed) bad('exercise.fixed', 'must be a different diagram from the flawed one');
+}
+
+function checkClassDiagram(d: Obj, p: string, bad: Bad): Set<string> {
+  const ids = new Set<string>();
+  for (const k of Object.keys(d)) if (!['type', 'classes', 'relations'].includes(k)) bad(`${p}.${k}`, 'unknown field');
+  let ok = true;
+  checkList(d.classes, `${p}.classes`, bad, (c, cp) => {
+    if (!isObj(c)) {
+      ok = false;
+      return void bad(cp, 'must be an object');
+    }
+    for (const k of Object.keys(c)) if (!['id', 'name', 'kind', 'fields', 'methods', 'col', 'row'].includes(k)) bad(`${cp}.${k}`, 'unknown field');
+    if (!isText(c.id) || !ID.test(c.id)) bad(`${cp}.id`, 'must be lowercase words joined by hyphens');
+    else if (ids.has(c.id)) bad(`${cp}.id`, `duplicate class id "${c.id}"`);
+    else ids.add(c.id);
+    if (!isText(c.name)) bad(`${cp}.name`, 'must be non-empty text');
+    if (c.kind !== undefined && c.kind !== 'interface' && c.kind !== 'abstract') bad(`${cp}.kind`, 'must be "interface" or "abstract"');
+    for (const k of ['fields', 'methods'] as const) if (c[k] !== undefined && !isTextList(c[k])) bad(`${cp}.${k}`, 'must be a list of text');
+    if (c.col !== 0 && c.col !== 1 && c.col !== 'both') bad(`${cp}.col`, 'must be 0, 1 or "both"');
+    if (!(typeof c.row === 'number' && Number.isInteger(c.row) && c.row >= 0 && c.row < 6)) bad(`${cp}.row`, 'must be a row from 0 to 5');
+    if (!isText(c.id) || !isText(c.name) || typeof c.row !== 'number' || (c.col !== 0 && c.col !== 1 && c.col !== 'both')) ok = false;
+  });
+  if (!Array.isArray(d.relations)) {
+    bad(`${p}.relations`, 'must be a list (it may be empty)');
+    return ids;
+  }
+  const seen = new Set<string>();
+  d.relations.forEach((r: unknown, i) => {
+    const rp = `${p}.relations[${i}]`;
+    if (!isObj(r) || !isText(r.from) || !isText(r.to) || !['inherits', 'implements', 'has', 'uses'].includes(r.type as string)) {
+      ok = false;
+      return void bad(rp, 'must be { from, to, type } with type inherits, implements, has or uses');
+    }
+    for (const end of [r.from, r.to]) {
+      if (ids.has(end)) continue;
+      ok = false;
+      bad(rp, `unknown class "${end}"`);
+    }
+    if (r.from === r.to) bad(rp, 'a class cannot relate to itself here');
+    const key = [r.from, r.to].sort().join('|');
+    if (seen.has(key)) bad(rp, 'two relations between the same classes would draw on top of each other');
+    seen.add(key);
+  });
+  if (ok) for (const problem of classLayoutProblems(d as unknown as ClassDiagram)) bad(p, problem);
+  return ids;
 }
 
 function checkList(v: unknown, path: string, bad: Bad, each: (item: unknown, path: string) => void): void {

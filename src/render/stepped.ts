@@ -37,6 +37,8 @@ export interface LessonView {
 export interface SteppedOptions {
   /** Extra controls under the quiz, e.g. "New example" for trace lessons. */
   footer?: HTMLElement;
+  /** A part between the last step and the quiz (the design exercise); it calls `done` to open the quiz. */
+  beforeQuiz?: { element: HTMLElement; start(done: () => void): void };
 }
 
 export function renderStepped(root: HTMLElement, lesson: Lesson, stage: Stage, hooks: QuizHooks, options: SteppedOptions = {}): LessonView {
@@ -60,12 +62,14 @@ export function renderStepped(root: HTMLElement, lesson: Lesson, stage: Stage, h
   tally.hidden = true;
   const quiz = el('section', { class: 'card quiz', 'aria-label': 'Quiz' });
   quiz.hidden = true;
+  const middle = options.beforeQuiz?.element;
+  if (middle) middle.hidden = true;
 
   // Caption and controls share one bar pinned to the bottom of the screen: what just happened
   // and what to tap next are always visible together, within thumb reach (CLAUDE.md section 8).
   const player = el('div', { class: 'player' });
   player.append(stepLabel, caption, controls.element);
-  root.replaceChildren(title, objective, stage.element, predictBox, player, tally, quiz, ...(options.footer ? [options.footer] : []), notes(lesson));
+  root.replaceChildren(title, objective, stage.element, predictBox, player, tally, ...(middle ? [middle] : []), quiz, ...(options.footer ? [options.footer] : []), notes(lesson));
 
   /** Predictions answered in this run: step index -> right on the first try. */
   const predicted = new Map<number, boolean>();
@@ -81,11 +85,14 @@ export function renderStepped(root: HTMLElement, lesson: Lesson, stage: Stage, h
     state = reduce(config, state, action);
     if (state.finished && !wasFinished) {
       showTally();
-      showQuestion(quiz, lesson.quiz, 0, replay, hooks);
+      const openQuiz = () => showQuestion(quiz, lesson.quiz, 0, replay, hooks);
+      if (options.beforeQuiz) options.beforeQuiz.start(openQuiz);
+      else openQuiz();
     }
     if (!state.finished && action.type !== 'tick') {
       quiz.hidden = true;
       tally.hidden = true;
+      if (middle) middle.hidden = true;
     }
     maybeAsk();
     draw();
@@ -210,7 +217,8 @@ export function renderStepped(root: HTMLElement, lesson: Lesson, stage: Stage, h
   wake();
 
   return {
-    inQuiz: () => !quiz.hidden && quiz.dataset.done !== 'true',
+    // The exercise counts as part of the quiz: leaving it half done asks first.
+    inQuiz: () => (!quiz.hidden && quiz.dataset.done !== 'true') || (!!middle && !middle.hidden && quiz.hidden === true),
     destroy() {
       cancelAnimationFrame(rafId);
       document.removeEventListener('visibilitychange', onVisibility);

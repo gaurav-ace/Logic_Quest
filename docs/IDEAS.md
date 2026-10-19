@@ -7,3 +7,4 @@ Not approved for work. Do not act on these without the owner's approval (CLAUDE.
 - **Prototype issues to carry into Phase 2:** streak was not saved; replaying a finished lesson could farm streak bonuses. (The dot ignoring reduced motion is fixed.)
 - **Run browser checks in CI:** `scripts/browser-check.mjs` could run in GitHub Actions against `vite preview` (ubuntu runners have Chrome). Not done yet.
 - **Predict the next step:** pause before a step and ask "what happens next?" (CLAUDE.md section 6). Planned for Phase 3.
+- Disabled buttons keep their pressed colour with grey text (seen on the design exercise's class chips after "Check"). Disabled controls are exempt from contrast rules, but a clearer "done" look (for example a ✓ and full-contrast text) would read better. Noted 2026-10-19 during Phase 5b.

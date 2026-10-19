@@ -4,6 +4,7 @@ import { buildDiagram } from './diagram';
 import { el } from './dom';
 import type { QuizHooks } from './quiz';
 import { renderStepped, type LessonView, type Stage } from './stepped';
+import { renderDesign } from './design';
 import { renderSim } from './sim';
 import { renderTrace } from './trace';
 
@@ -12,6 +13,7 @@ export type { LessonView } from './stepped';
 export function renderLesson(root: HTMLElement, lesson: Lesson, hooks: QuizHooks): LessonView {
   if (lesson.kind === 'trace') return renderTrace(root, lesson, hooks);
   if (lesson.kind === 'sim') return renderSim(root, lesson, hooks);
+  if (lesson.kind === 'design') return renderDesign(root, lesson, hooks);
   return renderStepped(root, lesson, diagramStage(lesson), hooks);
 }
 

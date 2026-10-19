@@ -2,18 +2,23 @@
 // No dependencies: talks to Chrome over the DevTools protocol with Node's built-in WebSocket.
 //
 //   npm run build && npm run preview          (in another terminal)
-//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim] [url] [screenshot-dir]
+//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design] [url] [screenshot-dir]
 //   DIST_DIR=dist node scripts/browser-check.mjs update   (edits dist/ to simulate a deploy: rebuild after)
 //   LESSONS=binary-search,heaps node scripts/browser-check.mjs lessons   (walk only those)
 //
 // CHROME_PATH overrides where Chrome is found. On WSL in NAT mode, WSL cannot reach a Windows
 // Chrome's debug port, so run this file with a Windows node.exe instead (see docs/PROGRESS.md).
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync, mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, writeFileSync, mkdtempSync, readFileSync, existsSync, rmSync, readdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 
 const mode = process.argv[2] ?? 'ui';
+// Lesson files, read straight from the repo so the expected count never goes stale.
+const lessonsDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'lessons');
+const lessonFiles = readdirSync(lessonsDir).filter((f) => f.endsWith('.json'));
+const lessonData = (id) => JSON.parse(readFileSync(join(lessonsDir, `${id}.json`), 'utf8'));
 const url = process.argv[3] ?? 'http://localhost:4173/Logic_Quest/';
 const outDir = process.argv[4] ?? join(tmpdir(), 'logic-quest-shots');
 mkdirSync(outDir, { recursive: true });
@@ -220,6 +225,23 @@ const layoutChecks = async (label) => {
   }
 };
 
+// Design lessons: the shortest way through "improve the design" (one wrong check, "Show me",
+// then each fix option in turn), checking the layout of each part on the way.
+async function walkExercise(id) {
+  await layoutChecks(`${id}-360 exercise`);
+  await shot(`${id}-360-exercise`);
+  await tap('Check');
+  await tap('Show me');
+  await tap('Next: fix the design');
+  for (let i = 0; i < 6 && !(await evaluate(`[...document.querySelectorAll('button')].some((b) => b.offsetParent && b.textContent === 'See the fixed design')`)); i++) {
+    if (await evaluate(`!document.querySelectorAll('.exercise .option')[${i}].disabled`)) await tapSel('.exercise .option', i);
+  }
+  await tap('See the fixed design');
+  await layoutChecks(`${id}-360 fixed design`);
+  await shot(`${id}-360-fixed`);
+  await tap('On to the quiz');
+}
+
 // Every lesson: layout, labels, and a walk through all steps to the quiz.
 async function walkLessons() {
   await load();
@@ -246,6 +268,7 @@ async function walkLessons() {
     }
     await layoutChecks(`${id}-360 last step`);
     await takeQuiz();
+    if (await evaluate(`!!document.querySelector('.exercise:not([hidden])')`)) await walkExercise(id);
     const quizShown = await evaluate(`!document.querySelector('.quiz').hidden`);
     check(`${id}: walked every step to the quiz`, guard < 80 && quizShown, `${guard} steps`);
   }
@@ -261,9 +284,9 @@ if (mode === 'ui') {
   await layoutChecks('home-360');
   await shot('home-360');
   const titles = await evaluate(`[...document.querySelectorAll('.lesson-title')].map((t) => t.textContent)`);
-  check('home lists every lesson', titles.length === 58 && titles[0] === 'Hello, request' && titles.includes('AI agent loop'), titles.join(', '));
+  check('home lists every lesson', titles.length === lessonFiles.length && titles[0] === 'Hello, request' && titles.includes('AI agent loop'), titles.join(', '));
   check('no "← Lessons" button on home', !(await evaluate(`!!document.querySelector('.nav-back').offsetParent`)));
-  check('lessons are grouped by track, with the first unfinished one open', JSON.stringify(await evaluate(`[...document.querySelectorAll('details.track')].map((d) => [d.dataset.track, d.open])`)) === JSON.stringify([['web', true], ['logic', false], ['dsa', false], ['hld', false], ['agentic', false]]));
+  check('lessons are grouped by track, with the first unfinished one open', JSON.stringify(await evaluate(`[...document.querySelectorAll('details.track')].map((d) => [d.dataset.track, d.open])`)) === JSON.stringify([['web', true], ['logic', false], ['dsa', false], ['hld', false], ['lld', false], ['agentic', false]]));
   check('track headers count progress', (await text('details.track[data-track="logic"] summary')) === 'Logic foundations0 of 8 done', await text('details.track[data-track="logic"] summary'));
   await tapSel('.lesson-card[data-id="estimate"]');
   check('a locked lesson explains what to finish first, and stays on the list', (await text('.lesson-card[data-id="estimate"] .lesson-lock')) === 'Finish “Spot the pattern” and “Dry-run code” first.' && (await hash()) === '#/', await text('.lesson-card[data-id="estimate"] .lesson-lock'));
@@ -574,6 +597,70 @@ async function simChecks() {
 }
 
 if (mode === 'sim') await simChecks();
+
+// One design lesson end to end: diagrams, code, the exercise with XP and retries, the quiz
+// guard during the exercise, and no second scoring after a reload.
+async function designChecks() {
+  const id = 'objects-and-responsibilities';
+  const lesson = lessonData(id);
+  const ex = lesson.exercise;
+  const flawed = lesson.diagrams[ex.flawed].classes;
+  const nameOf = (cid) => flawed.find((c) => c.id === cid).name;
+  await viewport(360, 740, true);
+  await media('reduce');
+  const toExercise = async () => {
+    await load(url + '#/lesson/' + id);
+    let seenCalls = 0;
+    let seenCode = false;
+    for (let guard = 0; (await text('.controls .primary')) !== 'Take the quiz' && guard < 40; guard++) {
+      await skipPrediction();
+      await tap('Next');
+      const calls = await evaluate(`document.querySelectorAll('.stage .call[visibility="visible"]').length`);
+      if (calls >= 3 && seenCalls < 3) await shot('design-360-sequence');
+      seenCalls = Math.max(seenCalls, calls);
+      seenCode ||= await evaluate(`!document.querySelector('.code-snippet').hidden && document.querySelector('.code-snippet').textContent.includes('class Order')`);
+    }
+    await takeQuiz();
+    return { seenCalls, seenCode };
+  };
+  await load(url + '#/lesson/' + id);
+  await layoutChecks('design-360');
+  check('a class diagram is drawn, with a text alternative', (await evaluate(`document.querySelectorAll('.stage svg.uml .uclass').length`)) === 1 && (await evaluate(`document.querySelector('.stage .view-uml .sr-only').textContent`)).startsWith('Class diagram: Order'));
+  const seen = await toExercise();
+  check('the sequence diagram reveals its calls one step at a time', seen.seenCalls === 4, `${seen.seenCalls} calls`);
+  check('a step shows its code', seen.seenCode);
+  check('the exercise comes before the quiz', await evaluate(`!document.querySelector('.exercise').hidden && document.querySelector('.quiz').hidden`));
+  await layoutChecks('design exercise');
+  await browserBack();
+  check('back during the exercise asks first', await evaluate(`!document.querySelector('.guard').hidden`));
+  await tap('Stay');
+  // One class picked: not enough, so a hint and another try.
+  await tap(nameOf(ex.edits.flawed[0]));
+  check('a tapped class is marked in the diagram', await evaluate(`document.querySelectorAll('.exercise .uclass.picked').length === 1`));
+  await tap('Check');
+  check('too few picks get a hint, not the answer', (await text('.exercise .feedback')).startsWith(`Not quite: ${ex.edits.flawed.length - 1} more classes would have to change.`), await text('.exercise .feedback'));
+  for (const cid of ex.edits.flawed.slice(1)) await tap(nameOf(cid));
+  await tap('Check');
+  check('the right picks earn retry XP', /^\+\d+ XP, after a retry$/.test(await text('.exercise .reward')), await text('.exercise .reward'));
+  check('every class the change touches is marked', (await evaluate(`document.querySelectorAll('.exercise .uclass.edit').length`)) === ex.edits.flawed.length);
+  await shot('design-360-spotted');
+  await tap('Next: fix the design');
+  await tap(ex.fix.options[ex.fix.answer].text);
+  check('the right fix on the first try earns first-try XP', /^\+\d+ XP, first try$/.test(await text('.exercise .reward')), await text('.exercise .reward'));
+  await tap('See the fixed design');
+  check('the fixed design shows the smaller change', (await text('.exercise .compare')) === `Same change: edit ${ex.edits.fixed.length} class (${ex.edits.fixed.map((c) => lesson.diagrams[ex.fixed].classes.find((k) => k.id === c).name).join(', ')}) instead of ${ex.edits.flawed.length}.`, await text('.exercise .compare'));
+  await layoutChecks('design fixed');
+  await shot('design-360-fixed');
+  await tap('On to the quiz');
+  check('then the quiz opens', await evaluate(`!document.querySelector('.quiz').hidden`));
+  // A replay after a reload scores nothing new.
+  await toExercise();
+  for (const cid of ex.edits.flawed) await tap(nameOf(cid));
+  await tap('Check');
+  check('a replayed exercise is not scored again', (await text('.exercise .reward')).startsWith('Already scored'), await text('.exercise .reward'));
+}
+
+if (mode === 'design') await designChecks();
 
 if (mode === 'pwa') {
   await viewport(360, 740, true);

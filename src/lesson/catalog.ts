@@ -56,6 +56,7 @@ import capConsistencyLesson from '../../lessons/cap-consistency.json';
 import idempotencyLesson from '../../lessons/idempotency.json';
 import designUrlShortenerLesson from '../../lessons/design-url-shortener.json';
 import designAiChatLesson from '../../lessons/design-ai-chat.json';
+import objectsAndResponsibilitiesLesson from '../../lessons/objects-and-responsibilities.json';
 import { getModel } from '../sim/registry';
 import { getProgram } from '../trace/registry';
 import type { Lesson, SimLesson } from './schema';
@@ -123,6 +124,7 @@ export const LESSON_DATA: unknown[] = [
   idempotencyLesson,
   designUrlShortenerLesson,
   designAiChatLesson,
+  objectsAndResponsibilitiesLesson,
   agentLoop,
 ];
 

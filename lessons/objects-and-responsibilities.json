@@ -1,0 +1,394 @@
+{
+  "schemaVersion": 1,
+  "kind": "design",
+  "id": "objects-and-responsibilities",
+  "title": "Objects and responsibilities",
+  "track": "lld",
+  "level": "easy",
+  "objective": "Give each class one clear job, so that one kind of change touches one place.",
+  "sources": [
+    {
+      "title": "Robert C. Martin, The Single Responsibility Principle (Clean Coder Blog, 2014)",
+      "url": "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"
+    },
+    {
+      "title": "David L. Parnas, On the Criteria To Be Used in Decomposing Systems into Modules (Communications of the ACM 15(12), 1972)"
+    }
+  ],
+  "simplifies": "Classes show only the members that matter for the idea; real code adds error handling, transactions and tests. \"One job\" is a judgement call: split when parts change for different reasons, not into one class per method.",
+  "diagrams": {
+    "god": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "order",
+          "name": "Order",
+          "col": "both",
+          "row": 0,
+          "fields": [
+            "items"
+          ],
+          "methods": [
+            "add_item(item)",
+            "total()",
+            "save_to_database()",
+            "email_receipt()"
+          ]
+        }
+      ],
+      "relations": []
+    },
+    "split": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "order",
+          "name": "Order",
+          "col": "both",
+          "row": 0,
+          "fields": [
+            "items"
+          ],
+          "methods": [
+            "add_item(item)",
+            "total()"
+          ]
+        },
+        {
+          "id": "repo",
+          "name": "Store",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "save(order)"
+          ]
+        },
+        {
+          "id": "mailer",
+          "name": "Mailer",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "send(order)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "repo",
+          "to": "order",
+          "type": "uses"
+        },
+        {
+          "from": "mailer",
+          "to": "order",
+          "type": "uses"
+        }
+      ]
+    },
+    "flow": {
+      "type": "sequence",
+      "actors": [
+        "Shop",
+        "Order",
+        "Store",
+        "Mailer"
+      ],
+      "calls": [
+        {
+          "from": "Shop",
+          "to": "Order",
+          "label": "total()"
+        },
+        {
+          "from": "Order",
+          "to": "Shop",
+          "label": "₹1,250",
+          "reply": true
+        },
+        {
+          "from": "Shop",
+          "to": "Store",
+          "label": "save(order)"
+        },
+        {
+          "from": "Shop",
+          "to": "Mailer",
+          "label": "send(order)"
+        }
+      ]
+    },
+    "dupes": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "order",
+          "name": "Order",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "total()",
+            "email_receipt()"
+          ]
+        },
+        {
+          "id": "refund",
+          "name": "Refund",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "amount()",
+            "email_receipt()"
+          ]
+        },
+        {
+          "id": "invoice",
+          "name": "Invoice",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "lines()",
+            "email_receipt()"
+          ]
+        }
+      ],
+      "relations": []
+    },
+    "notifier": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "order",
+          "name": "Order",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "total()"
+          ]
+        },
+        {
+          "id": "refund",
+          "name": "Refund",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "amount()"
+          ]
+        },
+        {
+          "id": "invoice",
+          "name": "Invoice",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "lines()"
+          ]
+        },
+        {
+          "id": "notifier",
+          "name": "Notifier",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "send(to, text)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "order",
+          "to": "notifier",
+          "type": "uses"
+        },
+        {
+          "from": "refund",
+          "to": "notifier",
+          "type": "uses"
+        },
+        {
+          "from": "invoice",
+          "to": "notifier",
+          "type": "uses"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "caption": "A shop's Order class does everything: it holds the items, adds up the total, saves itself to the database and emails the receipt.",
+      "diagram": "god",
+      "highlight": [
+        "order"
+      ]
+    },
+    {
+      "caption": "The shop switches to a new email provider, so Order has to change: the same class that adds up prices. Any edit there risks breaking the totals.",
+      "diagram": "god",
+      "highlight": [
+        "order"
+      ],
+      "predict": {
+        "prompt": "The shop switches to a new email provider. Which class has to change?",
+        "options": [
+          {
+            "text": "Order: the same class that adds up the prices",
+            "explanation": "Right. Pricing, storage and email all live in Order, so every kind of change lands there."
+          },
+          {
+            "text": "A separate email class",
+            "explanation": "There isn't one; sending email is inside Order."
+          },
+          {
+            "text": "None: email is outside the code",
+            "explanation": "The code that sends the email is in email_receipt(), inside Order."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "A useful test: how many different reasons does this class have to change? Pricing rules, the database, and email: three reasons, three jobs.",
+      "diagram": "god",
+      "highlight": [
+        "order"
+      ]
+    },
+    {
+      "caption": "Split it by reason to change: Order keeps the items and the total; Store saves orders; Mailer sends receipts. Each class now has one job.",
+      "diagram": "split",
+      "highlight": [
+        "repo",
+        "mailer"
+      ]
+    },
+    {
+      "caption": "Order is now small and only about orders. Its code knows nothing about databases or email.",
+      "diagram": "split",
+      "highlight": [
+        "order"
+      ],
+      "code": [
+        "class Order:",
+        "    def __init__(self):",
+        "        self.items = []",
+        "",
+        "    def total(self):",
+        "        total = 0",
+        "        for item in self.items:",
+        "            total += item.price",
+        "        return total"
+      ]
+    },
+    {
+      "caption": "Something still has to run the steps in order. The shop's checkout asks Order for the total…",
+      "diagram": "flow",
+      "call": 0
+    },
+    {
+      "caption": "…gets the amount back…",
+      "diagram": "flow",
+      "call": 1
+    },
+    {
+      "caption": "…asks the store to save the order…",
+      "diagram": "flow",
+      "call": 2,
+      "predict": {
+        "prompt": "Next the receipt must go out. Who sends it?",
+        "options": [
+          {
+            "text": "The Mailer, asked by the shop",
+            "explanation": "Right. Sending receipts is the Mailer's one job; the shop just coordinates."
+          },
+          {
+            "text": "Order, which emails itself",
+            "explanation": "That was the old design. Order no longer knows about email."
+          },
+          {
+            "text": "The Store, after saving",
+            "explanation": "Saving and emailing are different jobs; joining them again would undo the split."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "…and asks the Mailer to send the receipt. Changing email providers now means editing only the Mailer.",
+      "diagram": "flow",
+      "call": 3
+    }
+  ],
+  "exercise": {
+    "change": "Receipts must also be sent by SMS.",
+    "flawed": "dupes",
+    "fixed": "notifier",
+    "edits": {
+      "flawed": [
+        "order",
+        "refund",
+        "invoice"
+      ],
+      "fixed": [
+        "notifier"
+      ]
+    },
+    "hint": "Look for the same job copied into more than one class.",
+    "fix": {
+      "prompt": "How should the design change?",
+      "options": [
+        {
+          "text": "Move sending messages into one Notifier class that Order, Refund and Invoice all use",
+          "explanation": "Right. Sending becomes one job in one place, so a new channel is a one-class change."
+        },
+        {
+          "text": "Add send_sms() next to email_receipt() in each class",
+          "explanation": "That works today, but it is three edits now and three more for every future channel."
+        },
+        {
+          "text": "Make Refund and Invoice inherit from Order to share email_receipt()",
+          "explanation": "A refund isn't an order. Inheriting just to share code ties unrelated classes together (more on this in Composition versus inheritance)."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Sending messages is now one responsibility in one place. Order, Refund and Invoice change only when their own rules change, and the next channel (say, push notifications) is again a change to Notifier alone."
+  },
+  "quiz": [
+    {
+      "prompt": "What does \"one responsibility\" mean for a class?",
+      "options": [
+        {
+          "text": "It has one reason to change: one set of rules it answers to",
+          "explanation": "Right. Martin's wording: gather together the things that change for the same reasons."
+        },
+        {
+          "text": "It has only one method",
+          "explanation": "A class can have many methods that all serve one job."
+        },
+        {
+          "text": "Only one other class uses it",
+          "explanation": "How many classes use it says nothing about how many jobs it does."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "A User class checks passwords, saves users to the database and draws the profile page. A designer changes the profile layout. What's the risk?",
+      "options": [
+        {
+          "text": "The layout edit happens inside User, next to the password and saving code, so it can break them",
+          "explanation": "Right. Three jobs in one class means any change puts the other two at risk."
+        },
+        {
+          "text": "None: a layout change only touches HTML",
+          "explanation": "The page is drawn inside User, so User itself has to change."
+        },
+        {
+          "text": "The database tables must change",
+          "explanation": "The layout doesn't affect what is stored."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

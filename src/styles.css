@@ -1231,3 +1231,132 @@ button.action {
   stroke: var(--bad);
   stroke-dasharray: 4 4;
 }
+
+/* Class and sequence diagrams (Phase 5b). */
+.svg-view.uml .uclass rect {
+  fill: var(--card);
+  stroke: var(--line);
+  stroke-width: 2;
+}
+
+.svg-view.uml .uclass.on rect {
+  fill: var(--hi);
+}
+
+.svg-view.uml .uclass.picked rect {
+  fill: color-mix(in srgb, var(--blue) 22%, var(--card));
+  stroke: var(--blue);
+  stroke-width: 3;
+}
+
+/* Classes a change forces you to edit: a thick dashed outline, not colour alone. */
+.svg-view.uml .uclass.edit rect {
+  fill: color-mix(in srgb, var(--bad) 16%, var(--card));
+  stroke: var(--bad);
+  stroke-width: 3.5;
+  stroke-dasharray: 7 4;
+}
+
+.svg-view.uml .uclass.on text {
+  fill: var(--hi-ink);
+}
+
+.svg-view.uml .divider {
+  stroke: var(--line);
+  stroke-width: 1.5;
+}
+
+.svg-view.uml text.member {
+  font-size: 14px;
+  font-weight: 500;
+  text-anchor: start;
+}
+
+.svg-view.uml text.call-label {
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--card);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.svg-view.uml text.stereo {
+  font-size: 14px;
+  font-weight: 500;
+  font-style: italic;
+  fill: var(--mute);
+}
+
+.svg-view.uml text.abstract {
+  font-style: italic;
+}
+
+.svg-view.uml .rel,
+.svg-view.uml .msg {
+  stroke: var(--line);
+  stroke-width: 2;
+}
+
+.svg-view.uml .rel-implements,
+.svg-view.uml .rel-uses,
+.svg-view.uml .msg.reply {
+  stroke-dasharray: 6 4;
+}
+
+.svg-view.uml .call.on .msg {
+  stroke: var(--blue);
+  stroke-width: 3;
+}
+
+.svg-view.uml .call.on text {
+  fill: var(--blue);
+}
+
+.svg-view.uml .lifeline {
+  stroke: var(--mute);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+
+.svg-view.uml .mk-hollow {
+  fill: var(--card);
+  stroke: var(--line);
+  stroke-width: 1.5;
+}
+
+.svg-view.uml .mk-solid {
+  fill: var(--line);
+}
+
+.svg-view.uml .mk-line {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1.5;
+}
+
+.view-uml .legend {
+  margin: 6px 0 0;
+  color: var(--mute);
+  font-size: 0.875rem;
+}
+
+.code-snippet {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  overflow-x: auto;
+  font: 0.875rem/1.55 ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Roboto Mono', monospace;
+  background: color-mix(in srgb, var(--grid) 55%, var(--card));
+  border-radius: 10px;
+}
+
+.exercise .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+
+.exercise .change,
+.exercise .compare {
+  font-weight: 700;
+}

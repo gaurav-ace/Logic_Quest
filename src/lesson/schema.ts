@@ -1,6 +1,10 @@
 // Lesson data shape. Lessons are plain JSON rendered by one shared engine (CLAUDE.md section 8),
 // so every field here is something the engine or the quiz actually uses.
 
+import type { UmlDiagram } from '../engine/uml';
+
+export type { UmlDiagram } from '../engine/uml';
+
 export const SCHEMA_VERSION = 1;
 
 /** Diagram coordinate space and node box size, shared by the validator and the renderer. */
@@ -127,6 +131,49 @@ export interface SimLesson extends LessonBase {
   challenges: Challenge[];
 }
 
-export type Lesson = DiagramLesson | TraceLesson | SimLesson;
+/** One step of a design lesson: a class or sequence diagram, a caption and maybe some code. */
+export interface DesignStep {
+  caption: string;
+  /** Key into the lesson's `diagrams`. */
+  diagram: string;
+  /** Class ids to highlight (class diagrams). */
+  highlight?: string[];
+  /** Sequence diagrams: show calls up to this index (0-based), the last one animated. */
+  call?: number;
+  /** A few lines of Python, at most 34 characters each so they fit a phone. */
+  code?: string[];
+  predict?: QuizQuestion;
+}
 
-export const KINDS = ['diagram', 'trace', 'sim'] as const;
+/**
+ * "Improve the design": a change request against a flawed class diagram. The learner taps the
+ * classes the change would force them to edit, picks the fix, and then sees the same change
+ * on the fixed design, which must need fewer edits (the validator checks this).
+ */
+export interface DesignExercise {
+  /** The change request, e.g. "Add an electric-vehicle spot that charges by the hour." */
+  change: string;
+  /** Diagram keys (both class diagrams). */
+  flawed: string;
+  fixed: string;
+  /** Classes that must be edited for the change, in each design. */
+  edits: { flawed: string[]; fixed: string[] };
+  /** Shown after a wrong set of taps. */
+  hint: string;
+  /** Which change fixes the design? */
+  fix: QuizQuestion;
+  /** Why the fixed design is better, shown at the end. */
+  explain: string;
+}
+
+/** Low-level design: hand-written conceptual class and sequence diagrams (CLAUDE.md section 5.6). */
+export interface DesignLesson extends LessonBase {
+  kind: 'design';
+  diagrams: Record<string, UmlDiagram>;
+  steps: DesignStep[];
+  exercise: DesignExercise;
+}
+
+export type Lesson = DiagramLesson | TraceLesson | SimLesson | DesignLesson;
+
+export const KINDS = ['diagram', 'trace', 'sim', 'design'] as const;

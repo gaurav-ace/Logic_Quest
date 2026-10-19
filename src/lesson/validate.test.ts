@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import hello from '../../lessons/hello.json';
+import objects from '../../lessons/objects-and-responsibilities.json';
 import { LessonValidationError, validateLesson } from './validate';
 
 // Fresh deep copy per test, so one test's edits never leak into another.
@@ -134,7 +135,7 @@ describe('validateLesson', () => {
   it('requires a known kind', () => {
     const l = lesson();
     delete l.kind;
-    expect(problemsOf(l)).toContain('kind: must be one of diagram, trace, sim');
+    expect(problemsOf(l)).toContain('kind: must be one of diagram, trace, sim, design');
   });
 
   it('checks a step prediction like a quiz question', () => {
@@ -180,5 +181,68 @@ describe('validateLesson', () => {
   it('rejects input that is not an object', () => {
     expect(problemsOf(null)).toEqual(['lesson: must be an object']);
     expect(problemsOf([])).toEqual(['lesson: must be an object']);
+  });
+});
+
+describe('design lessons', () => {
+  const design = (): Record<string, any> => structuredClone(objects) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+  it('accepts the objects-and-responsibilities lesson', () => {
+    expect(validateLesson(design()).kind).toBe('design');
+  });
+
+  it('rejects steps that name a missing diagram, a class that is not there, or a call out of range', () => {
+    const l = design();
+    l.steps[0].diagram = 'nope';
+    l.steps[1].highlight = ['ghost'];
+    l.steps[5].call = 9;
+    l.steps[6].highlight = ['order'];
+    const p = problemsOf(l);
+    expect(p).toContain("steps[0].diagram: must name one of the lesson's diagrams");
+    expect(p).toContain('steps[1].highlight: unknown class "ghost"');
+    expect(p).toContain('steps[5].call: must be a call index from 0 to 3');
+    expect(p).toContain('steps[6].highlight: only class diagrams have classes to highlight');
+  });
+
+  it('rejects code lines too long for a phone', () => {
+    const l = design();
+    l.steps[4].code = ['x = "' + 'a'.repeat(40) + '"'];
+    expect(problemsOf(l).some((x) => x.startsWith('steps[4].code[0]: is 46 characters'))).toBe(true);
+  });
+
+  it('rejects an exercise whose fix does not make the change smaller', () => {
+    const l = design();
+    l.exercise.edits.fixed = ['order', 'refund', 'notifier'];
+    expect(problemsOf(l)).toContain('exercise.edits: the fixed design needs 3 edits and the flawed one 3; the fix must need fewer');
+  });
+
+  it('rejects edits naming classes that are not in that design, and a sequence diagram as the flawed one', () => {
+    const l = design();
+    l.exercise.edits.flawed = ['order', 'notifier'];
+    expect(problemsOf(l)).toContain('exercise.edits.flawed: unknown class "notifier" in the flawed design');
+    const m = design();
+    m.exercise.flawed = 'flow';
+    expect(problemsOf(m)).toContain('exercise.flawed: must name a class diagram');
+  });
+
+  it('rejects relations to unknown classes, duplicates, and layouts that will not fit', () => {
+    const l = design();
+    l.diagrams.split.relations.push({ from: 'order', to: 'ghost', type: 'uses' }, { from: 'order', to: 'repo', type: 'has' });
+    const p = problemsOf(l);
+    expect(p).toContain('diagrams.split.relations[2]: unknown class "ghost"');
+    expect(p).toContain('diagrams.split.relations[3]: two relations between the same classes would draw on top of each other');
+    const m = design();
+    m.diagrams.split.classes[1].col = 1;
+    expect(problemsOf(m)).toContain('diagrams.split: "mailer" and "repo" share row 1');
+  });
+
+  it('rejects unknown fields in diagrams, classes, steps and the exercise', () => {
+    const l = design();
+    l.diagrams.god.colour = 'red';
+    l.diagrams.god.classes[0].colour = 'red';
+    l.steps[0].colour = 'red';
+    l.exercise.colour = 'red';
+    const p = problemsOf(l);
+    for (const path of ['diagrams.god.colour', 'diagrams.god.classes[0].colour', 'steps[0].colour', 'exercise.colour']) expect(p).toContain(`${path}: unknown field`);
   });
 });
