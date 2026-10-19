@@ -10,6 +10,15 @@ Phase 2, Rewards and progress: **done**, approved 2026-10-19 ("all good" on site
 
 Phase 1, Animation engine: **done**, approved 2026-10-19. Phase 0, Foundations: **done**, approved 2026-10-19. Live at https://gaurav-ace.github.io/Logic_Quest/.
 
+## Done (Phase 3), awaiting the owner's content review
+
+- 3.1 Predict-then-reveal questions on diagram steps; tally before the quiz; shared stepped shell (`src/render/stepped.ts`).
+- 3.2 Trace engine (`src/trace/`): programs really run and record frames; predictions computed from the run; every program tested against a reference on 200 seeded random inputs; "New example".
+- 3.3 Eight logic lessons. Claims tested beyond the examples (n² to 1,000; L + 1 posts; Python float output; invariant at every check; work-backwards optimal vs BFS up to 600). Mutation check: removing the frame deep-copy initially went unnoticed; the test was rewritten to record frames as they are made, and now catches it in 4 programs.
+- 3.4 Home grouped by track with folding sections; `requires` locking with an explanation on tap.
+- Checks run: `npm run check` 218/218; browser `ui` 196/196 (every lesson walked to its quiz at 360 px), `pwa` 7/7, `persist` 11/11.
+- Sources: Pólya; Myers, Sandler and Badgett; CLRS 4th ed.; Bentley; Wikipedia (Square number, Off-by-one error; owner may veto Wikipedia); Python docs (range, ZeroDivisionError; URLs moved to /3/builtins/ and were updated).
+
 ## Done (Phase 2)
 
 - 2.1 Reward engine (`src/rewards/`): event log, XP, levels, streak with coin buffer and break, 18 badges, all numbers in `rewards.config.json` (validated). Mutation checks: removing anti-farming, the coin floor, or "today is never a miss" each made tests fail. The first coin-floor mutation survived and exposed a missing test, which was added.
@@ -77,3 +86,4 @@ Phase 1, Animation engine: **done**, approved 2026-10-19. Phase 0, Foundations: 
 - 2026-10-19: Owner chose points + streak + badges and a 1-lesson daily goal. Wrote the Phase 2 plan.
 - 2026-10-19: Owner asked for streak penalties; chose XP + streak coins (CLAUDE.md section 7 updated). Built Phase 2 tasks 2.1–2.4, one commit each. Not pushed.
 - 2026-10-19: Owner approved Phase 2 and asked to make sure progress resumes across launches and days, then to build Phases 3 and 4. Added the persistent-storage request and the relaunch check. Owner chose tap-based DSA exercises (no code editor for now).
+- 2026-10-19: Built Phase 3 (3.1–3.4). Fixed my own check-script bug (a recursive helper hung a run) and stopped 8 leftover headless Chrome processes it left behind; the script now refuses to start if its debug port is taken.
