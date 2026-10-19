@@ -2,7 +2,8 @@
 // No dependencies: talks to Chrome over the DevTools protocol with Node's built-in WebSocket.
 //
 //   npm run build && npm run preview          (in another terminal)
-//   node scripts/browser-check.mjs [ui|pwa|persist|lessons] [url] [screenshot-dir]
+//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update] [url] [screenshot-dir]
+//   DIST_DIR=dist node scripts/browser-check.mjs update   (edits dist/ to simulate a deploy: rebuild after)
 //   LESSONS=binary-search,heaps node scripts/browser-check.mjs lessons   (walk only those)
 //
 // CHROME_PATH overrides where Chrome is found. On WSL in NAT mode, WSL cannot reach a Windows
@@ -566,6 +567,48 @@ if (mode === 'persist') {
   await load(url + '#/progress');
   check('best streak is remembered', (await text('.panel[aria-label="Streak"] p')) === 'Current: 0 days. Best: 2.', await text('.panel[aria-label="Streak"] p'));
   await shot('persist-day6-progress');
+}
+
+if (mode === 'update') {
+  // What a phone sees after a deploy. DIST_DIR is the served dist/ folder; this edits it to
+  // simulate a new release, so rebuild afterwards (npm run build).
+  const dist = process.env.DIST_DIR;
+  if (!dist) throw new Error('update mode needs DIST_DIR (the served dist/ folder)');
+  await viewport(360, 740, true);
+  await load();
+  await evaluate('navigator.serviceWorker.ready.then(() => true)');
+  await load();
+  check('installed: the page is served by the service worker', await evaluate('!!navigator.serviceWorker.controller'));
+
+  // A deploy that changes the page: opening the app again must show it, not the cached copy.
+  const indexPath = join(dist, 'index.html');
+  const original = readFileSync(indexPath, 'utf8');
+  writeFileSync(indexPath, original.replace('<head>', '<head><meta name="lq-deploy" content="2">'));
+  await load();
+  check('after a deploy, reopening the app shows the new version', (await evaluate(`document.querySelector('meta[name="lq-deploy"]')?.content ?? null`)) === '2');
+
+  // A deploy that changes the service worker while the app stays open: offer a reload.
+  const swPath = join(dist, 'sw.js');
+  writeFileSync(swPath, readFileSync(swPath, 'utf8').replace(/const VERSION = "([0-9a-f]+)"/, 'const VERSION = "$1-next"'));
+  // The app checks for updates when it comes back to the front.
+  await evaluate(`Object.defineProperty(document, 'hidden', { configurable: true, get: () => false }); document.dispatchEvent(new Event('visibilitychange'))`);
+  let banner = false;
+  for (let i = 0; i < 40 && !banner; i++) {
+    await sleep(250);
+    banner = await evaluate(`!!document.querySelector('.update-banner')`);
+  }
+  check('a new version arriving while the app is open shows a Reload banner', banner);
+  if (banner) {
+    await shot('update-banner');
+    await tap('Reload');
+    await sleep(800);
+    check('Reload loads the new version, and the banner is gone', !(await evaluate(`!!document.querySelector('.update-banner')`)) && (await evaluate(`document.querySelector('meta[name="lq-deploy"]')?.content ?? null`)) === '2');
+  }
+  // Offline still works after all that.
+  await send('Network.enable');
+  await send('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+  await load();
+  check('offline: the app still opens from the cache', (await text('h2')) === 'Lessons');
 }
 
 const errors = [];

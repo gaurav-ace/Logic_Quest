@@ -128,7 +128,16 @@ function showLoadError(root: HTMLElement, e: unknown): never {
   throw e;
 }
 
-registerServiceWorker();
+// A new version took over while the app was open. Offer a reload rather than doing it, so a
+// lesson in progress is never interrupted.
+function showUpdateBanner(): void {
+  if (document.querySelector('.update-banner')) return;
+  const bar = el('div', { class: 'update-banner', role: 'status' });
+  bar.append(el('span', {}, 'A new version with updated lessons is ready.'), button('Reload', () => location.reload(), { class: 'primary' }));
+  document.body.append(bar);
+}
+
+registerServiceWorker(showUpdateBanner);
 const root = document.getElementById('app');
 if (root) {
   let lessons: Lesson[];

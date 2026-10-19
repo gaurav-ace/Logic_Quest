@@ -1074,3 +1074,24 @@ button.link {
 .view {
   min-width: 0;
 }
+
+/* "Update ready" bar, at the top so it never covers the lesson controls. */
+.update-banner {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--card);
+  border-bottom: 2px solid var(--line);
+  font-weight: 700;
+}
+
+.update-banner button {
+  flex: 0 0 auto;
+}

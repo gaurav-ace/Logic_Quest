@@ -9,7 +9,7 @@ export default tseslint.config(
     // The service worker runs in a worker scope, and its placeholder is filled in at build time.
     files: ['src/pwa/sw.js'],
     languageOptions: {
-      globals: { self: 'readonly', caches: 'readonly', fetch: 'readonly', URL: 'readonly', __PRECACHE_LIST__: 'readonly' },
+      globals: { self: 'readonly', caches: 'readonly', fetch: 'readonly', URL: 'readonly', setTimeout: 'readonly', __PRECACHE_LIST__: 'readonly' },
     },
   },
   {
