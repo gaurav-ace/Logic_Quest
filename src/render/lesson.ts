@@ -4,19 +4,19 @@ import type { Lesson } from '../lesson/schema';
 import { buildControls } from './controls';
 import { buildDiagram } from './diagram';
 import { el, reducedMotion, scrollTo } from './dom';
-import { showQuestion } from './quiz';
+import { showQuestion, type QuizHooks } from './quiz';
 
 const HOP_MS = 900;
 /** Longest frame fed to the player, so one slow frame doesn't make the packet jump. */
 const MAX_FRAME_MS = 100;
 
 export interface LessonView {
-  /** True while a quiz question is on screen (leaving then asks first). */
+  /** True while an unfinished quiz is on screen (leaving then asks first). */
   inQuiz(): boolean;
   destroy(): void;
 }
 
-export function renderLesson(root: HTMLElement, lesson: Lesson): LessonView {
+export function renderLesson(root: HTMLElement, lesson: Lesson, hooks: QuizHooks): LessonView {
   const byId = new Map(lesson.nodes.map((n) => [n.id, n]));
   const at = (id: string): Point => byId.get(id)!; // ids were checked by validateLesson
   const config: PlayerConfig = {
@@ -48,7 +48,7 @@ export function renderLesson(root: HTMLElement, lesson: Lesson): LessonView {
   function dispatch(action: PlayerAction): void {
     const wasFinished = state.finished;
     state = reduce(config, state, action);
-    if (state.finished && !wasFinished) showQuestion(quiz, lesson.quiz, 0, replay);
+    if (state.finished && !wasFinished) showQuestion(quiz, lesson.quiz, 0, replay, hooks);
     if (!state.finished && action.type !== 'tick') quiz.hidden = true;
     draw();
     wake();
@@ -109,7 +109,7 @@ export function renderLesson(root: HTMLElement, lesson: Lesson): LessonView {
   wake();
 
   return {
-    inQuiz: () => !quiz.hidden,
+    inQuiz: () => !quiz.hidden && quiz.dataset.done !== 'true',
     destroy() {
       cancelAnimationFrame(frame);
       document.removeEventListener('visibilitychange', onVisibility);

@@ -371,3 +371,98 @@ button.primary {
     transition: none !important;
   }
 }
+
+.hud {
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.hud-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.hud-stats small {
+  display: block;
+  color: var(--mute);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.hud-stats strong {
+  font-size: 1.0625rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.xp-bar {
+  height: 10px;
+  margin: 10px 0 8px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--card);
+}
+
+.xp-bar i {
+  display: block;
+  height: 100%;
+  background: var(--hi);
+}
+
+.hud-today {
+  margin: 0;
+  color: var(--mute);
+  font-size: 0.9375rem;
+}
+
+.reward {
+  margin: 0 0 10px;
+  font-weight: 700;
+}
+
+.reward span {
+  display: block;
+}
+
+.lesson-card.done .lesson-meta {
+  color: var(--ok);
+}
+
+.notice {
+  padding: 12px 14px;
+  border-color: var(--bad);
+}
+
+/* Reward pop-up, above the thumb zone and the gesture bar. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 32px);
+  text-align: center;
+  padding: 10px 18px;
+  background: var(--hi);
+  color: var(--hi-ink);
+  border: 2px solid #16224a;
+  border-radius: 14px;
+  font-weight: 800;
+  box-shadow: 3px 3px 0 #16224a;
+  pointer-events: none;
+  animation: toast 2.4s forwards;
+}
+
+@keyframes toast {
+  0% { opacity: 0; transform: translate(-50%, 12px); }
+  12% { opacity: 1; transform: translate(-50%, 0); }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}

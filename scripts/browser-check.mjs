@@ -192,6 +192,42 @@ if (mode === 'ui') {
   await load(url + '#/lesson/no-such-lesson');
   check('unknown lesson link falls back to the list', (await text('h2')) === 'Lessons');
 
+  // Rewards and progress: a fresh browser profile starts at zero.
+  await load();
+  check('HUD starts at zero', (await text('.hud-stats')) === 'Level1XP0 / 30Streak0 daysCoins0', await text('.hud-stats'));
+  check('HUD shows today and the way to start a streak', (await text('.hud-today')) === 'Today: 0 / 1. Finish 1 lesson today to start a streak.');
+  await load(url + '#/lesson/hello-request-response');
+  await tap('Go to step 2', 'label');
+  await tap('Take the quiz');
+  await tap('The browser, by sending a request');
+  const reward = await evaluate(`[...document.querySelectorAll('.reward span')].map((s) => s.textContent)`);
+  check('first-try answer shows XP, lesson bonus, goal and badges, one per line',
+    JSON.stringify(reward) === JSON.stringify(['+10 XP, first try', 'Lesson complete: +10 XP. Today’s goal is done.', 'Badge earned: First steps.', 'Badge earned: Web basics done.']), JSON.stringify(reward));
+  check('one toast with everything earned (calm mode off)', (await text('.toast')) === '+20 XP  ·  🏅 First steps  ·  🏅 Web basics done', await text('.toast'));
+  await layoutChecks('reward-360');
+  await shot('reward-360');
+  await tap('← Lessons');
+  check('finished quiz leaves without asking', (await text('h2')) === 'Lessons');
+  check('toast is cleared when the screen changes', !(await evaluate(`!!document.querySelector('.toast')`)));
+  check('HUD after one lesson', (await text('.hud-stats')) === 'Level1XP20 / 30Streak1 dayCoins5', await text('.hud-stats'));
+  check('HUD says today is done', (await text('.hud-today')) === 'Today: 1 / 1. Today’s goal is done.');
+  check('finished lesson is marked done', (await evaluate(`document.querySelectorAll('.lesson-card.done').length`)) === 1);
+  await shot('home-after-reward-360');
+  await load();
+  check('progress survives a reload', (await text('.hud-stats')) === 'Level1XP20 / 30Streak1 dayCoins5', await text('.hud-stats'));
+  await load(url + '#/lesson/hello-request-response');
+  await tap('Go to step 2', 'label');
+  await tap('Take the quiz');
+  await tap('The browser, by sending a request');
+  check('replay says already scored, no new XP', (await text('.reward')).startsWith('Already scored.'), await text('.reward'));
+  await load(url + '#/lesson/load-balancer');
+  await tap('Go to step 5', 'label');
+  await tap('Take the quiz');
+  await tap('Keep sending it every third request');
+  check('wrong answer shows no reward', (await text('.reward')) === '');
+  await tap('Stop sending it requests for a while, then try it again');
+  check('right after a retry earns less', (await text('.reward')) === '+5 XP, after a retry', await text('.reward'));
+
   // Every lesson: layout, labels, and a walk through all steps to the quiz.
   for (const id of ['load-balancer', 'cache', 'agent-loop']) {
     await load(url + '#/lesson/' + id);
