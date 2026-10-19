@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "state-machines",
+  "title": "State machines",
+  "track": "lld",
+  "level": "medium",
+  "objective": "Model an object's life as explicit states and allowed moves, so impossible changes are rejected in one place.",
+  "program": "state-machine",
+  "requires": [
+    "decorator-adapter"
+  ],
+  "sources": [
+    {
+      "title": "Gamma, Helm, Johnson and Vlissides, Design Patterns (Addison-Wesley, 1994): the State pattern"
+    },
+    {
+      "title": "Python docs: dict (keys must be hashable, so tuples of strings can be keys)",
+      "url": "https://docs.python.org/3/library/stdtypes.html#dict"
+    }
+  ],
+  "simplifies": "One order in memory. Real systems save the state with the order, guard against two events arriving at once, and often log every move for audits. The State pattern goes further, giving each state its own class with its own behaviour.",
+  "diagrams": {
+    "flags": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "support",
+          "name": "Support",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "cancel(o)"
+          ]
+        },
+        {
+          "id": "warehouse",
+          "name": "Warehouse",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "dispatch(o)"
+          ]
+        },
+        {
+          "id": "order",
+          "name": "Order",
+          "col": "both",
+          "row": 1,
+          "fields": [
+            "paid: bool",
+            "shipped: bool",
+            "cancelled: bool"
+          ]
+        },
+        {
+          "id": "courier",
+          "name": "Courier",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "arrive(o)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "support",
+          "to": "order",
+          "type": "uses"
+        },
+        {
+          "from": "warehouse",
+          "to": "order",
+          "type": "uses"
+        },
+        {
+          "from": "courier",
+          "to": "order",
+          "type": "uses"
+        }
+      ]
+    },
+    "machine": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "support",
+          "name": "Support",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "cancel(o)"
+          ]
+        },
+        {
+          "id": "warehouse",
+          "name": "Warehouse",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "dispatch(o)"
+          ]
+        },
+        {
+          "id": "order",
+          "name": "Order",
+          "col": "both",
+          "row": 1,
+          "fields": [
+            "state",
+            "MOVES (allowed moves)"
+          ],
+          "methods": [
+            "handle(event)"
+          ]
+        },
+        {
+          "id": "courier",
+          "name": "Courier",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "arrive(o)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "support",
+          "to": "order",
+          "type": "uses"
+        },
+        {
+          "from": "warehouse",
+          "to": "order",
+          "type": "uses"
+        },
+        {
+          "from": "courier",
+          "to": "order",
+          "type": "uses"
+        }
+      ]
+    }
+  },
+  "exercise": {
+    "change": "Add a 'returned' state, allowed only after the order has arrived.",
+    "flawed": "flags",
+    "fixed": "machine",
+    "edits": {
+      "flawed": [
+        "support",
+        "warehouse",
+        "courier",
+        "order"
+      ],
+      "fixed": [
+        "order"
+      ]
+    },
+    "hint": "In this design, every caller checks the flags itself before acting (if paid and not cancelled …).",
+    "fix": {
+      "prompt": "How should the design change?",
+      "options": [
+        {
+          "text": "Give Order one state field and a table of allowed moves; callers just send events to handle()",
+          "explanation": "Right. The rules live in one table, so a new state is a new row."
+        },
+        {
+          "text": "Add a returned: bool flag and update each caller's checks",
+          "explanation": "That's four edits, and flags can contradict each other (paid and cancelled both true)."
+        },
+        {
+          "text": "Let callers set order.state to any text they like",
+          "explanation": "Then nothing stops an order jumping from 'new' to 'arrived'."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "With a state machine, Order owns every rule about what can happen next. Adding 'returned' is one new move, ('arrived', 'return') → 'returned', in Order's table; Support, Warehouse and Courier keep sending events as before."
+  },
+  "quiz": [
+    {
+      "prompt": "Why use one state field instead of several true/false flags?",
+      "options": [
+        {
+          "text": "Flags can contradict each other, like paid and cancelled both true; one state can't",
+          "explanation": "Right. One field holds exactly one state at a time."
+        },
+        {
+          "text": "It uses less memory",
+          "explanation": "Memory isn't the point; impossible combinations are."
+        },
+        {
+          "text": "Flags are not allowed in Python",
+          "explanation": "Python allows them; they just make impossible states easy to reach."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "An order is 'shipped' and a 'cancel' event arrives. What does the state machine do?",
+      "options": [
+        {
+          "text": "Rejects it: ('shipped', 'cancel') isn't an allowed move",
+          "explanation": "Right. The table says what can happen; everything else is refused in one place."
+        },
+        {
+          "text": "Moves to 'cancelled'",
+          "explanation": "Only 'new' and 'paid' orders can be cancelled here."
+        },
+        {
+          "text": "Crashes",
+          "explanation": "It returns the state unchanged and reports the event as rejected."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

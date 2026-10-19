@@ -1,0 +1,391 @@
+{
+  "schemaVersion": 1,
+  "kind": "design",
+  "id": "observer",
+  "title": "Observer",
+  "track": "lld",
+  "level": "medium",
+  "objective": "Let one object announce a change to many listeners without knowing who they are.",
+  "requires": [
+    "strategy-factory"
+  ],
+  "sources": [
+    {
+      "title": "Gamma, Helm, Johnson and Vlissides, Design Patterns (Addison-Wesley, 1994): the Observer pattern"
+    }
+  ],
+  "simplifies": "Listeners here run one after another in the same process. Real systems often put events on a queue (see Message queues), so a slow or failing listener can't hold up the order or the other listeners.",
+  "diagrams": {
+    "coupled": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "email",
+          "name": "Email",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "send(o)"
+          ]
+        },
+        {
+          "id": "sms",
+          "name": "Sms",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "send(o)"
+          ]
+        },
+        {
+          "id": "order",
+          "name": "Order",
+          "col": "both",
+          "row": 1,
+          "fields": [
+            "state"
+          ],
+          "methods": [
+            "ship()"
+          ]
+        },
+        {
+          "id": "stats",
+          "name": "Analytics",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "track(o)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "order",
+          "to": "email",
+          "type": "uses"
+        },
+        {
+          "from": "order",
+          "to": "sms",
+          "type": "uses"
+        },
+        {
+          "from": "order",
+          "to": "stats",
+          "type": "uses"
+        }
+      ]
+    },
+    "observer": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "order",
+          "name": "Order",
+          "col": 0,
+          "row": 0,
+          "fields": [
+            "listeners"
+          ],
+          "methods": [
+            "subscribe(l)",
+            "ship()"
+          ]
+        },
+        {
+          "id": "listener",
+          "name": "Listener",
+          "col": 1,
+          "row": 0,
+          "kind": "interface",
+          "methods": [
+            "notify(event)"
+          ]
+        },
+        {
+          "id": "email",
+          "name": "Email",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "notify(event)"
+          ]
+        },
+        {
+          "id": "sms",
+          "name": "Sms",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "notify(event)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "order",
+          "to": "listener",
+          "type": "uses"
+        },
+        {
+          "from": "email",
+          "to": "listener",
+          "type": "implements"
+        },
+        {
+          "from": "sms",
+          "to": "listener",
+          "type": "implements"
+        }
+      ]
+    },
+    "fanout": {
+      "type": "sequence",
+      "actors": [
+        "Order",
+        "Email",
+        "Sms",
+        "Stats"
+      ],
+      "calls": [
+        {
+          "from": "Order",
+          "to": "Email",
+          "label": "notify('shipped')"
+        },
+        {
+          "from": "Order",
+          "to": "Sms",
+          "label": "notify('shipped')"
+        },
+        {
+          "from": "Order",
+          "to": "Stats",
+          "label": "notify('shipped')"
+        }
+      ]
+    },
+    "plusloyalty": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "order",
+          "name": "Order",
+          "col": 0,
+          "row": 0,
+          "fields": [
+            "listeners"
+          ],
+          "methods": [
+            "ship()"
+          ]
+        },
+        {
+          "id": "listener",
+          "name": "Listener",
+          "col": 1,
+          "row": 0,
+          "kind": "interface",
+          "methods": [
+            "notify(event)"
+          ]
+        },
+        {
+          "id": "email",
+          "name": "Email",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "notify(event)"
+          ]
+        },
+        {
+          "id": "loyalty",
+          "name": "Loyalty",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "notify(event)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "order",
+          "to": "listener",
+          "type": "uses"
+        },
+        {
+          "from": "email",
+          "to": "listener",
+          "type": "implements"
+        },
+        {
+          "from": "loyalty",
+          "to": "listener",
+          "type": "implements"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "caption": "When an order ships, Order itself calls email, SMS and analytics, one by one.",
+      "diagram": "coupled",
+      "highlight": [
+        "order"
+      ],
+      "code": [
+        "def ship(self):",
+        "    self.state = 'shipped'",
+        "    email.send(self)",
+        "    sms.send(self)",
+        "    analytics.track(self)"
+      ]
+    },
+    {
+      "caption": "Order now depends on every class that cares about shipping.",
+      "diagram": "coupled",
+      "highlight": [
+        "email",
+        "sms",
+        "stats"
+      ],
+      "predict": {
+        "prompt": "Marketing wants a WhatsApp message when an order ships. Which class changes?",
+        "options": [
+          {
+            "text": "Order, which has nothing to do with WhatsApp",
+            "explanation": "Right. Order names every listener, so every new listener edits it."
+          },
+          {
+            "text": "Only a new WhatsApp class",
+            "explanation": "Order still has to call it."
+          },
+          {
+            "text": "Analytics",
+            "explanation": "Analytics only tracks; it doesn't send messages."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Observer: Order keeps a list of listeners. Anything with notify() can subscribe; Order calls them all when something happens.",
+      "diagram": "observer",
+      "highlight": [
+        "order",
+        "listener"
+      ],
+      "code": [
+        "def ship(self):",
+        "    self.state = 'shipped'",
+        "    for l in self.listeners:",
+        "        l.notify('shipped')"
+      ]
+    },
+    {
+      "caption": "Order ships and tells the first listener…",
+      "diagram": "fanout",
+      "call": 0
+    },
+    {
+      "caption": "…then the next…",
+      "diagram": "fanout",
+      "call": 1,
+      "predict": {
+        "prompt": "Who decided which listeners Order tells?",
+        "options": [
+          {
+            "text": "Whoever subscribed them, usually at start-up",
+            "explanation": "Right. Order just loops over its list; it never names a listener's class."
+          },
+          {
+            "text": "Order, by checking each listener's class",
+            "explanation": "Order only knows that each one has notify()."
+          },
+          {
+            "text": "The listeners poll Order every second",
+            "explanation": "They don't poll; Order calls them when it changes."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "…and the last. Adding WhatsApp is a new listener that subscribes itself; Order doesn't change.",
+      "diagram": "fanout",
+      "call": 2
+    }
+  ],
+  "exercise": {
+    "change": "Also add loyalty points when an order ships.",
+    "flawed": "coupled",
+    "fixed": "plusloyalty",
+    "edits": {
+      "flawed": [
+        "order"
+      ],
+      "fixed": []
+    },
+    "hint": "Which class calls every interested party by name?",
+    "fix": {
+      "prompt": "How should the design change?",
+      "options": [
+        {
+          "text": "Have Order keep a list of listeners and notify them all; Loyalty subscribes itself",
+          "explanation": "Right. Order announces; whoever cares listens."
+        },
+        {
+          "text": "Make Loyalty inherit from Order",
+          "explanation": "Loyalty isn't a kind of order, and it still wouldn't hear about shipping."
+        },
+        {
+          "text": "Have Loyalty check the order's state every few seconds",
+          "explanation": "Polling wastes work and can miss quick changes: the problem Observer solves."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Order only knows the Listener interface. Loyalty implements notify() and subscribes, so the change is a new class and nothing that exists has to change."
+  },
+  "quiz": [
+    {
+      "prompt": "In Observer, what does the subject (Order) know about its listeners?",
+      "options": [
+        {
+          "text": "Only that each one has notify()",
+          "explanation": "Right. That's what keeps it decoupled."
+        },
+        {
+          "text": "Each listener's class and what it does",
+          "explanation": "Then every new listener would mean editing Order."
+        },
+        {
+          "text": "Nothing at all",
+          "explanation": "It keeps a list of them and calls notify() on each."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "In a simple loop, one listener throws an error inside notify(). What can happen?",
+      "options": [
+        {
+          "text": "The listeners after it never hear about the event",
+          "explanation": "Right. That's why real systems catch errors per listener, or use a queue."
+        },
+        {
+          "text": "Nothing; errors are ignored",
+          "explanation": "An uncaught error stops the loop."
+        },
+        {
+          "text": "The order is cancelled automatically",
+          "explanation": "Nothing undoes the shipping; the other listeners just miss the news."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

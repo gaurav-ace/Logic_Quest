@@ -27,6 +27,7 @@ import { twoPointers } from './programs/two-pointers';
 import { windowMax } from './programs/window-max';
 import { workBackwards } from './programs/work-backwards';
 import { bfs } from './programs/bfs';
+import { stateMachine } from './programs/state-machine';
 import { bstSearch } from './programs/bst-search';
 import { coinChange } from './programs/coin-change';
 import { consistentHashing } from './programs/consistent-hashing';
@@ -86,6 +87,8 @@ export const PROGRAMS = [
   indexLookup,
   consistentHashing,
   rateLimiter,
+  // Phase 5b, low-level design
+  stateMachine,
 ].map((p) => p as unknown as Program<unknown>);
 
 const byId = new Map(PROGRAMS.map((p) => [p.id, p]));

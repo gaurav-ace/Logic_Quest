@@ -2,6 +2,7 @@ import { layoutTree } from '../trace/layout';
 import { show } from '../trace/tools';
 import type { Value, View } from '../trace/types';
 import { el, svg } from './dom';
+import { buildUml } from './uml';
 
 // Data views for trace frames. Each returns plain HTML, sized to fit a 360 px screen;
 // wide content scrolls inside its own box rather than the page (CLAUDE.md section 8).
@@ -24,6 +25,13 @@ export function renderView(view: View): HTMLElement {
       return treeView(view);
     case 'graph':
       return graphView(view);
+    case 'uml': {
+      const u = buildUml(view.diagram);
+      u.mark(Object.fromEntries((view.highlight ?? []).map((id) => [id, 'on'])));
+      u.showCalls(view.call ?? Infinity, 1);
+      if (view.label) u.element.prepend(el('figcaption', {}, view.label));
+      return u.element;
+    }
   }
 }
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { classLayoutProblems, sequenceLayoutProblems } from '../engine/uml';
 import { PROGRAMS } from './registry';
 import { seeded, Tracer } from './tools';
 import { codeFor, type Frame, type Program } from './types';
@@ -16,6 +17,11 @@ function checkFrames(p: Program<unknown>, input: unknown, frames: Frame[], label
     const where = `${label} frame ${i}`;
     if (f.line !== null) expect(f.line >= 1 && f.line <= code.length, `${where}: line ${f.line}`).toBe(true);
     expect(f.caption.trim().length, `${where}: caption`).toBeGreaterThan(0);
+    for (const v of f.views) {
+      if (v.type !== 'uml') continue;
+      const problems = v.diagram.type === 'class' ? classLayoutProblems(v.diagram) : sequenceLayoutProblems(v.diagram);
+      expect(problems, `${where}: diagram fits a phone`).toEqual([]);
+    }
     if (f.ask) {
       const texts = f.ask.options.map((o) => o.text);
       expect(new Set(texts).size, `${where}: unique options`).toBe(texts.length);

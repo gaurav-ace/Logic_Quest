@@ -91,6 +91,9 @@ export interface TraceLesson extends LessonBase {
   kind: 'trace';
   /** Id of a registered program. */
   program: string;
+  /** Optional "improve the design" after the trace (LLD lessons), with the diagrams it names. */
+  diagrams?: Record<string, UmlDiagram>;
+  exercise?: DesignExercise;
 }
 
 /** One goal to reach in a sim, e.g. "keep errors under 1% for 10 s with a server killed". */

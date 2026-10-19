@@ -1,6 +1,7 @@
 import type { TraceLesson } from '../lesson/schema';
 import { getProgram } from '../trace/registry';
 import { codeFor, type Frame, type Program } from '../trace/types';
+import { exercisePart } from './design';
 import { button, el } from './dom';
 import type { QuizHooks } from './quiz';
 import { renderStepped, type LessonView, type Stage } from './stepped';
@@ -24,7 +25,8 @@ export function renderTrace(root: HTMLElement, lesson: TraceLesson, hooks: QuizH
     });
     const footer = el('section', { class: 'card panel new-example' });
     footer.append(el('p', {}, 'Trace it again on numbers you haven’t seen. Predictions come from the real run.'), fresh);
-    inner = renderStepped(root, lesson, traceStage(program, input, example), hooks, { footer });
+    const extra = lesson.exercise && lesson.diagrams ? { beforeQuiz: exercisePart({ diagrams: lesson.diagrams, exercise: lesson.exercise }, hooks) } : {};
+    inner = renderStepped(root, lesson, traceStage(program, input, example), hooks, { footer, ...extra });
   };
   show(program.defaultInput);
   return {

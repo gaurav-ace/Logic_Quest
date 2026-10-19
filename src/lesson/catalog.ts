@@ -62,6 +62,10 @@ import interfacesPolymorphismLesson from '../../lessons/interfaces-polymorphism.
 import compositionInheritanceLesson from '../../lessons/composition-inheritance.json';
 import solid1Lesson from '../../lessons/solid-1.json';
 import solid2Lesson from '../../lessons/solid-2.json';
+import strategyFactoryLesson from '../../lessons/strategy-factory.json';
+import observerLesson from '../../lessons/observer.json';
+import decoratorAdapterLesson from '../../lessons/decorator-adapter.json';
+import stateMachinesLesson from '../../lessons/state-machines.json';
 import { getModel } from '../sim/registry';
 import { getProgram } from '../trace/registry';
 import type { Lesson, SimLesson } from './schema';
@@ -135,6 +139,10 @@ export const LESSON_DATA: unknown[] = [
   compositionInheritanceLesson,
   solid1Lesson,
   solid2Lesson,
+  strategyFactoryLesson,
+  observerLesson,
+  decoratorAdapterLesson,
+  stateMachinesLesson,
   agentLoop,
 ];
 

@@ -86,6 +86,10 @@ describe('lesson catalog', () => {
       'composition-inheritance',
       'solid-1',
       'solid-2',
+      'strategy-factory',
+      'observer',
+      'decorator-adapter',
+      'state-machines',
       'agent-loop',
     ]);
   });

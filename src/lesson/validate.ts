@@ -47,7 +47,7 @@ export function validateLesson(data: unknown): Lesson {
 
   // A misspelt optional key (e.g. "simplify") would otherwise vanish silently.
   const common = ['schemaVersion', 'kind', 'id', 'title', 'track', 'level', 'objective', 'sources', 'simplifies', 'requires', 'quiz'];
-  const own = kind === 'trace' ? ['program'] : kind === 'sim' ? ['model', 'params', 'challenges'] : kind === 'design' ? ['diagrams', 'steps', 'exercise'] : ['nodes', 'edges', 'steps'];
+  const own = kind === 'trace' ? ['program', 'diagrams', 'exercise'] : kind === 'sim' ? ['model', 'params', 'challenges'] : kind === 'design' ? ['diagrams', 'steps', 'exercise'] : ['nodes', 'edges', 'steps'];
   const known = [...common, ...own];
   for (const key of Object.keys(data)) if (!known.includes(key)) bad(key, 'unknown field');
 
@@ -65,6 +65,10 @@ export function validateLesson(data: unknown): Lesson {
   checkList(data.quiz, 'quiz', bad, (q, p) => checkQuestion(q, p, bad));
   if (kind === 'trace') {
     if (!isText(data.program) || !ID.test(data.program)) bad('program', 'must be a program id (lowercase words joined by hyphens)');
+    if (data.exercise !== undefined || data.diagrams !== undefined) {
+      const kinds = checkDiagrams(data, bad);
+      checkExercise(data, kinds, bad);
+    }
   } else if (kind === 'sim') {
     checkSim(data, bad);
   } else if (kind === 'design') {
@@ -139,31 +143,8 @@ const CODE_W = 34;
 const isTextList = (v: unknown): v is string[] => Array.isArray(v) && v.every(isText);
 
 function checkDesign(data: Obj, bad: Bad): void {
+  const kinds = checkDiagrams(data, bad);
   const diagrams = isObj(data.diagrams) ? data.diagrams : {};
-  if (!isObj(data.diagrams) || !Object.keys(diagrams).length) bad('diagrams', 'must map names to at least one diagram');
-  /** Class ids per class diagram; sequence diagrams map to null. */
-  const kinds = new Map<string, Set<string> | null>();
-  for (const [key, d] of Object.entries(diagrams)) {
-    const p = `diagrams.${key}`;
-    if (!isObj(d)) {
-      bad(p, 'must be an object');
-      continue;
-    }
-    if (d.type === 'class') {
-      const ids = checkClassDiagram(d, p, bad);
-      kinds.set(key, ids);
-    } else if (d.type === 'sequence') {
-      for (const k of Object.keys(d)) if (!['type', 'actors', 'calls'].includes(k)) bad(`${p}.${k}`, 'unknown field');
-      const callsOk = Array.isArray(d.calls) && d.calls.length > 0 && d.calls.every((c) => isObj(c) && isText(c.from) && isText(c.to) && isText(c.label) && (c.reply === undefined || typeof c.reply === 'boolean'));
-      if (!isTextList(d.actors)) bad(`${p}.actors`, 'must be a list of names');
-      else if (!callsOk) bad(`${p}.calls`, 'must be a non-empty list of { from, to, label, reply? }');
-      else for (const problem of sequenceLayoutProblems(d as unknown as SequenceDiagram)) bad(p, problem);
-      kinds.set(key, null);
-    } else {
-      bad(`${p}.type`, 'must be "class" or "sequence"');
-    }
-  }
-
   checkList(data.steps, 'steps', bad, (st, p) => {
     if (!isObj(st)) return void bad(p, 'must be an object');
     for (const k of Object.keys(st)) if (!['caption', 'diagram', 'highlight', 'call', 'code', 'predict'].includes(k)) bad(`${p}.${k}`, 'unknown field');
@@ -190,7 +171,39 @@ function checkDesign(data: Obj, bad: Bad): void {
     }
     if (st.predict !== undefined) checkQuestion(st.predict, `${p}.predict`, bad);
   });
+  checkExercise(data, kinds, bad);
+}
 
+/** Class ids per class diagram; sequence diagrams map to null. */
+function checkDiagrams(data: Obj, bad: Bad): Map<string, Set<string> | null> {
+  const diagrams = isObj(data.diagrams) ? data.diagrams : {};
+  if (!isObj(data.diagrams) || !Object.keys(diagrams).length) bad('diagrams', 'must map names to at least one diagram');
+  const kinds = new Map<string, Set<string> | null>();
+  for (const [key, d] of Object.entries(diagrams)) {
+    const p = `diagrams.${key}`;
+    if (!isObj(d)) {
+      bad(p, 'must be an object');
+      continue;
+    }
+    if (d.type === 'class') {
+      const ids = checkClassDiagram(d, p, bad);
+      kinds.set(key, ids);
+    } else if (d.type === 'sequence') {
+      for (const k of Object.keys(d)) if (!['type', 'actors', 'calls'].includes(k)) bad(`${p}.${k}`, 'unknown field');
+      const callsOk = Array.isArray(d.calls) && d.calls.length > 0 && d.calls.every((c) => isObj(c) && isText(c.from) && isText(c.to) && isText(c.label) && (c.reply === undefined || typeof c.reply === 'boolean'));
+      if (!isTextList(d.actors)) bad(`${p}.actors`, 'must be a list of names');
+      else if (!callsOk) bad(`${p}.calls`, 'must be a non-empty list of { from, to, label, reply? }');
+      else for (const problem of sequenceLayoutProblems(d as unknown as SequenceDiagram)) bad(p, problem);
+      kinds.set(key, null);
+    } else {
+      bad(`${p}.type`, 'must be "class" or "sequence"');
+    }
+  }
+
+  return kinds;
+}
+
+function checkExercise(data: Obj, kinds: Map<string, Set<string> | null>, bad: Bad): void {
   const ex = data.exercise;
   if (!isObj(ex)) return void bad('exercise', 'must be an object');
   for (const k of Object.keys(ex)) if (!['change', 'flawed', 'fixed', 'edits', 'hint', 'fix', 'explain'].includes(k)) bad(`exercise.${k}`, 'unknown field');

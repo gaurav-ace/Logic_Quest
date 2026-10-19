@@ -1,3 +1,4 @@
+import type { UmlDiagram } from '../engine/uml';
 import type { QuizQuestion } from '../lesson/schema';
 
 // A trace is what really happened when a program ran: one frame per step, recorded by the
@@ -87,6 +88,16 @@ export type View =
       activeEdges?: [string, string][];
       /** Small text under a node (e.g. its distance). */
       notes?: Record<string, string>;
+    }
+  | {
+      /** A class or sequence diagram (Phase 5b), checked by the same layout rules as design lessons. */
+      type: 'uml';
+      label?: string;
+      diagram: UmlDiagram;
+      /** Class ids to highlight. */
+      highlight?: string[];
+      /** Sequence diagrams: show calls up to this index (all when absent). */
+      call?: number;
     };
 
 export interface TreeNode {

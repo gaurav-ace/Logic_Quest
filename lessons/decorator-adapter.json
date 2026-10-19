@@ -1,0 +1,490 @@
+{
+  "schemaVersion": 1,
+  "kind": "design",
+  "id": "decorator-adapter",
+  "title": "Decorator and Adapter",
+  "track": "lld",
+  "level": "medium",
+  "objective": "Add behaviour by wrapping an object (Decorator), and make a mismatched class fit the interface your code expects (Adapter).",
+  "requires": [
+    "observer"
+  ],
+  "sources": [
+    {
+      "title": "Gamma, Helm, Johnson and Vlissides, Design Patterns (Addison-Wesley, 1994): the Decorator and Adapter patterns"
+    },
+    {
+      "title": "Python docs: zlib.compress",
+      "url": "https://docs.python.org/3/library/zlib.html#zlib.compress"
+    }
+  ],
+  "simplifies": "Real encryption needs keys, nonces and a vetted library; it is only named here. The SMS vendor is made up. Python's @decorator syntax (wrapping functions) is related to this pattern but not the same thing.",
+  "diagrams": {
+    "base": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "source",
+          "name": "DataSource",
+          "col": "both",
+          "row": 0,
+          "kind": "interface",
+          "methods": [
+            "read()",
+            "write(data)"
+          ]
+        },
+        {
+          "id": "file",
+          "name": "FileSource",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "write(data)"
+          ]
+        },
+        {
+          "id": "comp",
+          "name": "Compressed",
+          "col": 1,
+          "row": 1,
+          "fields": [
+            "inner"
+          ],
+          "methods": [
+            "write(data)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "file",
+          "to": "source",
+          "type": "implements"
+        },
+        {
+          "from": "comp",
+          "to": "source",
+          "type": "implements"
+        }
+      ]
+    },
+    "stack": {
+      "type": "sequence",
+      "actors": [
+        "Compress",
+        "Encrypt",
+        "File"
+      ],
+      "calls": [
+        {
+          "from": "Compress",
+          "to": "Encrypt",
+          "label": "write(packed)"
+        },
+        {
+          "from": "Encrypt",
+          "to": "File",
+          "label": "write(secret)"
+        },
+        {
+          "from": "File",
+          "to": "Encrypt",
+          "label": "ok",
+          "reply": true
+        },
+        {
+          "from": "Encrypt",
+          "to": "Compress",
+          "label": "ok",
+          "reply": true
+        }
+      ]
+    },
+    "adapter": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "app",
+          "name": "Alerts",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "on_ship(o)"
+          ]
+        },
+        {
+          "id": "notifier",
+          "name": "Notifier",
+          "col": 1,
+          "row": 0,
+          "kind": "interface",
+          "methods": [
+            "send(user, msg)"
+          ]
+        },
+        {
+          "id": "vendor",
+          "name": "VendorSms",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "send_text(p, b)"
+          ]
+        },
+        {
+          "id": "adapt",
+          "name": "SmsAdapter",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "send(user, msg)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "app",
+          "to": "notifier",
+          "type": "uses"
+        },
+        {
+          "from": "adapt",
+          "to": "notifier",
+          "type": "implements"
+        },
+        {
+          "from": "adapt",
+          "to": "vendor",
+          "type": "uses"
+        }
+      ]
+    },
+    "direct": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "alerts",
+          "name": "Alerts",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "on_ship(o)"
+          ]
+        },
+        {
+          "id": "otp",
+          "name": "Otp",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "send_code(u)"
+          ]
+        },
+        {
+          "id": "vendor",
+          "name": "VendorSms",
+          "col": "both",
+          "row": 1,
+          "methods": [
+            "send_text(phone, body)"
+          ]
+        },
+        {
+          "id": "promos",
+          "name": "Promos",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "blast(users)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "alerts",
+          "to": "vendor",
+          "type": "uses"
+        },
+        {
+          "from": "otp",
+          "to": "vendor",
+          "type": "uses"
+        },
+        {
+          "from": "promos",
+          "to": "vendor",
+          "type": "uses"
+        }
+      ]
+    },
+    "adapted": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "alerts",
+          "name": "Alerts",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "on_ship(o)"
+          ]
+        },
+        {
+          "id": "otp",
+          "name": "Otp",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "send_code(u)"
+          ]
+        },
+        {
+          "id": "notifier",
+          "name": "Notifier",
+          "col": "both",
+          "row": 1,
+          "kind": "interface",
+          "methods": [
+            "send(user, msg)"
+          ]
+        },
+        {
+          "id": "promos",
+          "name": "Promos",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "blast(users)"
+          ]
+        },
+        {
+          "id": "adapt",
+          "name": "SmsAdapter",
+          "col": 1,
+          "row": 2,
+          "methods": [
+            "send(user, msg)"
+          ]
+        },
+        {
+          "id": "vendor",
+          "name": "VendorSms",
+          "col": 1,
+          "row": 3,
+          "methods": [
+            "send_text(p, b)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "alerts",
+          "to": "notifier",
+          "type": "uses"
+        },
+        {
+          "from": "otp",
+          "to": "notifier",
+          "type": "uses"
+        },
+        {
+          "from": "promos",
+          "to": "notifier",
+          "type": "uses"
+        },
+        {
+          "from": "adapt",
+          "to": "notifier",
+          "type": "implements"
+        },
+        {
+          "from": "adapt",
+          "to": "vendor",
+          "type": "uses"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "caption": "Files are saved through a DataSource interface. Now some must be compressed, some encrypted, some both.",
+      "diagram": "base",
+      "highlight": [
+        "source",
+        "file"
+      ],
+      "predict": {
+        "prompt": "With one subclass per mix, how many classes do compression and encryption need?",
+        "options": [
+          {
+            "text": "Three: Compressed, Encrypted, and CompressedEncrypted",
+            "explanation": "Right. Each new option multiplies the mixes, and the order of the steps matters too."
+          },
+          {
+            "text": "Two",
+            "explanation": "The mix of both needs its own class as well."
+          },
+          {
+            "text": "One",
+            "explanation": "One class can't be compressed-only, encrypted-only and both."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Decorator: Compressed implements DataSource and also holds one (inner). It does its step, then passes the call on.",
+      "diagram": "base",
+      "highlight": [
+        "comp"
+      ],
+      "code": [
+        "class Compressed(DataSource):",
+        "    def __init__(self, inner):",
+        "        self.inner = inner",
+        "",
+        "    def write(self, data):",
+        "        self.inner.write(",
+        "            zlib.compress(data))"
+      ]
+    },
+    {
+      "caption": "Wrappers stack in any order: Compressed(Encrypted(FileSource('a.txt'))). The outer one runs first…",
+      "diagram": "stack",
+      "call": 0
+    },
+    {
+      "caption": "…and passes its result to the next, until it reaches the file.",
+      "diagram": "stack",
+      "call": 1,
+      "predict": {
+        "prompt": "Compressed(Encrypted(file)).write(data): what reaches the file?",
+        "options": [
+          {
+            "text": "encrypt(compress(data))",
+            "explanation": "Right. The outer wrapper (Compressed) acts first, then hands its result to Encrypted."
+          },
+          {
+            "text": "compress(encrypt(data))",
+            "explanation": "That would be Encrypted(Compressed(file)): the outer one runs first."
+          },
+          {
+            "text": "data, unchanged",
+            "explanation": "Each wrapper transforms the data before passing it on."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Each layer returns, outermost last. No class needed changing to add a feature.",
+      "diagram": "stack",
+      "call": 3
+    },
+    {
+      "caption": "Adapter: a vendor's SMS library has send_text(phone, body), but our code expects Notifier.send(user, msg). SmsAdapter implements Notifier and translates.",
+      "diagram": "adapter",
+      "highlight": [
+        "adapt"
+      ],
+      "code": [
+        "class SmsAdapter(Notifier):",
+        "    def send(self, user, msg):",
+        "        self.lib.send_text(",
+        "            user.phone, msg)"
+      ],
+      "predict": {
+        "prompt": "The vendor renames send_text to deliver. What changes?",
+        "options": [
+          {
+            "text": "Only SmsAdapter",
+            "explanation": "Right. It's the one place that knows the vendor's names."
+          },
+          {
+            "text": "Alerts and every other caller",
+            "explanation": "They only use Notifier, which hasn't changed."
+          },
+          {
+            "text": "The Notifier interface",
+            "explanation": "Our interface is ours; the vendor's rename doesn't touch it."
+          }
+        ],
+        "answer": 0
+      }
+    }
+  ],
+  "exercise": {
+    "change": "Switch to a new SMS vendor whose method is push(number, text).",
+    "flawed": "direct",
+    "fixed": "adapted",
+    "edits": {
+      "flawed": [
+        "alerts",
+        "otp",
+        "promos"
+      ],
+      "fixed": [
+        "adapt"
+      ]
+    },
+    "hint": "Which classes call the vendor's send_text() themselves?",
+    "fix": {
+      "prompt": "How should the design change?",
+      "options": [
+        {
+          "text": "Hide the vendor behind a Notifier interface, with one SmsAdapter that translates calls",
+          "explanation": "Right. Only the adapter knows the vendor."
+        },
+        {
+          "text": "Rename our own methods to match the new vendor",
+          "explanation": "Every caller still changes, and the next vendor repeats it."
+        },
+        {
+          "text": "Wrap each call site in try/except",
+          "explanation": "That handles errors, not a changed method name."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Alerts, Otp and Promos depend only on Notifier. Switching vendors means rewriting SmsAdapter to call push(number, text); nothing else changes."
+  },
+  "quiz": [
+    {
+      "prompt": "Why wrap a DataSource in a decorator instead of subclassing it to add logging?",
+      "options": [
+        {
+          "text": "A wrapper works on any DataSource at run time, and wrappers combine in any order",
+          "explanation": "Right. No new class per combination."
+        },
+        {
+          "text": "Subclasses combine more easily",
+          "explanation": "Each combination would need its own subclass."
+        },
+        {
+          "text": "Decorators edit the original class",
+          "explanation": "They wrap it; the original class is untouched."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "What is an adapter for?",
+      "options": [
+        {
+          "text": "Making a class with the wrong interface fit the one your code expects",
+          "explanation": "Right. It translates calls, like a travel plug adapter."
+        },
+        {
+          "text": "Adding features to an object",
+          "explanation": "That's a decorator."
+        },
+        {
+          "text": "Choosing an algorithm at run time",
+          "explanation": "That's Strategy."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

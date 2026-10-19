@@ -1,0 +1,470 @@
+{
+  "schemaVersion": 1,
+  "kind": "design",
+  "id": "strategy-factory",
+  "title": "Strategy and Factory",
+  "track": "lld",
+  "level": "medium",
+  "objective": "Swap an algorithm at run time behind one interface (Strategy), and keep the choice of which class to create in one place (Factory).",
+  "requires": [
+    "solid-2"
+  ],
+  "sources": [
+    {
+      "title": "Gamma, Helm, Johnson and Vlissides, Design Patterns (Addison-Wesley, 1994): the Strategy pattern"
+    },
+    {
+      "title": "Gamma, Helm, Johnson and Vlissides, Design Patterns (Addison-Wesley, 1994): the Factory Method pattern"
+    }
+  ],
+  "simplifies": "The factory here is a simple factory: one function that decides which class to create. The book's Factory Method pattern is related but different: subclasses override a method to choose the class. Fees are illustrative.",
+  "diagrams": {
+    "ifs": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "checkout",
+          "name": "Checkout",
+          "col": "both",
+          "row": 0,
+          "methods": [
+            "fee(order, mode)"
+          ]
+        }
+      ],
+      "relations": []
+    },
+    "strategy": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "checkout",
+          "name": "Checkout",
+          "col": 0,
+          "row": 0,
+          "fields": [
+            "rule"
+          ],
+          "methods": [
+            "fee(order)"
+          ]
+        },
+        {
+          "id": "rule",
+          "name": "FeeRule",
+          "col": 1,
+          "row": 0,
+          "kind": "interface",
+          "methods": [
+            "fee(order)"
+          ]
+        },
+        {
+          "id": "flat",
+          "name": "FlatFee",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "fee(order)"
+          ]
+        },
+        {
+          "id": "distance",
+          "name": "DistanceFee",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "fee(order)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "checkout",
+          "to": "rule",
+          "type": "has"
+        },
+        {
+          "from": "flat",
+          "to": "rule",
+          "type": "implements"
+        },
+        {
+          "from": "distance",
+          "to": "rule",
+          "type": "implements"
+        }
+      ]
+    },
+    "factory": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "checkout",
+          "name": "Checkout",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "fee(order)"
+          ]
+        },
+        {
+          "id": "quote",
+          "name": "Quote",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "estimate()"
+          ]
+        },
+        {
+          "id": "factory",
+          "name": "FeeFactory",
+          "col": "both",
+          "row": 1,
+          "methods": [
+            "make(city)"
+          ]
+        },
+        {
+          "id": "rule",
+          "name": "FeeRule",
+          "col": 1,
+          "row": 2,
+          "kind": "interface",
+          "methods": [
+            "fee(order)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "checkout",
+          "to": "factory",
+          "type": "uses"
+        },
+        {
+          "from": "quote",
+          "to": "factory",
+          "type": "uses"
+        },
+        {
+          "from": "factory",
+          "to": "rule",
+          "type": "uses"
+        }
+      ]
+    },
+    "run": {
+      "type": "sequence",
+      "actors": [
+        "Checkout",
+        "Factory",
+        "Rule"
+      ],
+      "calls": [
+        {
+          "from": "Checkout",
+          "to": "Factory",
+          "label": "make('Pune')"
+        },
+        {
+          "from": "Factory",
+          "to": "Checkout",
+          "label": "DistanceFee",
+          "reply": true
+        },
+        {
+          "from": "Checkout",
+          "to": "Rule",
+          "label": "fee(order)"
+        },
+        {
+          "from": "Rule",
+          "to": "Checkout",
+          "label": "₹45",
+          "reply": true
+        }
+      ]
+    },
+    "copies": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "checkout",
+          "name": "Checkout",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "fee(order)"
+          ]
+        },
+        {
+          "id": "quote",
+          "name": "Quote",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "estimate()"
+          ]
+        },
+        {
+          "id": "invoice",
+          "name": "Invoice",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "total()"
+          ]
+        }
+      ],
+      "relations": []
+    },
+    "central": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "checkout",
+          "name": "Checkout",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "fee(order)"
+          ]
+        },
+        {
+          "id": "quote",
+          "name": "Quote",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "estimate()"
+          ]
+        },
+        {
+          "id": "factory",
+          "name": "FeeFactory",
+          "col": "both",
+          "row": 1,
+          "methods": [
+            "make(city)"
+          ]
+        },
+        {
+          "id": "invoice",
+          "name": "Invoice",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "total()"
+          ]
+        },
+        {
+          "id": "rule",
+          "name": "FeeRule",
+          "col": 1,
+          "row": 2,
+          "kind": "interface",
+          "methods": [
+            "fee(order)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "checkout",
+          "to": "factory",
+          "type": "uses"
+        },
+        {
+          "from": "quote",
+          "to": "factory",
+          "type": "uses"
+        },
+        {
+          "from": "invoice",
+          "to": "factory",
+          "type": "uses"
+        },
+        {
+          "from": "factory",
+          "to": "rule",
+          "type": "uses"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "caption": "Checkout works out the delivery fee with a branch for each pricing mode.",
+      "diagram": "ifs",
+      "highlight": [
+        "checkout"
+      ],
+      "code": [
+        "def fee(order, mode):",
+        "    if mode == 'flat':",
+        "        return 30",
+        "    if mode == 'distance':",
+        "        return 10 + 5 * order.km"
+      ]
+    },
+    {
+      "caption": "Strategy: each pricing rule becomes its own class behind a FeeRule interface, and Checkout holds one rule.",
+      "diagram": "strategy",
+      "highlight": [
+        "rule",
+        "flat",
+        "distance"
+      ]
+    },
+    {
+      "caption": "Checkout just asks its rule. Which rule it holds can change while the app runs.",
+      "diagram": "strategy",
+      "highlight": [
+        "checkout"
+      ],
+      "code": [
+        "checkout = Checkout(DistanceFee())",
+        "checkout.fee(order)"
+      ],
+      "predict": {
+        "prompt": "It starts raining and the app switches Checkout to a SurgeFee rule. What changes in Checkout's code?",
+        "options": [
+          {
+            "text": "Nothing: it's handed a different FeeRule",
+            "explanation": "Right. Swapping the strategy object changes the behaviour, not the code."
+          },
+          {
+            "text": "A new branch for rain",
+            "explanation": "There are no branches left in Checkout."
+          },
+          {
+            "text": "Checkout must inherit from SurgeFee",
+            "explanation": "Checkout has a rule; it doesn't need to be one."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "But who picks the rule? If every caller writes its own if city == …, the choice is copied everywhere. A factory owns that one decision.",
+      "diagram": "factory",
+      "highlight": [
+        "factory"
+      ],
+      "code": [
+        "def make(city):",
+        "    if city in METROS:",
+        "        return DistanceFee()",
+        "    return FlatFee()"
+      ]
+    },
+    {
+      "caption": "Checkout asks the factory for Pune's rule…",
+      "diagram": "run",
+      "call": 0
+    },
+    {
+      "caption": "…gets a DistanceFee back…",
+      "diagram": "run",
+      "call": 1
+    },
+    {
+      "caption": "…and uses it like any other FeeRule.",
+      "diagram": "run",
+      "call": 3,
+      "predict": {
+        "prompt": "Pune moves to distance pricing next month. Where do you edit?",
+        "options": [
+          {
+            "text": "make(), the one place that chooses",
+            "explanation": "Right. Callers ask the factory, so the choice is in one place."
+          },
+          {
+            "text": "Checkout and Quote",
+            "explanation": "They don't choose any more; they ask the factory."
+          },
+          {
+            "text": "DistanceFee",
+            "explanation": "DistanceFee computes fees; it doesn't decide which cities use it."
+          }
+        ],
+        "answer": 0
+      }
+    }
+  ],
+  "exercise": {
+    "change": "Add festival pricing (₹20 off) for every city this week.",
+    "flawed": "copies",
+    "fixed": "central",
+    "edits": {
+      "flawed": [
+        "checkout",
+        "quote",
+        "invoice"
+      ],
+      "fixed": [
+        "factory"
+      ]
+    },
+    "hint": "Each of these classes has its own copy of the \"which fee?\" if-chain.",
+    "fix": {
+      "prompt": "How should the design change?",
+      "options": [
+        {
+          "text": "Put each fee rule behind a FeeRule interface, and pick the rule in one factory all three use",
+          "explanation": "Right. A new rule is a new class plus one edit to the factory."
+        },
+        {
+          "text": "Copy the festival branch into each if-chain",
+          "explanation": "That's three edits now and three more next time, and the copies drift apart."
+        },
+        {
+          "text": "Make Quote and Invoice inherit from Checkout to share its if-chain",
+          "explanation": "A quote isn't a checkout; inheriting to share code ties unrelated classes together."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "The fee rules are strategies, and FeeFactory is the one place that chooses between them. Festival pricing is a new FestivalFee class plus one edit to make(); Checkout, Quote and Invoice don't change."
+  },
+  "quiz": [
+    {
+      "prompt": "What does the Strategy pattern let you do?",
+      "options": [
+        {
+          "text": "Swap one algorithm for another at run time, behind the same interface",
+          "explanation": "Right. The caller holds \"a FeeRule\" and doesn't care which."
+        },
+        {
+          "text": "Create objects without naming their class",
+          "explanation": "That's closer to a factory."
+        },
+        {
+          "text": "Tell many listeners about a change",
+          "explanation": "That's Observer."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why put object creation in a factory?",
+      "options": [
+        {
+          "text": "The decision about which class to make lives in one place, so changing it is one edit",
+          "explanation": "Right. Callers ask for \"the rule for Pune\" instead of deciding themselves."
+        },
+        {
+          "text": "Factories create objects faster",
+          "explanation": "Speed isn't the point."
+        },
+        {
+          "text": "Python requires it",
+          "explanation": "Python lets you call classes directly; a factory is a design choice."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

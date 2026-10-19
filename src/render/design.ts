@@ -1,5 +1,5 @@
 import type { ClassDiagram } from '../engine/uml';
-import type { DesignLesson, DesignStep } from '../lesson/schema';
+import type { DesignExercise, DesignLesson, DesignStep, UmlDiagram } from '../lesson/schema';
 import type { Feedback } from '../progress/tracker';
 import { button, el, scrollTo } from './dom';
 import type { QuizHooks } from './quiz';
@@ -14,10 +14,15 @@ export const EXERCISE_SPOT = 300;
 export const EXERCISE_FIX = 301;
 
 export function renderDesign(root: HTMLElement, lesson: DesignLesson, hooks: QuizHooks): LessonView {
-  const exercise = el('section', { class: 'card exercise', 'aria-label': 'Improve the design' });
   return renderStepped(root, lesson, designStage(lesson), hooks, {
-    beforeQuiz: { element: exercise, start: (done) => runExercise(exercise, lesson, hooks, done) },
+    beforeQuiz: exercisePart(lesson, hooks),
   });
+}
+
+/** The "improve the design" part, for any lesson that has an exercise (design or trace). */
+export function exercisePart(lesson: { diagrams: Record<string, UmlDiagram>; exercise: DesignExercise }, hooks: QuizHooks) {
+  const element = el('section', { class: 'card exercise', 'aria-label': 'Improve the design' });
+  return { element, start: (done: () => void) => runExercise(element, lesson, hooks, done) };
 }
 
 function designStage(lesson: DesignLesson): Stage {
@@ -62,7 +67,7 @@ function designStage(lesson: DesignLesson): Stage {
   };
 }
 
-function runExercise(box: HTMLElement, lesson: DesignLesson, hooks: QuizHooks, done: () => void): void {
+function runExercise(box: HTMLElement, lesson: { diagrams: Record<string, UmlDiagram>; exercise: DesignExercise }, hooks: QuizHooks, done: () => void): void {
   const ex = lesson.exercise;
   const before = lesson.diagrams[ex.flawed]!;
   const after_ = lesson.diagrams[ex.fixed]!;
