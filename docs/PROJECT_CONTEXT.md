@@ -52,6 +52,7 @@ Treat the prototype as a reference for look and behaviour, not as code to extend
 - 2026-10-19, hosting: GitHub Pages (HTTPS, so the PWA can install), with GitHub Actions running the tests as CI. Owner approved.
 - 2026-10-19, lesson content: Claude drafts each lesson from cited sources and marks anything unverified `TODO-VERIFY`; the owner reviews and approves it before the phase closes.
 - 2026-10-19, UI checks: the headless-Chrome check script is committed to the repo (`scripts/`), so phone-width and touch checks can be rerun each phase.
+- 2026-10-19, curriculum: low-level design (LLD) added as Phase 5b, right after system design (HLD). The curriculum is a fixed, phased syllabus (`docs/CURRICULUM.md`); extra lessons can be requested in any session and follow the same "Claude drafts, owner reviews" process. No in-app lesson generation (it would need live model calls).
 - 2026-10-19, layout: docs moved into `docs/`, prototype into `prototype/`, git repo initialised. Owner approved.
 
 ## Decisions still open (ask the owner, do not decide alone)
