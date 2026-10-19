@@ -40,6 +40,7 @@ export function buildControls(stepCount: number, dispatch: (a: PlayerAction) => 
       play.textContent = s.playing ? 'Pause' : atEnd ? 'Replay' : 'Play';
       play.setAttribute('aria-pressed', String(s.playing));
       next.textContent = s.step === stepCount - 1 ? 'Take the quiz' : 'Next';
+      next.disabled = s.finished; // the quiz is already open below
     },
   };
 }

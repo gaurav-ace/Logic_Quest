@@ -55,8 +55,70 @@ main {
 h1 {
   font-size: 1.125rem;
   font-weight: 800;
-  margin: 0 0 12px;
+  margin: 0;
   letter-spacing: -0.2px;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: var(--tap);
+  margin-bottom: 12px;
+}
+
+.lesson-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  display: grid;
+  gap: 12px;
+}
+
+.lesson-card {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+}
+
+.lesson-title {
+  font-size: 1.125rem;
+}
+
+.lesson-goal {
+  font-weight: 500;
+  color: var(--mute);
+}
+
+.lesson-meta {
+  font-size: 0.875rem;
+  color: var(--mute);
+}
+
+/* Bottom sheet, in thumb reach, above the gesture bar. */
+.guard {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--card);
+  border-top: 2px solid var(--line);
+  padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -6px 24px rgb(0 0 0 / 0.18);
+}
+
+.guard p {
+  max-width: 528px;
+  margin: 0 auto 10px;
+  font-weight: 700;
+}
+
+.guard .controls {
+  max-width: 528px;
+  margin: 0 auto;
 }
 
 h2 {

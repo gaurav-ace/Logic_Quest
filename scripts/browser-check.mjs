@@ -79,7 +79,10 @@ const media = (motion, scheme = 'light') =>
   send('Emulation.setEmulatedMedia', {
     features: [{ name: 'prefers-reduced-motion', value: motion }, { name: 'prefers-color-scheme', value: scheme }],
   });
+// Always a fresh page load, via about:blank. A URL that differs only in its hash would otherwise
+// be an in-page navigation, which the app (correctly) treats as the learner moving between screens.
 const load = async (u = url) => {
+  await send('Page.navigate', { url: 'about:blank' });
   await send('Page.navigate', { url: u });
   for (let i = 0; i < 50; i++) {
     await sleep(100);
@@ -106,18 +109,46 @@ const tap = async (name, by = 'text') => {
   await sleep(250);
 };
 
+// Tap the n-th element matching a CSS selector.
+const tapSel = async (selector, n = 0) => {
+  const box = await evaluate(`(() => {
+    const b = document.querySelectorAll(${JSON.stringify(selector)})[${n}];
+    if (!b) return null;
+    b.scrollIntoView({ block: 'center' });
+    const r = b.getBoundingClientRect();
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+  })()`);
+  if (!box) throw new Error(`nothing to tap: ${selector} #${n}`);
+  await sleep(150);
+  await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x, y: box.y }] });
+  await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await sleep(250);
+};
+// What the Android back button does: step back one history entry.
+const browserBack = async () => {
+  const h = await send('Page.getNavigationHistory');
+  await send('Page.navigateToHistoryEntry', { entryId: h.entries[h.currentIndex - 1].id });
+  await sleep(400);
+};
+const hash = () => evaluate('location.hash');
+
 const layoutChecks = async (label) => {
   const m = await evaluate(`(() => {
     const targets = [...document.querySelectorAll('button, summary, a')].filter((b) => b.offsetParent)
       .map((b) => b.getBoundingClientRect()).map((r) => [Math.round(r.width), Math.round(r.height)]);
     const svg = document.querySelector('svg');
     const labelPx = svg ? +(parseFloat(getComputedStyle(svg.querySelector('text')).fontSize) * svg.getBoundingClientRect().width / 420).toFixed(1) : null;
-    return { vw: document.documentElement.clientWidth, scrollW: document.documentElement.scrollWidth, targets, labelPx };
+    // Every node label must fit inside its box (8 units of padding).
+    const overflow = [...document.querySelectorAll('svg .node')].filter((g) => g.querySelector('text').getBBox().width > g.querySelector('rect').getBBox().width - 8).map((g) => g.textContent);
+    return { vw: document.documentElement.clientWidth, scrollW: document.documentElement.scrollWidth, targets, labelPx, overflow };
   })()`);
   check(`${label}: no horizontal scroll`, m.scrollW <= m.vw, `scrollWidth ${m.scrollW}, viewport ${m.vw}`);
   const small = m.targets.filter(([w, h]) => w < 48 || h < 48);
   check(`${label}: tap targets >= 48px`, small.length === 0, `${m.targets.length} targets${small.length ? ', too small: ' + JSON.stringify(small) : ''}`);
-  if (m.labelPx !== null) check(`${label}: diagram labels >= 14px`, m.labelPx >= 14, `~${m.labelPx}px`);
+  if (m.labelPx !== null) {
+    check(`${label}: diagram labels >= 14px`, m.labelPx >= 14, `~${m.labelPx}px`);
+    check(`${label}: labels fit inside their boxes`, m.overflow.length === 0, m.overflow.join(', '));
+  }
 };
 
 await send('Page.enable');
@@ -125,10 +156,56 @@ await send('Runtime.enable');
 await send('Log.enable');
 
 if (mode === 'ui') {
-  // Phone, reduced motion: walk every control by touch.
+  // Home screen and navigation, including what the Android back button does.
   await viewport(360, 740, true);
   await media('reduce');
   await load();
+  await layoutChecks('home-360');
+  await shot('home-360');
+  const titles = await evaluate(`[...document.querySelectorAll('.lesson-title')].map((t) => t.textContent)`);
+  check('home lists the 4 lessons in order', JSON.stringify(titles) === JSON.stringify(['Hello, request', 'Load balancer', 'Cache', 'AI agent loop']), titles.join(', '));
+  check('no "← Lessons" button on home', !(await evaluate(`!!document.querySelector('.nav-back').offsetParent`)));
+  await tapSel('.lesson-card', 2);
+  check('tapping a card opens that lesson', (await hash()) === '#/lesson/cache' && (await text('h2')) === 'Cache');
+  await browserBack();
+  check('back button returns to the list', (await hash()) === '#/' && (await text('h2')) === 'Lessons');
+  await tapSel('.lesson-card', 1);
+  await tap('← Lessons');
+  check('"← Lessons" returns to the list', (await text('h2')) === 'Lessons');
+  await tapSel('.lesson-card', 1);
+  await tap('Go to step 5', 'label');
+  await tap('Take the quiz');
+  await browserBack();
+  check('guard makes Stay the prominent choice', (await text('.guard .primary')) === 'Stay');
+  check('back during the quiz asks first and stays on the lesson', (await hash()) === '#/lesson/load-balancer' && (await evaluate(`!document.querySelector('.guard').hidden`)));
+  await layoutChecks('quiz guard');
+  await shot('guard-360');
+  await tap('Stay');
+  check('Stay keeps the quiz', (await evaluate(`document.querySelector('.guard').hidden && !document.querySelector('.quiz').hidden`)));
+  await browserBack();
+  await tap('Leave');
+  check('Leave goes to the list', (await hash()) === '#/' && (await text('h2')) === 'Lessons');
+  await load(url + '#/lesson/agent-loop');
+  check('deep link opens the lesson', (await text('h2')) === 'AI agent loop');
+  await browserBack();
+  check('back from a deep link goes to the list, not out of the app', (await hash()) === '#/' && (await text('h2')) === 'Lessons');
+  await load(url + '#/lesson/no-such-lesson');
+  check('unknown lesson link falls back to the list', (await text('h2')) === 'Lessons');
+
+  // Every lesson: layout, labels, and a walk through all steps to the quiz.
+  for (const id of ['load-balancer', 'cache', 'agent-loop']) {
+    await load(url + '#/lesson/' + id);
+    await layoutChecks(`${id}-360`);
+    await shot(`${id}-360-step1`);
+    const steps = await evaluate(`document.querySelectorAll('.dot').length`);
+    for (let k = 1; k < steps; k++) await tap('Next');
+    await shot(`${id}-360-last`);
+    await tap('Take the quiz');
+    check(`${id}: quiz opens with question 1 of 2`, (await text('.quiz-count')) === 'Question 1 of 2');
+  }
+
+  // Phone, reduced motion: walk every control by touch.
+  await load(url + '#/lesson/hello-request-response');
   await layoutChecks('phone-360');
   await shot('phone-360-1-start');
   check('step label and caption shown', (await text('.step-label')) === 'Step 1 of 2' && (await text('.caption')).startsWith('You type an address'));
@@ -154,6 +231,7 @@ if (mode === 'ui') {
   await tap('Go to step 2', 'label');
   await tap('Take the quiz');
   check('quiz appears after the last step', await evaluate(`!document.querySelector('.quiz').hidden`));
+  check('"Take the quiz" is disabled while the quiz is open', await evaluate(`document.querySelector('.controls .primary').disabled`));
   await tap('The server, by sending the page when it is ready');
   check('wrong answer explains why', (await text('.feedback')).startsWith("Not in HTTP's basic model"));
   await shot('phone-360-2-wrong');
@@ -170,7 +248,7 @@ if (mode === 'ui') {
   // Landscape with motion: the packet should actually travel.
   await viewport(740, 360, true);
   await media('no-preference');
-  await load();
+  await load(url + '#/lesson/hello-request-response');
   await layoutChecks('phone-landscape');
   await tap('Next');
   const cx = Number(await evaluate(`document.querySelector('.packet').getAttribute('cx')`));
@@ -179,12 +257,15 @@ if (mode === 'ui') {
   await viewport(1280, 800, false);
   await media('no-preference');
   await load();
-  await layoutChecks('desktop-1280');
-  await shot('desktop-1280');
+  await layoutChecks('desktop-1280 home');
+  await shot('desktop-1280-home');
+  await load(url + '#/lesson/load-balancer');
+  await layoutChecks('desktop-1280 lesson');
+  await shot('desktop-1280-lesson');
 
   await viewport(360, 740, true);
   await media('reduce', 'dark');
-  await load();
+  await load(url + '#/lesson/cache');
   await shot('phone-360-dark');
 }
 
@@ -202,9 +283,9 @@ if (mode === 'pwa') {
   await send('Network.enable');
   await send('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
   await load();
-  check('loads offline', !!(await text('h2')));
-  await load(url + '?offline-deep-link=1');
-  check('offline navigation with a query string still loads', !!(await text('h2')));
+  check('loads offline', (await text('h2')) === 'Lessons');
+  await load(url + '?offline-deep-link=1#/lesson/cache');
+  check('offline deep link with a query string opens the lesson', (await text('h2')) === 'Cache');
 }
 
 const errors = [];
