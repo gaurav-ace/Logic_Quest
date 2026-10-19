@@ -54,14 +54,14 @@ Treat the prototype as a reference for look and behaviour, not as code to extend
 - 2026-10-19, UI checks: the headless-Chrome check script is committed to the repo (`scripts/`), so phone-width and touch checks can be rerun each phase.
 - 2026-10-19, curriculum: low-level design (LLD) added as Phase 5b, right after system design (HLD). The curriculum is a fixed, phased syllabus (`docs/CURRICULUM.md`); extra lessons can be requested in any session and follow the same "Claude drafts, owner reviews" process. No in-app lesson generation (it would need live model calls).
 - 2026-10-19, goal raised: the owner wants to be confident as a senior SDE after finishing. Added Phase 5c, real-world systems: case studies (payment gateway, Swiggy-style food delivery, Uber-style ride-hailing, IRCTC-style train booking, and more) and incident studies from companies' published postmortems and engineering articles (Meta, Stripe, and others). Curriculum approved.
+- 2026-10-19, rewards: points, levels, a forgiving daily streak (one freeze a week) and milestone badges. No cosmetic unlocks for now.
+- 2026-10-19, daily goal: 1 lesson a day by default (about 5–10 minutes), changeable in settings.
 - 2026-10-19, layout: docs moved into `docs/`, prototype into `prototype/`, git repo initialised. Owner approved.
 
 ## Decisions still open (ask the owner, do not decide alone)
 
 Copied from `CLAUDE.md` section 12. Move each item here under "Decisions made" once answered.
 
-- Reward style: points only, points plus badges, or plus cosmetic unlocks
-- Target session length and daily goal defaults
 - Whether DSA challenges include real code writing in the browser
 
 ## Glossary

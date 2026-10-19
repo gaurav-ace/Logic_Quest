@@ -4,7 +4,7 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 ## Current phase
 
-Phase 2, Rewards and progress: not started. Curriculum approved (103 planned lessons, including Phase 5c real-world systems). Next: Phase 2 plan, which needs the owner's answers on reward style and session length.
+Phase 2, Rewards and progress: not started. Plan in `docs/PHASE2_PLAN.md`, waiting for the owner's approval. Curriculum approved (103 planned lessons).
 
 Phase 1, Animation engine: **done**, approved 2026-10-19 after the owner checked the site and their phone and reviewed the lessons ("all good").
 
@@ -29,12 +29,12 @@ Phase 0, Foundations: **done**, approved 2026-10-19 after the owner tested on we
 
 ## Next step
 
-1. Owner answers the Phase 2 open decisions (reward style, session length, daily goal).
-2. Write the Phase 2 plan (rewards and progress) and wait for approval.
+1. Owner approves `docs/PHASE2_PLAN.md`.
+2. Build tasks 2.1–2.4, one commit each, and report at the end of the phase.
 
 ## Blockers and questions for the owner
 
-- Phase 2 open decisions (CLAUDE.md section 12): reward style, session length and daily goal defaults.
+- Phase 2 plan approval.
 
 ## Not tested yet
 
@@ -63,3 +63,4 @@ Phase 0, Foundations: **done**, approved 2026-10-19 after the owner tested on we
 - 2026-10-19: Owner approved Phase 1. Asked whether the curriculum is fixed or generated on request: explained the phased curriculum (Phases 3–6) plus lessons on request drafted by Claude and reviewed; no in-app generation (needs live model calls). Raised that LLD is missing from the phase list.
 - 2026-10-19: Owner chose to add LLD as Phase 5b (CLAUDE.md section 9 updated) and asked for a full syllabus first. Drafted `docs/CURRICULUM.md`.
 - 2026-10-19: Owner approved the curriculum and asked for real-world case studies and published incident articles, with the goal of senior-SDE confidence. Added Phase 5c to CLAUDE.md and the curriculum. Checked that 7 articles load; Uber/Netflix/Swiggy blogs marked TODO-VERIFY.
+- 2026-10-19: Owner chose points + streak + badges and a 1-lesson daily goal. Wrote the Phase 2 plan.
