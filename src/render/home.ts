@@ -8,7 +8,7 @@ export function renderHome(root: HTMLElement, lessons: Lesson[], progress: Progr
   const list = el('ul', { class: 'lesson-list' });
   for (const lesson of lessons) {
     const done = progress.completed.has(lesson.id);
-    const card = el('button', { type: 'button', class: `lesson-card${done ? ' done' : ''}` });
+    const card = el('button', { type: 'button', class: `lesson-card${done ? ' done' : ''}`, 'data-id': lesson.id });
     const questions = lesson.quiz.length === 1 ? '1 question' : `${lesson.quiz.length} questions`;
     card.append(
       el('span', { class: 'lesson-title' }, lesson.title),

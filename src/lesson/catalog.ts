@@ -3,12 +3,34 @@ import cache from '../../lessons/cache.json';
 import dryRun from '../../lessons/dry-run.json';
 import hello from '../../lessons/hello.json';
 import loadBalancer from '../../lessons/load-balancer.json';
+import breakItDown from '../../lessons/break-it-down.json';
+import spotPattern from '../../lessons/spot-pattern.json';
+import loopsLimits from '../../lessons/loops-limits.json';
+import edgeCasesLesson from '../../lessons/edge-cases.json';
+import invariants from '../../lessons/invariants.json';
+import workBackwards from '../../lessons/work-backwards.json';
+import estimate from '../../lessons/estimate.json';
 import { getProgram } from '../trace/registry';
 import type { Lesson } from './schema';
 import { validateLesson } from './validate';
 
 /** Lesson order on the home screen. Every file in lessons/ must be listed (catalog.test.ts checks). */
-export const LESSON_DATA: unknown[] = [hello, dryRun, loadBalancer, cache, agentLoop];
+export const LESSON_DATA: unknown[] = [
+  hello,
+  // Logic foundations (Phase 3), in curriculum order
+  breakItDown,
+  spotPattern,
+  dryRun,
+  loopsLimits,
+  edgeCasesLesson,
+  invariants,
+  workBackwards,
+  estimate,
+  // System design and agentic AI
+  loadBalancer,
+  cache,
+  agentLoop,
+];
 
 /** Validates every lesson up front, so bad data fails at load time, not mid-lesson. */
 export function loadCatalog(data: unknown[] = LESSON_DATA, hasProgram: (id: string) => boolean = (id) => !!getProgram(id)): Lesson[] {

@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "loops-limits",
+  "title": "Loops and their limits",
+  "track": "logic",
+  "level": "medium",
+  "objective": "Count exactly how many times a loop runs, and catch off-by-one errors before they happen.",
+  "program": "fence-posts",
+  "requires": [
+    "dry-run"
+  ],
+  "sources": [
+    {
+      "title": "Wikipedia: Off-by-one error (the fencepost error)",
+      "url": "https://en.wikipedia.org/wiki/Off-by-one_error"
+    },
+    {
+      "title": "Python documentation: range() (the stop value is not included)",
+      "url": "https://docs.python.org/3/builtins/stdtypes.html#range"
+    }
+  ],
+  "simplifies": "Real loops often hide the count behind len(), indexes and conditions, but the check is the same: write down the first value, the last value, and count.",
+  "quiz": [
+    {
+      "prompt": "How many numbers does range(2, 7) produce in Python?",
+      "options": [
+        {
+          "text": "5",
+          "explanation": "Right. 2, 3, 4, 5, 6: the stop value 7 is not included, so 7 − 2 = 5."
+        },
+        {
+          "text": "6",
+          "explanation": "That counts 7 too, but range stops before its stop value."
+        },
+        {
+          "text": "7",
+          "explanation": "That counts from 0. range(2, 7) starts at 2."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "A 10-metre fence has a post every 2 metres, including both ends. How many posts?",
+      "options": [
+        {
+          "text": "5",
+          "explanation": "That is one post per gap. There are 5 gaps of 2 metres, but posts sit at both ends of every gap: 6."
+        },
+        {
+          "text": "6",
+          "explanation": "Right. Posts at 0, 2, 4, 6, 8 and 10 metres: gaps + 1."
+        },
+        {
+          "text": "10",
+          "explanation": "That's one per metre. Posts are 2 metres apart here."
+        }
+      ],
+      "answer": 1
+    }
+  ]
+}

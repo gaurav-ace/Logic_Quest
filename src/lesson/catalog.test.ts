@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { LESSON_DATA, loadCatalog } from './catalog';
+import { validateLesson } from './validate';
 
 const files = import.meta.glob<{ default: unknown }>('../../lessons/*.json', { eager: true });
 
 describe('lesson catalog', () => {
-  it('every lesson file is valid', () => {
+  it('every lesson file is valid on its own', () => {
     for (const [path, mod] of Object.entries(files)) {
-      expect(() => loadCatalog([mod.default]), path).not.toThrow();
+      expect(() => validateLesson(mod.default), path).not.toThrow();
     }
+  });
+
+  it('the whole catalog loads: programs exist, requirements resolve', () => {
+    expect(() => loadCatalog()).not.toThrow();
   });
 
   it('every lesson file is listed in the catalog', () => {
@@ -17,7 +22,20 @@ describe('lesson catalog', () => {
   });
 
   it('loads all lessons in order', () => {
-    expect(loadCatalog().map((l) => l.id)).toEqual(['hello-request-response', 'dry-run', 'load-balancer', 'cache', 'agent-loop']);
+    expect(loadCatalog().map((l) => l.id)).toEqual([
+      'hello-request-response',
+      'break-it-down',
+      'spot-pattern',
+      'dry-run',
+      'loops-limits',
+      'edge-cases',
+      'invariants',
+      'work-backwards',
+      'estimate',
+      'load-balancer',
+      'cache',
+      'agent-loop',
+    ]);
   });
 
   it('every lesson has an objective, sources, a quiz and a simplifies note', () => {

@@ -107,7 +107,7 @@ describe('validateLesson', () => {
     (l.nodes as { width?: unknown }[])[0]!.width = 120;
     expect(() => validateLesson(l)).not.toThrow();
     (l.nodes as { width?: unknown }[])[0]!.width = 5;
-    expect(problemsOf(l)).toContain('nodes[0].width: must be a number from 40 to 200');
+    expect(problemsOf(l)).toContain('nodes[0].width: must be a number from 40 to 400');
   });
 
   it('rejects a node box that sticks out of the diagram', () => {

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "edge-cases",
+  "title": "Edge cases",
+  "track": "logic",
+  "level": "medium",
+  "objective": "List the inputs that break code (empty, one item, values that cancel out) and test them on purpose.",
+  "program": "edge-cases",
+  "sources": [
+    {
+      "title": "Myers, Sandler and Badgett, The Art of Software Testing, 3rd ed. (Wiley, 2011): test-case design and boundary-value analysis"
+    },
+    {
+      "title": "Python documentation: ZeroDivisionError",
+      "url": "https://docs.python.org/3/builtins/exceptions.html#ZeroDivisionError"
+    }
+  ],
+  "simplifies": "Three edge cases are shown. Real checklists are longer: very large inputs, duplicates, negative numbers, wrong types, and the boundaries of every range in the problem.",
+  "quiz": [
+    {
+      "prompt": "Which input is most likely to break a function that returns the first item of a list?",
+      "options": [
+        {
+          "text": "A list with 1,000 items",
+          "explanation": "Long lists are fine here: there's still a first item."
+        },
+        {
+          "text": "An empty list",
+          "explanation": "Right. There is no first item to return. Empty input is the classic edge case."
+        },
+        {
+          "text": "A list of negative numbers",
+          "explanation": "Negative values are still values; the first one exists."
+        }
+      ],
+      "answer": 1
+    },
+    {
+      "prompt": "average([]) crashes. What's a sensible fix?",
+      "options": [
+        {
+          "text": "Delete the test so it stops failing",
+          "explanation": "That hides the bug instead of fixing it."
+        },
+        {
+          "text": "Decide what an empty list should mean (e.g. return None or raise a clear error) and handle it first",
+          "explanation": "Right. The real fix is a decision about the edge case, written into the code and tested."
+        },
+        {
+          "text": "Divide by len(nums) + 1",
+          "explanation": "That never crashes, but it gives the wrong average for every non-empty list."
+        }
+      ],
+      "answer": 1
+    }
+  ]
+}

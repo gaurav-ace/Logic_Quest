@@ -56,6 +56,8 @@ export class Tracer {
   readonly frames: Frame[] = [];
 
   step(line: number | null, caption: string, vars: Record<string, Value>, views: View[], ask?: QuizQuestion): void {
-    this.frames.push({ line, caption, vars: Object.entries(vars), views, ...(ask ? { ask } : {}) });
+    // Copy, so a program that later changes its own arrays can never rewrite an earlier frame.
+    const snapshot = structuredClone({ vars: Object.entries(vars), views });
+    this.frames.push({ line, caption, ...snapshot, ...(ask ? { ask } : {}) });
   }
 }

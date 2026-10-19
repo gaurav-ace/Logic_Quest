@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "break-it-down",
+  "title": "Break it down",
+  "track": "logic",
+  "level": "easy",
+  "objective": "Turn a problem that feels too big into small questions you can answer one at a time.",
+  "sources": [
+    {
+      "title": "Pólya, How to Solve It (Princeton University Press): heuristics for problem solving, including breaking a problem into parts and working backwards"
+    }
+  ],
+  "simplifies": "Real problems rarely split this neatly the first time. Expect to redo the split once you learn more; that is normal, not a failure.",
+  "nodes": [
+    {
+      "id": "goal",
+      "label": "Is it a palindrome?",
+      "x": 210,
+      "y": 32,
+      "width": 230
+    },
+    {
+      "id": "clean",
+      "label": "Clean",
+      "x": 58,
+      "y": 150,
+      "width": 92
+    },
+    {
+      "id": "ends",
+      "label": "Compare",
+      "x": 162,
+      "y": 150,
+      "width": 100
+    },
+    {
+      "id": "inward",
+      "label": "Move in",
+      "x": 266,
+      "y": 150,
+      "width": 96
+    },
+    {
+      "id": "stop",
+      "label": "Stop",
+      "x": 366,
+      "y": 150,
+      "width": 92
+    }
+  ],
+  "edges": [
+    [
+      "goal",
+      "clean"
+    ],
+    [
+      "goal",
+      "ends"
+    ],
+    [
+      "goal",
+      "inward"
+    ],
+    [
+      "goal",
+      "stop"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "The big question: is \"Racecar\" a palindrome (the same forwards and backwards)? Too vague to code in one go. Split it into smaller questions.",
+      "highlight": [
+        "goal"
+      ],
+      "path": []
+    },
+    {
+      "caption": "Small question 1: what exactly do we compare? Ignore upper and lower case, so \"Racecar\" becomes \"racecar\".",
+      "highlight": [
+        "clean"
+      ],
+      "path": [
+        [
+          "goal",
+          "clean"
+        ]
+      ],
+      "predict": {
+        "prompt": "Which small question should come first?",
+        "options": [
+          {
+            "text": "Decide what counts as the same letter (R and r)",
+            "explanation": "Right. Until you settle that, every later comparison could give the wrong answer."
+          },
+          {
+            "text": "Write the whole loop",
+            "explanation": "Not yet. Writing code before the small questions are answered usually means rewriting it."
+          },
+          {
+            "text": "Test it on a long sentence",
+            "explanation": "Testing comes later. First decide what the program should even compare."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Small question 2: do the first and last letters match? r and r: yes.",
+      "highlight": [
+        "ends"
+      ],
+      "path": [
+        [
+          "goal",
+          "ends"
+        ]
+      ]
+    },
+    {
+      "caption": "Small question 3: then what? Move both ends one step inward and compare again: a and a, then c and c.",
+      "highlight": [
+        "inward"
+      ],
+      "path": [
+        [
+          "goal",
+          "inward"
+        ]
+      ],
+      "predict": {
+        "prompt": "The first and last letters match. What is the next small step?",
+        "options": [
+          {
+            "text": "Declare it a palindrome",
+            "explanation": "Too early. One matching pair says nothing about the letters in between."
+          },
+          {
+            "text": "Move both ends inward and compare the next pair",
+            "explanation": "Right. The same small check, repeated, covers the whole word."
+          },
+          {
+            "text": "Start again from the first letter",
+            "explanation": "That would compare the same pair forever. Each check should move inward."
+          }
+        ],
+        "answer": 1
+      }
+    },
+    {
+      "caption": "Small question 4: when do we stop? When the two ends meet in the middle (palindrome), or as soon as a pair doesn't match (not a palindrome).",
+      "highlight": [
+        "stop"
+      ],
+      "path": [
+        [
+          "goal",
+          "stop"
+        ]
+      ],
+      "predict": {
+        "prompt": "When can we stop comparing?",
+        "options": [
+          {
+            "text": "Only after checking every letter twice",
+            "explanation": "No need. Each pair is checked once as the ends move inward."
+          },
+          {
+            "text": "When the ends meet, or at the first pair that doesn't match",
+            "explanation": "Right. Meeting in the middle means every pair matched; one mismatch is already enough to say no."
+          },
+          {
+            "text": "After the first matching pair",
+            "explanation": "One match is not enough: a later pair could still differ."
+          }
+        ],
+        "answer": 1
+      }
+    },
+    {
+      "caption": "Each small answer was easy. Together they solve the big question: \"racecar\" is a palindrome. That is decomposition.",
+      "highlight": [
+        "goal",
+        "clean",
+        "ends",
+        "inward",
+        "stop"
+      ],
+      "path": []
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "You're asked: \"Find which customers ordered more this month than last month.\" What's the best first move?",
+      "options": [
+        {
+          "text": "Start writing a loop over all customers",
+          "explanation": "Code first usually means rework. You don't yet know what \"ordered more\" is measured in."
+        },
+        {
+          "text": "Split it: what counts as an order? how do I total a month? then compare two totals",
+          "explanation": "Right. Each of those is a small question you can answer and test on its own."
+        },
+        {
+          "text": "Ask for a faster computer",
+          "explanation": "Speed isn't the problem yet; the question isn't broken down."
+        }
+      ],
+      "answer": 1
+    },
+    {
+      "prompt": "A small question is a good one when…",
+      "options": [
+        {
+          "text": "You can answer it and check the answer on its own",
+          "explanation": "Right. If you can test it alone, you can trust it when you combine the pieces."
+        },
+        {
+          "text": "It sounds as hard as the original",
+          "explanation": "Then it isn't smaller. Keep splitting until each part is easy to answer."
+        },
+        {
+          "text": "It needs every other part solved first",
+          "explanation": "That's a sign the split isn't working: good parts can mostly be solved independently."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

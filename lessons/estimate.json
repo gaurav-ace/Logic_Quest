@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "estimate",
+  "title": "Estimate before you build",
+  "track": "logic",
+  "level": "hard",
+  "objective": "Use rough multiplication and units to judge how big a system must be before designing it.",
+  "program": "estimate",
+  "requires": [
+    "spot-pattern",
+    "dry-run"
+  ],
+  "sources": [
+    {
+      "title": "Bentley, Programming Pearls, 2nd ed. (Addison-Wesley, 2000): column 7, \"The Back of the Envelope\""
+    }
+  ],
+  "simplifies": "Every number here is illustrative, not measured. Real estimates also count copies (backups, replicas), growth over time and overheads, and use your own system's figures.",
+  "quiz": [
+    {
+      "prompt": "1,000 KB is about…",
+      "options": [
+        {
+          "text": "1 MB",
+          "explanation": "Right, in decimal units: 1,000 KB = 1 MB, and 1,000 MB = 1 GB."
+        },
+        {
+          "text": "1 GB",
+          "explanation": "That would be 1,000,000 KB."
+        },
+        {
+          "text": "1 TB",
+          "explanation": "That would be 1,000,000,000 KB."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Your estimate says 25,000 GB. What does that tell you before writing any code?",
+      "options": [
+        {
+          "text": "It's tiny; ignore storage",
+          "explanation": "25,000 GB is 25 TB: more than one ordinary disk."
+        },
+        {
+          "text": "Plan for several disks or a storage service, plus extra copies for safety",
+          "explanation": "Right. The order of magnitude (terabytes) changes the design, which is exactly why you estimate first."
+        },
+        {
+          "text": "The estimate must be wrong",
+          "explanation": "Maybe the inputs are off, but a big number is a reason to check them, not to dismiss the result."
+        }
+      ],
+      "answer": 1
+    }
+  ]
+}

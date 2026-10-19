@@ -195,16 +195,16 @@ if (mode === 'ui') {
   await layoutChecks('home-360');
   await shot('home-360');
   const titles = await evaluate(`[...document.querySelectorAll('.lesson-title')].map((t) => t.textContent)`);
-  check('home lists the lessons in order', JSON.stringify(titles) === JSON.stringify(['Hello, request', 'Dry-run code', 'Load balancer', 'Cache', 'AI agent loop']), titles.join(', '));
+  check('home lists every lesson', titles.length === 12 && titles[0] === 'Hello, request' && titles.includes('AI agent loop'), titles.join(', '));
   check('no "← Lessons" button on home', !(await evaluate(`!!document.querySelector('.nav-back').offsetParent`)));
-  await tapSel('.lesson-card', 3);
+  await tapSel('.lesson-card[data-id="cache"]');
   check('tapping a card opens that lesson', (await hash()) === '#/lesson/cache' && (await text('h2')) === 'Cache');
   await browserBack();
   check('back button returns to the list', (await hash()) === '#/' && (await text('h2')) === 'Lessons');
-  await tapSel('.lesson-card', 2);
+  await tapSel('.lesson-card[data-id="load-balancer"]');
   await tap('← Lessons');
   check('"← Lessons" returns to the list', (await text('h2')) === 'Lessons');
-  await tapSel('.lesson-card', 2);
+  await tapSel('.lesson-card[data-id="load-balancer"]');
   await tap('Go to step 5', 'label');
   await takeQuiz();
   await browserBack();
@@ -368,18 +368,22 @@ if (mode === 'ui') {
   check('tally before the quiz counts first-try predictions', (await text('.tally')) === 'You predicted 0 of 1 step right on the first try.', await text('.tally'));
 
   // Every lesson: layout, labels, and a walk through all steps to the quiz.
-  for (const id of ['load-balancer', 'cache', 'agent-loop']) {
+  await load();
+  const ids = await evaluate(`[...document.querySelectorAll('.lesson-card')].map((c) => c.dataset.id)`);
+  for (const id of ids) {
     await load(url + '#/lesson/' + id);
     await layoutChecks(`${id}-360`);
     await shot(`${id}-360-step1`);
-    const steps = await evaluate(`document.querySelectorAll('.dot').length`);
-    for (let k = 1; k < steps; k++) {
+    let guard = 0;
+    while ((await text('.controls .primary')) !== 'Take the quiz' && guard++ < 80) {
       await skipPrediction();
       await tap('Next');
+      if (guard === 4) await shot(`${id}-360-mid`);
     }
-    await shot(`${id}-360-last`);
+    await layoutChecks(`${id}-360 last step`);
     await takeQuiz();
-    check(`${id}: quiz opens with question 1 of 2`, (await text('.quiz-count')) === 'Question 1 of 2');
+    const quizShown = await evaluate(`!document.querySelector('.quiz').hidden`);
+    check(`${id}: walked every step to the quiz`, guard < 80 && quizShown, `${guard} steps`);
   }
 
   // Phone, reduced motion: walk every control by touch.

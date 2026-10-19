@@ -44,8 +44,11 @@ export interface Frame {
 
 export interface Program<I = unknown> {
   id: string;
-  /** Code shown to the learner, Python-like, one string per line. Keep lines short for phones. */
-  code: string[];
+  /**
+   * Code shown to the learner, Python-like, one string per line. Keep lines short for phones.
+   * A function when the code itself shows the input's values (e.g. users = 1_000_000).
+   */
+  code: string[] | ((input: I) => string[]);
   defaultInput: I;
   /** A fresh example for "New example", from a seeded random source. */
   randomInput(random: () => number): I;
@@ -55,4 +58,8 @@ export interface Program<I = unknown> {
   run(input: I): Frame[];
   /** A plain implementation with no tracing. Tests check the trace's result matches it. */
   reference(input: I): Value;
+}
+
+export function codeFor<I>(program: Program<I>, input: I): string[] {
+  return typeof program.code === 'function' ? program.code(input) : program.code;
 }

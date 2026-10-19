@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "invariants",
+  "title": "Invariants",
+  "track": "logic",
+  "level": "medium",
+  "objective": "Name what stays true on every pass of a loop, and use it to prove the loop gives the right answer.",
+  "program": "invariant",
+  "requires": [
+    "dry-run"
+  ],
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): loop invariants (initialization, maintenance, termination)"
+    }
+  ],
+  "simplifies": "Here the invariant is checked by running the code on one list. A real proof argues it for any list: true at the start, kept true by each pass, and at the end it says exactly what we wanted.",
+  "quiz": [
+    {
+      "prompt": "For an invariant to prove a loop correct, which three things must you show?",
+      "options": [
+        {
+          "text": "It's true before the loop, each pass keeps it true, and at the end it gives the result you want",
+          "explanation": "Right. Initialization, maintenance and termination: together they prove the loop works for every input."
+        },
+        {
+          "text": "The loop is short, fast and uses one variable",
+          "explanation": "Those are nice, but they don't prove the answer is right."
+        },
+        {
+          "text": "It's true on the last pass only",
+          "explanation": "Only checking the end skips the reason it's true. You need start, every pass, and end."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "In this loop, what goes wrong if line 5 adds nums[i] twice?",
+      "options": [
+        {
+          "text": "Nothing: the total is still a sum",
+          "explanation": "The invariant breaks: after the pass, total would be more than sum(nums[:i + 1])."
+        },
+        {
+          "text": "The invariant fails at the very next check, which pinpoints the bug",
+          "explanation": "Right. A broken invariant tells you which pass went wrong, not just that the final answer is off."
+        },
+        {
+          "text": "Only the last answer changes",
+          "explanation": "Every check after that first pass would be wrong too."
+        }
+      ],
+      "answer": 1
+    }
+  ]
+}

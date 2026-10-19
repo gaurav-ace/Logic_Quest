@@ -1,6 +1,6 @@
 import type { TraceLesson } from '../lesson/schema';
 import { getProgram } from '../trace/registry';
-import type { Frame, Program } from '../trace/types';
+import { codeFor, type Frame, type Program } from '../trace/types';
 import { button, el } from './dom';
 import type { QuizHooks } from './quiz';
 import { renderStepped, type LessonView, type Stage } from './stepped';
@@ -38,7 +38,7 @@ function traceStage(program: Program<unknown>, input: unknown, example: number):
   const element = el('div', { class: 'card stage trace' });
   const inputLine = el('p', { class: 'trace-input' }, `${example ? `Example ${example + 1}: ` : ''}${program.describe(input)}`);
   const codeList = el('ol', { class: 'code', 'aria-label': 'Code' });
-  const lines = program.code.map((text) => {
+  const lines = codeFor(program, input).map((text) => {
     const li = el('li');
     li.append(el('code', {}, text));
     codeList.append(li);

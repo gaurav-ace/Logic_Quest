@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "work-backwards",
+  "title": "Work backwards",
+  "track": "logic",
+  "level": "medium",
+  "objective": "Solve a problem by starting from the goal and undoing one step at a time.",
+  "program": "work-backwards",
+  "sources": [
+    {
+      "title": "Pólya, How to Solve It (Princeton University Press): heuristics for problem solving, including breaking a problem into parts and working backwards"
+    }
+  ],
+  "simplifies": "Here working backwards always finds the fewest presses (the tests check this against a full search up to 600). For many problems it only narrows the choices, which is still a big help.",
+  "quiz": [
+    {
+      "prompt": "With +1 and ×2 starting from 1, what's the fewest presses to reach 16?",
+      "options": [
+        {
+          "text": "4",
+          "explanation": "Right. 1 → 2 → 4 → 8 → 16: four doublings. Working back, 16 halves straight down to 1."
+        },
+        {
+          "text": "15",
+          "explanation": "That's pressing +1 fifteen times. Doubling gets there much faster."
+        },
+        {
+          "text": "5",
+          "explanation": "Backwards: 16, 8, 4, 2, 1 is four undos, so four presses."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why is working backwards easier here than working forwards?",
+      "options": [
+        {
+          "text": "Backwards there's usually only one sensible undo at each step",
+          "explanation": "Right. Forwards, every number offers two choices; backwards, odd numbers must have come from +1 and even ones are best halved."
+        },
+        {
+          "text": "Computers run loops backwards faster",
+          "explanation": "Speed isn't the point; the number of choices is."
+        },
+        {
+          "text": "It isn't: both are equally hard",
+          "explanation": "Forwards branches at every step, so there are far more paths to consider."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

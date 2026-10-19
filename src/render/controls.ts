@@ -7,8 +7,8 @@ export interface Controls {
   update(state: PlayerState, atEnd: boolean, lockForward?: boolean): void;
 }
 
-/** Up to this many steps fit as 48 px dots in one row on a 360 px phone. */
-const MAX_DOTS = 6;
+/** Up to this many 48 px dots fit in one row beside the speed button on a 360 px phone. */
+const MAX_DOTS = 5;
 
 // Two rows so everything fits at 360 px with 48 px targets: step dots (or, for long traces, a
 // progress bar) and speed on top, Back / Play / Next within thumb reach below.
