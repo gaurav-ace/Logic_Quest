@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Logic Quest</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef3f1;--grid:#d9e3df;--ink:#16224a;--mute:#5b6787;--card:#fff;--line:#16224a;--hi:#ffe14d;--ok:#1f9d63;--bad:#d6394a;--blue:#2a4bd7;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1530;--grid:#1a2248;--ink:#e8ecff;--mute:#9aa6d1;--card:#18204a;--line:#e8ecff;--hi:#ffe14d;--blue:#7d95ff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px;color:var(--ink);font-family:'Bricolage Grotesque',system-ui,sans-serif;line-height:1.45}
+main{max-width:560px;margin:0 auto;padding:16px}
+h1{font-size:28px;margin:4px 0 2px;font-weight:800;letter-spacing:-.5px}
+.sub{color:var(--mute);margin:0 0 14px}
+.hud{display:flex;gap:8px;margin-bottom:14px}
+.hud div{flex:1;background:var(--card);border:2px solid var(--line);border-radius:10px;padding:6px 10px;font-weight:700}
+.hud small{display:block;font-weight:500;color:var(--mute);font-size:12px}
+.bar{height:8px;border:2px solid var(--line);border-radius:8px;background:var(--card);margin:-6px 0 14px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--hi);width:0;transition:width .5s}
+.tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto}
+.tabs button{flex:0 0 auto}
+button{font:inherit;font-weight:700;color:var(--ink);background:var(--card);border:2px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer;box-shadow:3px 3px 0 var(--line)}
+button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--line)}
+button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+button.on{background:var(--hi);color:#16224a}
+button.done::after{content:" ✓"}
+.stage{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:8px}
+svg{width:100%;height:auto;display:block}
+.ln{stroke:var(--mute);stroke-width:2;stroke-dasharray:4 4}
+.nd rect{fill:var(--card);stroke:var(--line);stroke-width:2.5;transition:fill .3s}
+.nd text{fill:var(--ink);font:700 14px 'Bricolage Grotesque',system-ui,sans-serif;text-anchor:middle}
+.nd.hi rect{fill:var(--hi)}
+.nd.hi text{fill:#16224a}
+#dot{fill:var(--blue);stroke:var(--card);stroke-width:2}
+.cap{margin:10px 2px 6px;min-height:66px;font-size:17px}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.pips{display:flex;gap:5px}.pips b{width:10px;height:10px;border-radius:50%;border:2px solid var(--line);background:var(--card)}.pips b.on{background:var(--blue)}
+.quiz{margin-top:14px;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:14px}
+.quiz h2{font-size:18px;margin:0 0 10px}
+.opt{display:block;width:100%;text-align:left;margin-bottom:8px;font-weight:500}
+.opt.ok{background:var(--ok);color:#fff}.opt.no{background:var(--bad);color:#fff}
+.fb{margin:6px 0 0;font-weight:500}
+.pop{position:fixed;left:50%;top:30%;transform:translateX(-50%);background:var(--hi);color:#16224a;border:3px solid #16224a;border-radius:14px;padding:10px 18px;font-weight:800;font-size:22px;animation:pop 1.2s forwards;pointer-events:none}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,10px) scale(.8)}20%{opacity:1;transform:translate(-50%,0) scale(1.08)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-30px)}}
+@media (prefers-reduced-motion:reduce){.pop{animation-duration:.01s}}
+.hide{display:none}
+</style></head><body><main>
+<h1>Logic Quest</h1>
+<p class="sub">Watch a system run, then prove you got it.</p>
+<div class="hud"><div><small>Points</small><span id="pts">0</span></div><div><small>Streak</small><span id="stk">0</span></div><div><small>Level</small><span id="lvl">1</span></div></div>
+<div class="bar"><i id="xp"></i></div>
+<div class="tabs" id="tabs"></div>
+<div class="stage"><svg viewBox="0 0 420 200" role="img" aria-label="Animated system diagram"><g id="edges"></g><g id="nodes"></g><circle id="dot" r="7" cx="-20" cy="-20"/></svg></div>
+<p class="cap" id="cap"></p>
+<div class="row"><button id="prev">Back</button><div class="pips" id="pips"></div><button id="next">Next step</button></div>
+<div class="quiz hide" id="quiz"><h2 id="qq"></h2><div id="qo"></div><p class="fb" id="fb"></p></div>
+</main>
+<script>
+var N='http://www.w3.org/2000/svg';
+var C=[
+{n:'Load balancer',nodes:{c:['Client',55,100],l:['Balancer',210,100],a:['Server 1',365,35],b:['Server 2',365,100],d:['Server 3',365,165]},edges:['cl','la','lb','ld'],
+steps:[
+{t:'A user opens your app. Their request goes to the load balancer, not to a server.',hi:'cl',p:'cl'},
+{t:'The balancer checks which servers are healthy and ready.',hi:'labd',p:'la,al,lb,bl,ld,dl'},
+{t:'It picks Server 1 (round robin: take turns in order).',hi:'la',p:'la'},
+{t:'Server 1 answers. The reply travels back to the user.',hi:'al',p:'al,lc'},
+{t:'The next request goes to Server 2. Work spreads evenly.',hi:'clb',p:'cl,lb'}],
+q:{q:'Server 2 crashes. What should the balancer do?',o:['Keep sending it requests','Stop sending to it, based on health checks','Shut everything down'],a:1,w:'Health checks let the balancer skip dead servers, so users never notice.'}},
+{n:'Cache',nodes:{c:['App',60,100],k:['Cache',215,45],d:['Database',365,150]},edges:['ck','cd','kd'],
+steps:[
+{t:'The app needs a user profile. It asks the cache first, because the cache is fast.',hi:'ck',p:'ck'},
+{t:'Cache miss: the profile is not there yet. The cache says no.',hi:'k',p:'kc'},
+{t:'So the app reads from the slower database.',hi:'cd',p:'cd,dc'},
+{t:'The app saves a copy in the cache for next time.',hi:'ck',p:'ck'},
+{t:'Next request: cache hit. The answer comes back instantly, and the database rests.',hi:'ck',p:'ck,kc'}],
+q:{q:'The profile changes in the database, but the cache still has the old copy. What is the risk?',o:['Users may see stale data','The database will crash','Nothing, caches update themselves'],a:0,w:'Stale data. Fix it by expiring entries (TTL) or deleting the cache entry when data changes.'}},
+{n:'AI agent',nodes:{u:['User',55,100],m:['LLM',200,45],t:['Tool',345,100],r:['Memory',200,160]},edges:['um','mt','mr'],
+steps:[
+{t:'The user gives a goal: “Find the cheapest flight to Pune.”',hi:'um',p:'um'},
+{t:'The LLM thinks: “I need live prices. I should call the search tool.”',hi:'m',p:'mt'},
+{t:'The tool runs and returns real data. This is the observation.',hi:'mt',p:'tm'},
+{t:'The LLM saves what it learned in memory, then checks: am I done?',hi:'mr',p:'mr,rm'},
+{t:'Not yet, so it loops again. When the goal is met, it answers the user.',hi:'um',p:'mt,tm,mu'}],
+q:{q:'What makes this an agent, and not a plain chatbot?',o:['It uses a bigger model','It loops: act with tools, observe, decide again','It answers faster'],a:1,w:'An agent acts in a loop with tools and feedback until the goal is done.'}}
+];
+var cur=0,si=0,pts=0,stk=0,best={},done={},raf=0,tries=0;
+var $=function(i){return document.getElementById(i)};
+try{var s=JSON.parse(localStorage.getItem('lq')||'{}');pts=s.pts||0;done=s.done||{}}catch(e){}
+function save(){try{localStorage.setItem('lq',JSON.stringify({pts:pts,done:done}))}catch(e){}}
+function hud(){$('pts').textContent=pts;$('stk').textContent=stk;$('lvl').textContent=1+Math.floor(pts/30);$('xp').style.width=(pts%30)/30*100+'%'}
+function tabs(){$('tabs').innerHTML='';C.forEach(function(c,i){var b=document.createElement('button');b.textContent=c.n;b.className=(i==cur?'on ':'')+(done[i]?'done':'');b.onclick=function(){cur=i;si=0;load()};$('tabs').appendChild(b)})}
+function pos(c,id){var n=c.nodes[id];return[n[1],n[2]]}
+function draw(){var c=C[cur];$('edges').innerHTML='';$('nodes').innerHTML='';
+c.edges.forEach(function(e){var a=pos(c,e[0]),b=pos(c,e[1]),l=document.createElementNS(N,'line');l.setAttribute('class','ln');l.setAttribute('x1',a[0]);l.setAttribute('y1',a[1]);l.setAttribute('x2',b[0]);l.setAttribute('y2',b[1]);$('edges').appendChild(l)});
+for(var k in c.nodes){var n=c.nodes[k],g=document.createElementNS(N,'g');g.setAttribute('class','nd');g.id='n'+k;g.innerHTML='<rect x="'+(n[1]-42)+'" y="'+(n[2]-19)+'" width="84" height="38" rx="9"/><text x="'+n[1]+'" y="'+(n[2]+5)+'">'+n[0]+'</text>';$('nodes').appendChild(g)}}
+function step(){var c=C[cur],s=c.steps[si];$('cap').textContent=s.t;
+for(var k in c.nodes)$('n'+k).setAttribute('class','nd'+(s.hi.indexOf(k)>-1?' hi':''));
+$('pips').innerHTML=c.steps.map(function(_,i){return '<b class="'+(i<=si?'on':'')+'"></b>'}).join('');
+$('prev').disabled=si==0;$('next').textContent=si==c.steps.length-1?'Take the quiz':'Next step';
+cancelAnimationFrame(raf);var pts_=s.p.split(',').map(function(x){return[pos(c,x[0]),pos(c,x[1])]}),i=0,t0=null,d=$('dot');
+function f(ts){if(!t0)t0=ts;var u=Math.min((ts-t0)/800,1),a=pts_[i][0],b=pts_[i][1];d.setAttribute('cx',a[0]+(b[0]-a[0])*u);d.setAttribute('cy',a[1]+(b[1]-a[1])*u);if(u>=1){i++;t0=null;if(i>=pts_.length)return}raf=requestAnimationFrame(f)}
+raf=requestAnimationFrame(f)}
+function load(){tabs();draw();step();$('quiz').className='quiz hide'}
+$('prev').onclick=function(){if(si>0){si--;step()}};
+$('next').onclick=function(){var c=C[cur];if(si<c.steps.length-1){si++;step()}else quiz()};
+function pop(t){var p=document.createElement('div');p.className='pop';p.textContent=t;document.body.appendChild(p);setTimeout(function(){p.remove()},1300)}
+function quiz(){var q=C[cur].q;tries=0;$('quiz').className='quiz';$('qq').textContent=q.q;$('fb').textContent='';$('qo').innerHTML='';
+q.o.forEach(function(o,i){var b=document.createElement('button');b.className='opt';b.textContent=o;b.onclick=function(){answer(b,i)};$('qo').appendChild(b)});
+$('quiz').scrollIntoView({behavior:'smooth',block:'nearest'})}
+function answer(b,i){var q=C[cur].q;if(b.className.indexOf('ok')>-1||b.disabled)return;
+if(i==q.a){var g=tries==0?10:5;if(tries==0){stk++;if(stk%3==0){g+=5}}if(!done[cur]){pts+=g;done[cur]=1}else g=0;
+b.className='opt ok';$('fb').textContent='Correct. '+q.w+(g?'':' (Already scored)');pop(g?'+'+g+' points':'Nice');
+[].forEach.call($('qo').children,function(x){x.disabled=true});save();hud();tabs()}
+else{tries++;stk=0;b.className='opt no';b.disabled=true;$('fb').textContent='Not quite. Watch the animation again, then try another option.';hud()}}
+hud();load();
+</script></body></html>
