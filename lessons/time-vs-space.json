@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "time-vs-space",
+  "title": "Time versus space",
+  "track": "dsa",
+  "level": "medium",
+  "objective": "Trade memory for speed, and know when that trade is worth it.",
+  "program": "time-space",
+  "requires": [
+    "big-o-counting"
+  ],
+  "sources": [
+    {
+      "title": "Wikipedia: Space–time tradeoff",
+      "url": "https://en.wikipedia.org/wiki/Space%E2%80%93time_tradeoff"
+    },
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): hash tables"
+    }
+  ],
+  "simplifies": "A set lookup is shown as one step. It usually is, on average, but a set has costs of its own (hashing, extra memory per item) that this count leaves out.",
+  "quiz": [
+    {
+      "prompt": "You must check 1 million items for duplicates, and memory is plentiful. Which method?",
+      "options": [
+        {
+          "text": "Compare every pair",
+          "explanation": "That is about 500 billion comparisons (n(n − 1)/2). Far too slow at this size."
+        },
+        {
+          "text": "Remember what you have seen in a set",
+          "explanation": "Right. About 1 million lookups, paid for with memory for up to 1 million items."
+        },
+        {
+          "text": "Either: they cost the same",
+          "explanation": "They do not: one grows like n², the other like n."
+        }
+      ],
+      "answer": 1
+    },
+    {
+      "prompt": "What does the set method cost that the pairs method does not?",
+      "options": [
+        {
+          "text": "Extra memory, up to one entry per item",
+          "explanation": "Right. That memory is the price of finishing in one pass."
+        },
+        {
+          "text": "More comparisons",
+          "explanation": "It makes far fewer: one lookup per item."
+        },
+        {
+          "text": "It changes the list",
+          "explanation": "It only reads the list; the set is separate."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

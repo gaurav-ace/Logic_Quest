@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "hash-maps",
+  "title": "Hash maps",
+  "track": "dsa",
+  "level": "easy",
+  "objective": "See how hashing sends each key to a bucket, so a lookup searches one small bucket instead of everything.",
+  "program": "hash-map",
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): hash tables and chaining"
+    },
+    {
+      "title": "Python documentation: mapping types (dict)",
+      "url": "https://docs.python.org/3/builtins/stdtypes.html#typesmapping"
+    }
+  ],
+  "simplifies": "This hash just adds character codes, and the table never grows. Real hash functions mix the bits far better, and real tables resize as they fill, which is why lookups stay fast on average.",
+  "quiz": [
+    {
+      "prompt": "Why is looking up a key in a hash map usually fast?",
+      "options": [
+        {
+          "text": "The hash says which bucket to search, so only a few entries are checked",
+          "explanation": "Right. On average each bucket holds just a few entries, so a lookup does a few checks however big the map is."
+        },
+        {
+          "text": "It keeps the keys sorted",
+          "explanation": "Hash maps keep no order; it is the bucket number that saves the search."
+        },
+        {
+          "text": "It checks every key, very quickly",
+          "explanation": "That would be a slow O(n) search. Hashing skips almost all keys."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Two different keys land in the same bucket. What is that called, and what happens?",
+      "options": [
+        {
+          "text": "A collision; both are kept in that bucket's chain",
+          "explanation": "Right. With chaining, the bucket holds a short list, and a lookup checks that list."
+        },
+        {
+          "text": "An error; the second key is rejected",
+          "explanation": "Collisions are normal; the table handles them."
+        },
+        {
+          "text": "The first key is overwritten",
+          "explanation": "Only the same key would overwrite. Different keys share the bucket."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

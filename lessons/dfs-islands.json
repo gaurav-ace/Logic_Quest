@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "dfs-islands",
+  "title": "DFS and connected parts",
+  "track": "dsa",
+  "level": "medium",
+  "objective": "Count connected parts by diving as deep as possible (DFS) from each unvisited piece.",
+  "program": "islands",
+  "requires": [
+    "recursion"
+  ],
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): depth-first search"
+    },
+    {
+      "title": "Laaksonen, Competitive Programmer's Handbook: graph traversal",
+      "url": "https://cses.fi/book/book.pdf"
+    }
+  ],
+  "simplifies": "The grid is tiny, so recursion depth is fine. On a huge grid the recursion could get too deep; the same idea works with an explicit stack.",
+  "quiz": [
+    {
+      "prompt": "Why does the scan count a new island only on unvisited land?",
+      "options": [
+        {
+          "text": "Each island is fully marked as soon as it is found, so any unmarked land must be a different island",
+          "explanation": "Right. Sinking the whole island first is what keeps the count honest."
+        },
+        {
+          "text": "Because land cells are rare",
+          "explanation": "It is about marking, not rarity."
+        },
+        {
+          "text": "It counts every land cell",
+          "explanation": "That would count cells, not islands."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Are two land cells that touch only at a corner the same island here?",
+      "options": [
+        {
+          "text": "No",
+          "explanation": "Right. Only up, down, left and right count as touching in this lesson."
+        },
+        {
+          "text": "Yes",
+          "explanation": "Diagonals aren't in STEPS here. Some problems include them, and then they would be."
+        },
+        {
+          "text": "Only if both are on the edge",
+          "explanation": "Position doesn't matter; only the four directions do."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

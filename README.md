@@ -23,7 +23,8 @@ The service worker is only registered in production builds, so use `build` + `pr
 Phone and desktop checks in headless Chrome (layout, 48 px tap targets, touch-only taps through every control, offline and install checks), with `npm run preview` running:
 
 ```sh
-node scripts/browser-check.mjs ui     # or: pwa, persist (closes and reopens Chrome on later days)
+node scripts/browser-check.mjs ui     # or: pwa, persist (closes and reopens Chrome on later days), lessons
+LESSONS=bfs,heaps node scripts/browser-check.mjs lessons   # walk only these lessons
 ```
 
 Set `CHROME_PATH` if Chrome is not in the default place. Screenshots go to your temp folder.
@@ -34,7 +35,8 @@ Set `CHROME_PATH` if Chrome is not in the default place. Screenshots go to your 
 |------|------------------|
 | `lessons/` | Lesson data (JSON), checked by `src/lesson/validate.ts` at load time |
 | `src/lesson/` | Lesson schema and validator |
-| `src/engine/` | Animation logic (pure, unit-tested) |
+| `src/engine/` | Step player and packet animation (pure, unit-tested) |
+| `src/trace/` | Trace engine: programs that really run an algorithm and record frames, tested against reference implementations |
 | `src/rewards/` | Reward rules (`rewards.config.json`) and the engine that computes XP, streak, coins and badges from the event log |
 | `src/progress/` | Saving the event log, export and import |
 | `src/render/` | DOM and SVG rendering |

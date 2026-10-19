@@ -716,7 +716,7 @@ button.link {
 
 .cells {
   display: grid;
-  grid-template-columns: repeat(var(--n), minmax(36px, 1fr));
+  grid-template-columns: repeat(var(--n), minmax(36px, 64px));
   gap: 4px;
 }
 
@@ -1005,6 +1005,15 @@ button.link {
   fill: var(--mute);
 }
 
+/* A halo in the card colour keeps labels readable where they cross a line. */
+.svg-view text.note,
+.svg-view text.ptr {
+  paint-order: stroke;
+  stroke: var(--card);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
 .svg-view .weight-bg {
   fill: var(--card);
   stroke: var(--mute);
@@ -1051,4 +1060,17 @@ button.link {
   color: var(--hi-ink);
   font-weight: 800;
   outline: 2px solid var(--line);
+}
+
+/* Data views keep their real pixel size (the diagram rule above scales SVGs to the card width). */
+.stage .svg-view {
+  width: auto;
+  height: auto;
+}
+
+/* Grid items default to their content's width; let wide views scroll inside their box instead. */
+.stage.trace > *,
+.views,
+.view {
+  min-width: 0;
 }

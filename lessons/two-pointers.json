@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "two-pointers",
+  "title": "Two pointers",
+  "track": "dsa",
+  "level": "medium",
+  "objective": "Solve pair problems in a sorted array with one pass, moving a pointer from each end.",
+  "program": "two-pointers",
+  "requires": [
+    "arrays"
+  ],
+  "sources": [
+    {
+      "title": "Laaksonen, Competitive Programmer's Handbook: the two pointers method",
+      "url": "https://cses.fi/book/book.pdf"
+    }
+  ],
+  "simplifies": "This version finds one pair and assumes the array is already sorted. Sorting first costs O(n log n), more than the pointer pass itself.",
+  "quiz": [
+    {
+      "prompt": "Why must the array be sorted for this to work?",
+      "options": [
+        {
+          "text": "So moving lo right always makes the sum bigger, and moving hi left makes it smaller",
+          "explanation": "Right. That certainty is what lets each step rule out a whole row of pairs."
+        },
+        {
+          "text": "So the output looks tidy",
+          "explanation": "It is about correctness: unsorted, moving a pointer could make the sum go either way."
+        },
+        {
+          "text": "Python requires it",
+          "explanation": "Python does not care; the method does."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "At most how many steps does it take for n items?",
+      "options": [
+        {
+          "text": "About n",
+          "explanation": "Right. Each step moves one pointer inward, and they meet after at most n − 1 steps."
+        },
+        {
+          "text": "About n²",
+          "explanation": "That is checking every pair. Two pointers avoid it."
+        },
+        {
+          "text": "About log n",
+          "explanation": "It does not halve anything; each step moves one pointer by one."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

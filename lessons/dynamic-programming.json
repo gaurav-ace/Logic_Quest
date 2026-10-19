@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "dynamic-programming",
+  "title": "Dynamic programming",
+  "track": "dsa",
+  "level": "hard",
+  "objective": "Build an answer from smaller answers stored in a table, so nothing is worked out twice.",
+  "program": "coin-change",
+  "requires": [
+    "recursion"
+  ],
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): dynamic programming"
+    },
+    {
+      "title": "Laaksonen, Competitive Programmer's Handbook: dynamic programming: the coin problem",
+      "url": "https://cses.fi/book/book.pdf"
+    }
+  ],
+  "simplifies": "The table here is filled bottom-up. The same answers can be found top-down with recursion plus a cache (memoisation); both avoid repeating work.",
+  "quiz": [
+    {
+      "prompt": "Coins {1, 3, 4}, amount 6. Biggest-coin-first gives 4 + 1 + 1. What is the fewest?",
+      "options": [
+        {
+          "text": "2 coins: 3 + 3",
+          "explanation": "Right. Greedy grabs the 4 and gets stuck; the table tries every last coin for every amount."
+        },
+        {
+          "text": "3 coins: 4 + 1 + 1",
+          "explanation": "That is the greedy answer, but 3 + 3 uses fewer coins."
+        },
+        {
+          "text": "6 coins of 1",
+          "explanation": "That works, but it is the most coins, not the fewest."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why is d[a] built from smaller amounts like d[a − 3]?",
+      "options": [
+        {
+          "text": "The last coin used was some coin c, and the rest is the best way to make a − c, already in the table",
+          "explanation": "Right. Every answer reuses answers to smaller problems: that is dynamic programming."
+        },
+        {
+          "text": "Because the table is sorted",
+          "explanation": "Order matters only so the smaller answers exist first."
+        },
+        {
+          "text": "To guess the answer",
+          "explanation": "Nothing is guessed: each entry is the best over all possible last coins."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

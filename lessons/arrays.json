@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "arrays",
+  "title": "Arrays",
+  "track": "dsa",
+  "level": "easy",
+  "objective": "See why reading by index is instant but inserting in the middle is slow.",
+  "program": "array-insert",
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): elementary data structures: arrays"
+    }
+  ],
+  "simplifies": "Real arrays (like Python lists) also grow by copying everything into a bigger block now and then. That cost is left out; the shifting shown here is the main idea.",
+  "quiz": [
+    {
+      "prompt": "Reading nums[500] in an array of 1,000 items takes…",
+      "options": [
+        {
+          "text": "One step",
+          "explanation": "Right. The position is worked out directly from the index, so any item is equally quick to read."
+        },
+        {
+          "text": "500 steps",
+          "explanation": "That is walking a linked list. An array jumps straight to the index."
+        },
+        {
+          "text": "1,000 steps",
+          "explanation": "No search is needed: the index says exactly where the item is."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Inserting at the front of an array of n items moves how many items?",
+      "options": [
+        {
+          "text": "1",
+          "explanation": "Only the new item arrives, but every existing item must shift right to make room."
+        },
+        {
+          "text": "n",
+          "explanation": "Right. Every item moves one place, so inserting at the front is O(n)."
+        },
+        {
+          "text": "0",
+          "explanation": "There is no gap at the front; items must move to make one."
+        }
+      ],
+      "answer": 1
+    }
+  ]
+}

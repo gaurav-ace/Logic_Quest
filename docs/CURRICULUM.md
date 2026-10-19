@@ -1,6 +1,6 @@
 # Curriculum
 
-Status: **approved by the owner** (2026-10-19), with Phase 5c (real-world systems) added at the owner's request.
+Status: **approved by the owner** (2026-10-19), with Phase 5c (real-world systems) added at the owner's request. **Built so far:** Phase 3 (all 8 logic lessons) and Phase 4 (all 30 DSA lessons), plus the 4 original lessons: 42 in the app.
 
 **Goal of the whole curriculum:** after finishing it, the learner is confident working as a senior SDE: they can break down unfamiliar problems, choose and justify data structures and algorithms, and lead a design discussion for a large real-world system. Edit freely: reorder, cut, add. Once approved, each phase builds the lessons in its section.
 

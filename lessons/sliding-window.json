@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "sliding-window",
+  "title": "Sliding window",
+  "track": "dsa",
+  "level": "medium",
+  "objective": "Find the best run of k neighbours by updating a running sum instead of re-adding.",
+  "program": "sliding-window",
+  "requires": [
+    "arrays"
+  ],
+  "sources": [
+    {
+      "title": "Laaksonen, Competitive Programmer's Handbook: the sliding window method",
+      "url": "https://cses.fi/book/book.pdf"
+    }
+  ],
+  "simplifies": "All numbers here are positive and k is fixed. Windows that grow and shrink (for example, \"the shortest run with sum at least 20\") use the same idea with a moving left edge.",
+  "quiz": [
+    {
+      "prompt": "Each slide costs how many additions and subtractions, whatever k is?",
+      "options": [
+        {
+          "text": "k",
+          "explanation": "That is re-adding the whole window. Sliding only adds the new number and removes the old one."
+        },
+        {
+          "text": "2",
+          "explanation": "Right. One number in, one out. That is why it is O(n) overall instead of O(n × k)."
+        },
+        {
+          "text": "k + 1",
+          "explanation": "Only two numbers change as the window moves."
+        }
+      ],
+      "answer": 1
+    },
+    {
+      "prompt": "With n items and windows of k, how many windows are there?",
+      "options": [
+        {
+          "text": "n − k + 1",
+          "explanation": "Right. The first starts at index 0 and the last at index n − k."
+        },
+        {
+          "text": "n − k",
+          "explanation": "Count again: starting positions 0 to n − k is n − k + 1 windows."
+        },
+        {
+          "text": "n",
+          "explanation": "Windows near the end would run past the last item."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

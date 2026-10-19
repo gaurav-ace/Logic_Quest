@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "stacks",
+  "title": "Stacks",
+  "track": "dsa",
+  "level": "easy",
+  "objective": "Use last in, first out to check that brackets are balanced.",
+  "program": "brackets",
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): stacks"
+    }
+  ],
+  "simplifies": "Only ( ) and [ ] are checked. Adding { } is one more entry in pairs; the method is the same.",
+  "quiz": [
+    {
+      "prompt": "Is \"([)]\" balanced?",
+      "options": [
+        {
+          "text": "Yes: two openers, two closers",
+          "explanation": "Counts match, but order matters: ) arrives while [ is still the most recent opener."
+        },
+        {
+          "text": "No",
+          "explanation": "Right. When ) arrives, the top of the stack is [, so they do not match."
+        },
+        {
+          "text": "Only in Python",
+          "explanation": "Balance is about order, not the language."
+        }
+      ],
+      "answer": 1
+    },
+    {
+      "prompt": "Which of these works like a stack (last in, first out)?",
+      "options": [
+        {
+          "text": "Undo in an editor",
+          "explanation": "Right. The most recent change is undone first."
+        },
+        {
+          "text": "Serving customers in arrival order",
+          "explanation": "That is first in, first out: a queue."
+        },
+        {
+          "text": "Picking a random card",
+          "explanation": "That has no order at all."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

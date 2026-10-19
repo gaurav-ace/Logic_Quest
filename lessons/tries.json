@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "tries",
+  "title": "Tries",
+  "track": "dsa",
+  "level": "medium",
+  "objective": "Store words one letter per node, so prefix searches take as many steps as the prefix has letters.",
+  "program": "trie",
+  "requires": [
+    "tree-traversals"
+  ],
+  "sources": [
+    {
+      "title": "Sedgewick and Wayne, Algorithms, 4th ed.: section 5.2, Tries",
+      "url": "https://algs4.cs.princeton.edu/52trie/"
+    }
+  ],
+  "simplifies": "Each node here stores its children in a dict. Real tries also store a value per word (like a count) and can be compressed by merging chains of single children.",
+  "quiz": [
+    {
+      "prompt": "A trie holds 10,000 words. How many steps does starts_with(\"ca\") take?",
+      "options": [
+        {
+          "text": "About 2",
+          "explanation": "Right. One step per letter of the prefix, however many words are stored."
+        },
+        {
+          "text": "About 10,000",
+          "explanation": "That is checking every word. The trie only follows the letters."
+        },
+        {
+          "text": "About log₂ 10,000",
+          "explanation": "It doesn't depend on the number of words at all; only on the prefix length."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why mark the end of each word?",
+      "options": [
+        {
+          "text": "So \"car\" is known to be a word, not just the start of \"cart\"",
+          "explanation": "Right. Without the mark, a prefix and a whole word look the same."
+        },
+        {
+          "text": "To save memory",
+          "explanation": "It adds a little information; it doesn't save space."
+        },
+        {
+          "text": "So the trie stays sorted",
+          "explanation": "Order isn't the reason; telling words from prefixes is."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

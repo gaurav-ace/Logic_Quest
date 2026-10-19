@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "big-o-counting",
+  "title": "Big-O by counting",
+  "track": "dsa",
+  "level": "easy",
+  "objective": "See how the number of steps grows as the input grows, and name that growth: O(n), O(n²), O(log n).",
+  "program": "big-o",
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): growth of functions and O-notation"
+    },
+    {
+      "title": "Wikipedia: Big O notation",
+      "url": "https://en.wikipedia.org/wiki/Big_O_notation"
+    }
+  ],
+  "simplifies": "Counting one \"step\" per loop pass hides that real steps differ in cost. Big-O keeps only how the count grows, which is what matters once n is large.",
+  "quiz": [
+    {
+      "prompt": "A loop inside a loop, each over n items, does about how many steps when n is 1,000?",
+      "options": [
+        {
+          "text": "1,000,000",
+          "explanation": "Right. 1,000 outer passes × 1,000 inner passes = n² = 1,000,000."
+        },
+        {
+          "text": "2,000",
+          "explanation": "That is two loops one after the other (n + n). Nested loops multiply: n × n."
+        },
+        {
+          "text": "1,000",
+          "explanation": "That is a single loop. The inner loop runs fully for every outer pass."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Which grows slowest as n gets very large?",
+      "options": [
+        {
+          "text": "O(n²)",
+          "explanation": "This grows fastest of the three: doubling n makes it 4 times as much."
+        },
+        {
+          "text": "O(log n)",
+          "explanation": "Right. Doubling n adds just one step, so even a billion items take about 30 steps."
+        },
+        {
+          "text": "O(n)",
+          "explanation": "This grows in step with n. O(log n) grows much more slowly."
+        }
+      ],
+      "answer": 1
+    }
+  ]
+}

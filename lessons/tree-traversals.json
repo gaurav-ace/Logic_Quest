@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "tree-traversals",
+  "title": "Tree traversals",
+  "track": "dsa",
+  "level": "easy",
+  "objective": "Visit every node of a tree in pre-order, in-order and post-order with one recursive walk.",
+  "program": "tree-walk",
+  "requires": [
+    "recursion"
+  ],
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): binary search trees: inorder, preorder and postorder tree walks"
+    }
+  ],
+  "simplifies": "Level-order (row by row) needs a queue instead of recursion; it is the same idea as BFS, covered in the graphs lessons.",
+  "quiz": [
+    {
+      "prompt": "In-order on a binary search tree gives the keys…",
+      "options": [
+        {
+          "text": "In sorted order",
+          "explanation": "Right. Left side (smaller), then the node, then the right side (bigger), at every level."
+        },
+        {
+          "text": "In the order they were inserted",
+          "explanation": "Insertion order shapes the tree, but in-order always reads it back sorted."
+        },
+        {
+          "text": "Root first",
+          "explanation": "That is pre-order."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Which order visits a node only after both its children?",
+      "options": [
+        {
+          "text": "Post-order",
+          "explanation": "Right. Useful when children must be handled first, like deleting a tree or adding up sizes."
+        },
+        {
+          "text": "Pre-order",
+          "explanation": "Pre-order visits the node before its children."
+        },
+        {
+          "text": "In-order",
+          "explanation": "In-order visits it between its left and right sides."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

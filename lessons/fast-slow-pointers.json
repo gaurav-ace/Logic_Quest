@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "fast-slow-pointers",
+  "title": "Fast and slow pointers",
+  "track": "dsa",
+  "level": "medium",
+  "objective": "Detect a loop in a linked list with two pointers moving at different speeds.",
+  "program": "cycle-detect",
+  "requires": [
+    "linked-lists"
+  ],
+  "sources": [
+    {
+      "title": "Wikipedia: Cycle detection (Floyd's tortoise and hare)",
+      "url": "https://en.wikipedia.org/wiki/Cycle_detection"
+    }
+  ],
+  "simplifies": "This only says whether there is a loop. Floyd's method can also find where the loop starts, with one more pass; that part is left out.",
+  "quiz": [
+    {
+      "prompt": "If the list has no loop, what happens?",
+      "options": [
+        {
+          "text": "fast reaches the end (None) and it returns False",
+          "explanation": "Right. Falling off the end proves the list ends."
+        },
+        {
+          "text": "slow and fast meet at the last node",
+          "explanation": "They only meet inside a loop. Without one, fast simply runs out of list."
+        },
+        {
+          "text": "It runs forever",
+          "explanation": "The loop condition checks fast and fast.next, so it stops at the end."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Inside a loop, why can't fast keep jumping over slow forever?",
+      "options": [
+        {
+          "text": "Each pass, fast gains exactly one step on slow, so the gap shrinks by one until it is zero",
+          "explanation": "Right. A gap that shrinks by exactly one each time must reach zero, so they land on the same node."
+        },
+        {
+          "text": "Because fast is faster",
+          "explanation": "Being faster is why it catches up, but the exact one-step gain is why it can't skip past."
+        },
+        {
+          "text": "Because loops are short",
+          "explanation": "Length doesn't matter: any gap shrinks by one per pass."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

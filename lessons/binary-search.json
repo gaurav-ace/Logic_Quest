@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "binary-search",
+  "title": "Binary search",
+  "track": "dsa",
+  "level": "easy",
+  "objective": "Find an item in a sorted array by halving the part that is still in play.",
+  "program": "binary-search",
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): binary search"
+    },
+    {
+      "title": "Sedgewick and Wayne, Algorithms, 4th ed.: section 1.1, BinarySearch",
+      "url": "https://algs4.cs.princeton.edu/11model/"
+    }
+  ],
+  "simplifies": "All values are distinct here. With repeated values you often want the first or last match, which needs a small change: keep going after a match instead of returning.",
+  "quiz": [
+    {
+      "prompt": "About how many checks does binary search need for 1,000,000 sorted items?",
+      "options": [
+        {
+          "text": "About 20",
+          "explanation": "Right. Each check halves the range, and 2^20 is about a million."
+        },
+        {
+          "text": "About 1,000",
+          "explanation": "That would be square-root steps. Halving is far faster."
+        },
+        {
+          "text": "About 500,000",
+          "explanation": "That is half the list: a linear search's average, not binary search."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "What does binary search need from its input?",
+      "options": [
+        {
+          "text": "The array must be sorted",
+          "explanation": "Right. Sorting is what lets one comparison rule out half."
+        },
+        {
+          "text": "The array must be small",
+          "explanation": "Size doesn't matter: it shines on huge arrays."
+        },
+        {
+          "text": "The target must be in it",
+          "explanation": "It also tells you, quickly, when the target is missing."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

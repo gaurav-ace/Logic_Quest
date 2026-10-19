@@ -164,7 +164,7 @@ function treeView(v: Extract<View, { type: 'tree' }>): HTMLElement {
 }
 
 function graphView(v: Extract<View, { type: 'graph' }>): HTMLElement {
-  const width = 340;
+  const width = 304;
   const height = 230;
   const root = svg('svg', { width, height, viewBox: `0 0 ${width} ${height}`, class: 'svg-view' });
   if (v.directed) root.append(arrowMarker('graph-arrow'));

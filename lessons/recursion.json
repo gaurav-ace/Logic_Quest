@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "recursion",
+  "title": "Recursion and the call stack",
+  "track": "dsa",
+  "level": "easy",
+  "objective": "Watch the call stack grow as a function calls itself, and unwind as the answers come back.",
+  "program": "factorial",
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): recursion and divide-and-conquer"
+    }
+  ],
+  "simplifies": "Python limits how deep the call stack can go (about 1,000 calls by default), so very deep recursion fails. A loop does the same job here without that limit.",
+  "quiz": [
+    {
+      "prompt": "What stops a recursive function from calling itself forever?",
+      "options": [
+        {
+          "text": "A base case that returns without calling again",
+          "explanation": "Right. Here n <= 1 returns 1 straight away."
+        },
+        {
+          "text": "The computer runs out of time",
+          "explanation": "Without a base case it would run out of stack space and crash, not stop cleanly."
+        },
+        {
+          "text": "Python stops it after 10 calls",
+          "explanation": "Python allows far more; the base case is what stops it."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "fact(5) calls fact(4), which calls fact(3)… Which call finishes first?",
+      "options": [
+        {
+          "text": "fact(1)",
+          "explanation": "Right. The last call made is the first to return: last in, first out, like a stack."
+        },
+        {
+          "text": "fact(5)",
+          "explanation": "fact(5) finishes last: it waits for everything below it."
+        },
+        {
+          "text": "They all finish together",
+          "explanation": "Each waits for the one it called, so they finish in reverse order."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

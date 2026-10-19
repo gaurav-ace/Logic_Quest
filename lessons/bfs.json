@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "bfs",
+  "title": "Graph basics and BFS",
+  "track": "dsa",
+  "level": "easy",
+  "objective": "Explore a graph in rings of distance with a queue, finding the fewest steps to every place.",
+  "program": "bfs",
+  "requires": [
+    "queues-deques"
+  ],
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): graph representations and breadth-first search"
+    }
+  ],
+  "simplifies": "Every link counts as one step. When links have different lengths (distances, costs), BFS no longer gives shortest routes; Dijkstra does.",
+  "quiz": [
+    {
+      "prompt": "Why does BFS find the fewest steps?",
+      "options": [
+        {
+          "text": "It finishes everything 1 step away before anything 2 steps away, and so on",
+          "explanation": "Right. The queue keeps the rings in order, so a place is first reached by a shortest route."
+        },
+        {
+          "text": "It tries every possible route",
+          "explanation": "It reaches each place once and never tries the rest."
+        },
+        {
+          "text": "It picks the shortest link each time",
+          "explanation": "All links are equal here; the queue order is what matters."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Which structure makes BFS work?",
+      "options": [
+        {
+          "text": "A queue (first in, first out)",
+          "explanation": "Right. Places are explored in the order they were found."
+        },
+        {
+          "text": "A stack (last in, first out)",
+          "explanation": "A stack would dive deep first: that is DFS."
+        },
+        {
+          "text": "A sorted list",
+          "explanation": "No sorting is needed."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "dijkstra",
+  "title": "Dijkstra",
+  "track": "dsa",
+  "level": "hard",
+  "objective": "Find shortest distances when roads have different lengths, by settling the closest place each time.",
+  "program": "dijkstra",
+  "requires": [
+    "bfs"
+  ],
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): Dijkstra's algorithm (single-source shortest paths)"
+    }
+  ],
+  "simplifies": "This picks the closest place by scanning all of them (O(n²)). Real versions use a heap to find it faster. All road lengths are positive; Dijkstra can give wrong answers with negative ones.",
+  "quiz": [
+    {
+      "prompt": "Why is the closest unsettled place final as soon as it is settled?",
+      "options": [
+        {
+          "text": "Every other route goes through a place that is already at least as far, and roads only add length",
+          "explanation": "Right. With positive road lengths, nothing can sneak in shorter later."
+        },
+        {
+          "text": "Because it has the fewest roads",
+          "explanation": "Fewest roads isn't shortest distance when roads have lengths."
+        },
+        {
+          "text": "It isn't: distances can still change",
+          "explanation": "For settled places they can't, as long as no road has negative length."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Roads: A–B is 1, B–C is 1, A–C is 5. Shortest distance from A to C?",
+      "options": [
+        {
+          "text": "2",
+          "explanation": "Right. A → B → C is 1 + 1, shorter than the direct road of 5."
+        },
+        {
+          "text": "5",
+          "explanation": "That is the direct road, but going through B is shorter."
+        },
+        {
+          "text": "1",
+          "explanation": "There is no road of length 1 from A to C."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

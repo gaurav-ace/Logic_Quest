@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "quick-sort",
+  "title": "Quick sort",
+  "track": "dsa",
+  "level": "medium",
+  "objective": "Partition around a pivot, then sort each side, and see how a bad pivot slows it down.",
+  "program": "quick-sort",
+  "requires": [
+    "simple-sorts"
+  ],
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): quicksort and the partition procedure"
+    }
+  ],
+  "simplifies": "The pivot here is always the last item, so already-sorted input is the worst case. Real versions pick a random or median-of-three pivot to avoid that.",
+  "quiz": [
+    {
+      "prompt": "After partitioning around pivot 5, which is guaranteed?",
+      "options": [
+        {
+          "text": "Everything left of 5 is smaller and 5 is in its final place",
+          "explanation": "Right. That is why each side can then be sorted on its own."
+        },
+        {
+          "text": "The whole list is sorted",
+          "explanation": "Only the pivot is placed; each side still needs sorting."
+        },
+        {
+          "text": "Both sides have the same size",
+          "explanation": "Sizes depend on the pivot; a bad pivot gives very uneven sides."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "With \"last item as pivot\", which input is slowest?",
+      "options": [
+        {
+          "text": "An already-sorted list",
+          "explanation": "Right. Each pivot is the largest, so one side is empty and the other loses just one item: O(n²)."
+        },
+        {
+          "text": "A shuffled list",
+          "explanation": "Random order tends to give balanced splits: about n log n."
+        },
+        {
+          "text": "A list of different numbers",
+          "explanation": "Distinct values are fine; the order is what makes it slow."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

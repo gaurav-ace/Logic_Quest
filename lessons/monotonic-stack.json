@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "monotonic-stack",
+  "title": "Monotonic stack",
+  "track": "dsa",
+  "level": "hard",
+  "objective": "Find the next greater element for every item in one pass.",
+  "program": "next-greater",
+  "requires": [
+    "stacks"
+  ],
+  "sources": [
+    {
+      "title": "Laaksonen, Competitive Programmer's Handbook: nearest smaller elements, using a stack",
+      "url": "https://cses.fi/book/book.pdf"
+    }
+  ],
+  "simplifies": "This finds the next greater value to the right. \"Previous\", \"smaller\" and \"or equal\" versions just change the comparison or the direction.",
+  "quiz": [
+    {
+      "prompt": "next_greater([5, 3, 4]) is…",
+      "options": [
+        {
+          "text": "[-1, 4, -1]",
+          "explanation": "Right. Nothing to the right of 5 is bigger; 4 is the first number bigger than 3; nothing follows 4."
+        },
+        {
+          "text": "[-1, 4, 4]",
+          "explanation": "The last item has nothing to its right, so it keeps -1."
+        },
+        {
+          "text": "[3, 4, -1]",
+          "explanation": "That is just the next item. It must also be bigger: 3 is not bigger than 5."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why is this one pass instead of O(n²)?",
+      "options": [
+        {
+          "text": "Each index is pushed once and popped at most once",
+          "explanation": "Right. The inner while loop does at most n pops in total over the whole run."
+        },
+        {
+          "text": "The while loop never runs",
+          "explanation": "It does run: every pop is the while loop resolving a waiting index."
+        },
+        {
+          "text": "Because the list is sorted",
+          "explanation": "It does not need sorted input."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

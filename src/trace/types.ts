@@ -76,7 +76,7 @@ export type View =
       notes?: Record<string, string>;
     }
   | {
-      /** Nodes are placed by the program, in a 320 x 200 px area. */
+      /** Nodes are placed by the program, x 7 to 277 and y 13 to 187, so the view fits a 360 px phone. */
       type: 'graph';
       label?: string;
       nodes: { id: string; label: string; x: number; y: number }[];

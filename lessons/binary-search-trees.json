@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "binary-search-trees",
+  "title": "Binary search trees",
+  "track": "dsa",
+  "level": "medium",
+  "objective": "Search a tree by going left for smaller and right for bigger, following just one path.",
+  "program": "bst-search",
+  "requires": [
+    "tree-traversals"
+  ],
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): binary search trees"
+    }
+  ],
+  "simplifies": "This tree isn't kept balanced. Inserting keys in sorted order makes a long chain, and searches become slow. Balanced trees (AVL, red-black) fix that.",
+  "quiz": [
+    {
+      "prompt": "Searching a balanced search tree of 1,000,000 keys takes about…",
+      "options": [
+        {
+          "text": "20 steps",
+          "explanation": "Right. Each step goes down one level, and a balanced tree of a million keys is about 20 levels deep."
+        },
+        {
+          "text": "1,000,000 steps",
+          "explanation": "That is checking every key. The ordering means only one path is followed."
+        },
+        {
+          "text": "1 step",
+          "explanation": "Only the root is one step away; most keys are deeper."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "You insert 1, 2, 3, 4, 5 in that order. What shape is the tree?",
+      "options": [
+        {
+          "text": "A long chain leaning right",
+          "explanation": "Right. Each key is bigger than the last, so every key goes right, and searches become linear."
+        },
+        {
+          "text": "Perfectly balanced",
+          "explanation": "Nothing rebalances it here; sorted input makes it lopsided."
+        },
+        {
+          "text": "A chain leaning left",
+          "explanation": "Bigger keys go right, not left."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "search-the-answer",
+  "title": "Binary search on the answer",
+  "track": "dsa",
+  "level": "hard",
+  "objective": "Binary search over possible answers when a \"does this work?\" check only gets easier as the answer grows.",
+  "program": "min-capacity",
+  "requires": [
+    "binary-search"
+  ],
+  "sources": [
+    {
+      "title": "Laaksonen, Competitive Programmer's Handbook: binary search: finding the smallest solution",
+      "url": "https://cses.fi/book/book.pdf"
+    }
+  ],
+  "simplifies": "Each check here runs need() over every parcel, which is fine for small inputs. The key condition is monotonic: if capacity c works, every bigger capacity works too.",
+  "quiz": [
+    {
+      "prompt": "Why does binary search work on the capacity?",
+      "options": [
+        {
+          "text": "If a capacity works, every bigger capacity works too, so the answers line up like a sorted list",
+          "explanation": "Right. That one-way switch, from \"no\" to \"yes\", is all binary search needs."
+        },
+        {
+          "text": "Because the parcel weights are sorted",
+          "explanation": "They don't need to be; it is the yes/no answers over capacities that are ordered."
+        },
+        {
+          "text": "Because capacities are whole numbers",
+          "explanation": "Whole numbers help us stop, but the ordering of yes/no answers is the real reason."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why start with lo = max(weights)?",
+      "options": [
+        {
+          "text": "A truck smaller than the heaviest parcel can never carry it",
+          "explanation": "Right. Anything below that can be ruled out without checking."
+        },
+        {
+          "text": "Because it is the answer",
+          "explanation": "It might be, but often a bigger capacity is needed to fit the day limit."
+        },
+        {
+          "text": "To make the loop shorter only",
+          "explanation": "It does shorten the search, but the reason is that smaller values are impossible."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

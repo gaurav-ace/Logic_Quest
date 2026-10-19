@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "simple-sorts",
+  "title": "Simple sorts",
+  "track": "dsa",
+  "level": "easy",
+  "objective": "Sort like cards in your hand (insertion sort), and see why it slows down on big inputs.",
+  "program": "insertion-sort",
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): insertion sort"
+    }
+  ],
+  "simplifies": "Bubble and selection sort are the other classic simple sorts; they are also O(n²). Insertion sort is shown because it is fast on nearly-sorted input, where few items need to move.",
+  "quiz": [
+    {
+      "prompt": "Insertion sort on a list that is already sorted does…",
+      "options": [
+        {
+          "text": "No slides at all, just one comparison per item",
+          "explanation": "Right. Each new item is already in place, so it is O(n) on sorted input."
+        },
+        {
+          "text": "The maximum number of slides",
+          "explanation": "That happens on a reversed list, where every pair is out of order."
+        },
+        {
+          "text": "It refuses to run",
+          "explanation": "It runs; it just has nothing to move."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "In the worst case, insertion sort on n items does about how many slides?",
+      "options": [
+        {
+          "text": "n²/2",
+          "explanation": "Right. A reversed list has n(n − 1)/2 out-of-order pairs, and each needs one slide."
+        },
+        {
+          "text": "n",
+          "explanation": "That is the best case, not the worst."
+        },
+        {
+          "text": "log n",
+          "explanation": "Comparison sorts can't do that well: there are n! possible orders to tell apart."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "union-find",
+  "title": "Union-find",
+  "track": "dsa",
+  "level": "hard",
+  "objective": "Join groups and answer \"are these together?\" quickly, by keeping each group as a tree with a root.",
+  "program": "union-find",
+  "requires": [
+    "bfs"
+  ],
+  "sources": [
+    {
+      "title": "Sedgewick and Wayne, Algorithms, 4th ed.: section 1.5, Union-find",
+      "url": "https://algs4.cs.princeton.edu/15uf/"
+    }
+  ],
+  "simplifies": "This simple version can build tall trees, which makes find() slow. Real versions attach the smaller tree under the bigger one and flatten paths as they go, which keeps find() almost constant.",
+  "quiz": [
+    {
+      "prompt": "How does same(a, b) decide if a and b are in one group?",
+      "options": [
+        {
+          "text": "It checks whether they lead to the same root",
+          "explanation": "Right. The root names the group."
+        },
+        {
+          "text": "It checks whether parent[a] == parent[b]",
+          "explanation": "Two items can be in one group with different parents; only the roots must match."
+        },
+        {
+          "text": "It searches every union so far",
+          "explanation": "That is the slow way this structure avoids."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "What does union(a, b) change when they are in different groups?",
+      "options": [
+        {
+          "text": "One root starts pointing at the other root",
+          "explanation": "Right. One pointer change joins two whole groups."
+        },
+        {
+          "text": "Every item in one group is moved",
+          "explanation": "Nothing is moved; one root just gets a new parent."
+        },
+        {
+          "text": "Nothing",
+          "explanation": "Different groups are joined; only a union of the same group does nothing."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

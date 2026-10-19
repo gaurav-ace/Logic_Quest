@@ -79,3 +79,15 @@ describe('layoutTree, n-ary', () => {
     expect(at.get('a')!.y).toBe(2);
   });
 });
+
+describe('graph positions', () => {
+  it('fit inside the 304 px graph view with the node radius', async () => {
+    const { POSITIONS } = await import('./programs/graphs');
+    for (const [x, y] of Object.values(POSITIONS)) {
+      expect(x + 10 - 17).toBeGreaterThanOrEqual(0);
+      expect(x + 10 + 17).toBeLessThanOrEqual(304);
+      expect(y + 15 - 17).toBeGreaterThanOrEqual(0);
+      expect(y + 15 + 17 + 14).toBeLessThanOrEqual(230); // room for a note under the node
+    }
+  });
+});

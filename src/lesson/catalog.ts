@@ -10,6 +10,36 @@ import edgeCasesLesson from '../../lessons/edge-cases.json';
 import invariants from '../../lessons/invariants.json';
 import workBackwards from '../../lessons/work-backwards.json';
 import estimate from '../../lessons/estimate.json';
+import bigOCountingLesson from '../../lessons/big-o-counting.json';
+import timeVsSpaceLesson from '../../lessons/time-vs-space.json';
+import arraysLesson from '../../lessons/arrays.json';
+import twoPointersLesson from '../../lessons/two-pointers.json';
+import slidingWindowLesson from '../../lessons/sliding-window.json';
+import prefixSumsLesson from '../../lessons/prefix-sums.json';
+import linkedListsLesson from '../../lessons/linked-lists.json';
+import fastSlowPointersLesson from '../../lessons/fast-slow-pointers.json';
+import stacksLesson from '../../lessons/stacks.json';
+import monotonicStackLesson from '../../lessons/monotonic-stack.json';
+import queuesDequesLesson from '../../lessons/queues-deques.json';
+import hashMapsLesson from '../../lessons/hash-maps.json';
+import countingGroupingLesson from '../../lessons/counting-grouping.json';
+import binarySearchLesson from '../../lessons/binary-search.json';
+import searchTheAnswerLesson from '../../lessons/search-the-answer.json';
+import simpleSortsLesson from '../../lessons/simple-sorts.json';
+import mergeSortLesson from '../../lessons/merge-sort.json';
+import quickSortLesson from '../../lessons/quick-sort.json';
+import heapsLesson from '../../lessons/heaps.json';
+import recursionLesson from '../../lessons/recursion.json';
+import backtrackingLesson from '../../lessons/backtracking.json';
+import treeTraversalsLesson from '../../lessons/tree-traversals.json';
+import binarySearchTreesLesson from '../../lessons/binary-search-trees.json';
+import triesLesson from '../../lessons/tries.json';
+import bfsLesson from '../../lessons/bfs.json';
+import dfsIslandsLesson from '../../lessons/dfs-islands.json';
+import topologicalSortLesson from '../../lessons/topological-sort.json';
+import dijkstraLesson from '../../lessons/dijkstra.json';
+import unionFindLesson from '../../lessons/union-find.json';
+import dynamicProgrammingLesson from '../../lessons/dynamic-programming.json';
 import { getProgram } from '../trace/registry';
 import type { Lesson } from './schema';
 import { validateLesson } from './validate';
@@ -26,6 +56,37 @@ export const LESSON_DATA: unknown[] = [
   invariants,
   workBackwards,
   estimate,
+  // Data structures and algorithms (Phase 4), in curriculum order
+  bigOCountingLesson,
+  timeVsSpaceLesson,
+  arraysLesson,
+  twoPointersLesson,
+  slidingWindowLesson,
+  prefixSumsLesson,
+  linkedListsLesson,
+  fastSlowPointersLesson,
+  stacksLesson,
+  monotonicStackLesson,
+  queuesDequesLesson,
+  hashMapsLesson,
+  countingGroupingLesson,
+  binarySearchLesson,
+  searchTheAnswerLesson,
+  simpleSortsLesson,
+  mergeSortLesson,
+  quickSortLesson,
+  heapsLesson,
+  recursionLesson,
+  backtrackingLesson,
+  treeTraversalsLesson,
+  binarySearchTreesLesson,
+  triesLesson,
+  bfsLesson,
+  dfsIslandsLesson,
+  topologicalSortLesson,
+  dijkstraLesson,
+  unionFindLesson,
+  dynamicProgrammingLesson,
   // System design and agentic AI
   loadBalancer,
   cache,

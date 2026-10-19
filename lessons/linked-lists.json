@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "linked-lists",
+  "title": "Linked lists",
+  "track": "dsa",
+  "level": "easy",
+  "objective": "Follow next pointers, and reverse a list by turning each arrow around.",
+  "program": "reverse-list",
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): linked lists"
+    }
+  ],
+  "simplifies": "A singly linked list is shown. Real code also handles an empty list (head is None), which this function already does: the loop never runs.",
+  "quiz": [
+    {
+      "prompt": "Getting the 500th node of a linked list takes…",
+      "options": [
+        {
+          "text": "One step",
+          "explanation": "Only arrays can jump to an index. A list has to be followed node by node."
+        },
+        {
+          "text": "About 500 steps, following next from the head",
+          "explanation": "Right. That is the trade-off: lists insert anywhere cheaply, but reach items slowly."
+        },
+        {
+          "text": "It depends on the value stored",
+          "explanation": "Position, not value, decides how far you walk."
+        }
+      ],
+      "answer": 1
+    },
+    {
+      "prompt": "Why save nxt before changing cur.next?",
+      "options": [
+        {
+          "text": "Otherwise the rest of the list is lost",
+          "explanation": "Right. Once cur.next points back, nothing else remembers where the old next node was."
+        },
+        {
+          "text": "It makes it faster",
+          "explanation": "It is about correctness, not speed."
+        },
+        {
+          "text": "Python requires it",
+          "explanation": "Python allows either order; only one order works."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

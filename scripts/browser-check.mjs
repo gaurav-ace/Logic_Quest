@@ -2,7 +2,8 @@
 // No dependencies: talks to Chrome over the DevTools protocol with Node's built-in WebSocket.
 //
 //   npm run build && npm run preview          (in another terminal)
-//   node scripts/browser-check.mjs [ui|pwa|persist] [url] [screenshot-dir]
+//   node scripts/browser-check.mjs [ui|pwa|persist|lessons] [url] [screenshot-dir]
+//   LESSONS=binary-search,heaps node scripts/browser-check.mjs lessons   (walk only those)
 //
 // CHROME_PATH overrides where Chrome is found. On WSL in NAT mode, WSL cannot reach a Windows
 // Chrome's debug port, so run this file with a Windows node.exe instead (see docs/PROGRESS.md).
@@ -178,15 +179,24 @@ const skipPrediction = async () => {
 };
 const takeQuiz = async () => {
   await skipPrediction();
-  await tap('Take the quiz');
+  try {
+    await tap('Take the quiz');
+  } catch (e) {
+    const buttons = await evaluate(`[...document.querySelectorAll('button')].map((b) => b.textContent.trim() + (b.offsetParent ? '' : ' (hidden)')).join(' | ')`);
+    throw new Error(`${e.message}. Buttons on screen: ${buttons}`, { cause: e });
+  }
 };
 
 const layoutChecks = async (label) => {
   const m = await evaluate(`(() => {
     const targets = [...document.querySelectorAll('button, summary, a')].filter((b) => b.offsetParent)
       .map((b) => b.getBoundingClientRect()).map((r) => [Math.round(r.width), Math.round(r.height)]);
-    const svg = document.querySelector('svg');
-    const labelPx = svg ? +(parseFloat(getComputedStyle(svg.querySelector('text')).fontSize) * svg.getBoundingClientRect().width / 420).toFixed(1) : null;
+    // Smallest rendered text across every SVG: font size times how much that SVG is scaled.
+    const sizes = [...document.querySelectorAll('svg')].filter((s) => s.viewBox.baseVal && s.viewBox.baseVal.width && s.querySelector('text')).flatMap((s) => {
+      const scale = s.getBoundingClientRect().width / s.viewBox.baseVal.width;
+      return [...s.querySelectorAll('text')].map((t) => parseFloat(getComputedStyle(t).fontSize) * scale);
+    });
+    const labelPx = sizes.length ? +Math.min(...sizes).toFixed(1) : null;
     // Every node label must fit inside its box (8 units of padding).
     const overflow = [...document.querySelectorAll('svg .node')].filter((g) => g.querySelector('text').getBBox().width > g.querySelector('rect').getBBox().width - 8).map((g) => g.textContent);
     return { vw: document.documentElement.clientWidth, scrollW: document.documentElement.scrollWidth, targets, labelPx, overflow };
@@ -195,10 +205,33 @@ const layoutChecks = async (label) => {
   const small = m.targets.filter(([w, h]) => w < 48 || h < 48);
   check(`${label}: tap targets >= 48px`, small.length === 0, `${m.targets.length} targets${small.length ? ', too small: ' + JSON.stringify(small) : ''}`);
   if (m.labelPx !== null) {
-    check(`${label}: diagram labels >= 14px`, m.labelPx >= 14, `~${m.labelPx}px`);
+    check(`${label}: diagram labels >= 14px`, m.labelPx >= 14, `smallest ~${m.labelPx}px`);
     check(`${label}: labels fit inside their boxes`, m.overflow.length === 0, m.overflow.join(', '));
   }
 };
+
+// Every lesson: layout, labels, and a walk through all steps to the quiz.
+async function walkLessons() {
+  await load();
+  // LESSONS=a,b walks only those lessons (handy when debugging one).
+  const only = process.env.LESSONS?.split(',');
+  const ids = (await evaluate(`[...document.querySelectorAll('.lesson-card')].map((c) => c.dataset.id)`)).filter((id) => !only || only.includes(id));
+  for (const id of ids) {
+    await load(url + '#/lesson/' + id);
+    await layoutChecks(`${id}-360`);
+    await shot(`${id}-360-step1`);
+    let guard = 0;
+    while ((await text('.controls .primary')) !== 'Take the quiz' && guard++ < 80) {
+      await skipPrediction();
+      await tap('Next');
+      if (guard === 4) await shot(`${id}-360-mid`);
+    }
+    await layoutChecks(`${id}-360 last step`);
+    await takeQuiz();
+    const quizShown = await evaluate(`!document.querySelector('.quiz').hidden`);
+    check(`${id}: walked every step to the quiz`, guard < 80 && quizShown, `${guard} steps`);
+  }
+}
 
 if (mode !== 'persist') await launch();
 
@@ -210,9 +243,9 @@ if (mode === 'ui') {
   await layoutChecks('home-360');
   await shot('home-360');
   const titles = await evaluate(`[...document.querySelectorAll('.lesson-title')].map((t) => t.textContent)`);
-  check('home lists every lesson', titles.length === 12 && titles[0] === 'Hello, request' && titles.includes('AI agent loop'), titles.join(', '));
+  check('home lists every lesson', titles.length === 42 && titles[0] === 'Hello, request' && titles.includes('AI agent loop'), titles.join(', '));
   check('no "← Lessons" button on home', !(await evaluate(`!!document.querySelector('.nav-back').offsetParent`)));
-  check('lessons are grouped by track, with the first unfinished one open', JSON.stringify(await evaluate(`[...document.querySelectorAll('details.track')].map((d) => [d.dataset.track, d.open])`)) === JSON.stringify([['web', true], ['logic', false], ['hld', false], ['agentic', false]]));
+  check('lessons are grouped by track, with the first unfinished one open', JSON.stringify(await evaluate(`[...document.querySelectorAll('details.track')].map((d) => [d.dataset.track, d.open])`)) === JSON.stringify([['web', true], ['logic', false], ['dsa', false], ['hld', false], ['agentic', false]]));
   check('track headers count progress', (await text('details.track[data-track="logic"] summary')) === 'Logic foundations0 of 8 done', await text('details.track[data-track="logic"] summary'));
   await tapSel('.lesson-card[data-id="estimate"]');
   check('a locked lesson explains what to finish first, and stays on the list', (await text('.lesson-card[data-id="estimate"] .lesson-lock')) === 'Finish “Spot the pattern” and “Dry-run code” first.' && (await hash()) === '#/', await text('.lesson-card[data-id="estimate"] .lesson-lock'));
@@ -388,24 +421,7 @@ if (mode === 'ui') {
   await takeQuiz();
   check('tally before the quiz counts first-try predictions', (await text('.tally')) === 'You predicted 0 of 1 step right on the first try.', await text('.tally'));
 
-  // Every lesson: layout, labels, and a walk through all steps to the quiz.
-  await load();
-  const ids = await evaluate(`[...document.querySelectorAll('.lesson-card')].map((c) => c.dataset.id)`);
-  for (const id of ids) {
-    await load(url + '#/lesson/' + id);
-    await layoutChecks(`${id}-360`);
-    await shot(`${id}-360-step1`);
-    let guard = 0;
-    while ((await text('.controls .primary')) !== 'Take the quiz' && guard++ < 80) {
-      await skipPrediction();
-      await tap('Next');
-      if (guard === 4) await shot(`${id}-360-mid`);
-    }
-    await layoutChecks(`${id}-360 last step`);
-    await takeQuiz();
-    const quizShown = await evaluate(`!document.querySelector('.quiz').hidden`);
-    check(`${id}: walked every step to the quiz`, guard < 80 && quizShown, `${guard} steps`);
-  }
+  await walkLessons();
 
   // Phone, reduced motion: walk every control by touch.
   await load(url + '#/lesson/hello-request-response');
@@ -470,6 +486,12 @@ if (mode === 'ui') {
   await media('reduce', 'dark');
   await load(url + '#/lesson/cache');
   await shot('phone-360-dark');
+}
+
+if (mode === 'lessons') {
+  await viewport(360, 740, true);
+  await media('reduce');
+  await walkLessons();
 }
 
 if (mode === 'pwa') {

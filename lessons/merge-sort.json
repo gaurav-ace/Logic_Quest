@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "merge-sort",
+  "title": "Merge sort",
+  "track": "dsa",
+  "level": "medium",
+  "objective": "Split the list in half, sort each half the same way, and merge two sorted lists.",
+  "program": "merge-sort",
+  "requires": [
+    "simple-sorts"
+  ],
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): merge sort (divide and conquer)"
+    }
+  ],
+  "simplifies": "Each merge here makes a new list. Merge sort usually needs extra memory like this, about n items; that is its main cost compared with quick sort.",
+  "quiz": [
+    {
+      "prompt": "Merging [2, 7] and [3, 4] gives which list, and what is taken first?",
+      "options": [
+        {
+          "text": "[2, 3, 4, 7]; 2 first",
+          "explanation": "Right. Compare the fronts (2 and 3), take the smaller, and repeat."
+        },
+        {
+          "text": "[2, 7, 3, 4]; 2 first",
+          "explanation": "That just joins them. Merging compares the fronts each time."
+        },
+        {
+          "text": "[3, 4, 2, 7]; 3 first",
+          "explanation": "The smaller front item goes first: 2 < 3."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why is merge sort O(n log n)?",
+      "options": [
+        {
+          "text": "There are about log₂ n levels of halving, and merging each level takes about n steps",
+          "explanation": "Right. log n levels × n work per level."
+        },
+        {
+          "text": "It compares every pair once",
+          "explanation": "That would be n². Merging avoids most comparisons."
+        },
+        {
+          "text": "It only works on short lists",
+          "explanation": "It works on any length; that is the point of splitting."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

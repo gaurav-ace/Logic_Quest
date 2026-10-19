@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "prefix-sums",
+  "title": "Prefix sums",
+  "track": "dsa",
+  "level": "medium",
+  "objective": "Answer \"sum from i to j\" instantly after one pass of preparation.",
+  "program": "prefix-sums",
+  "requires": [
+    "arrays"
+  ],
+  "sources": [
+    {
+      "title": "Wikipedia: Prefix sum",
+      "url": "https://en.wikipedia.org/wiki/Prefix_sum"
+    }
+  ],
+  "simplifies": "If the numbers change after P is built, P goes out of date. Structures like Fenwick trees handle changes; they are not covered here.",
+  "quiz": [
+    {
+      "prompt": "P = [0, 3, 4, 8, 9]. What is the sum of nums[1..3]?",
+      "options": [
+        {
+          "text": "5",
+          "explanation": "That is P[3] − P[1], which stops before index 3. Use P[4] to include nums[3]."
+        },
+        {
+          "text": "6",
+          "explanation": "Right. P[4] − P[1] = 9 − 3 = 6 (nums is [3, 1, 4, 1], and 1 + 4 + 1 = 6)."
+        },
+        {
+          "text": "9",
+          "explanation": "That is the sum from the start. Subtract P[1] to drop nums[0]."
+        }
+      ],
+      "answer": 1
+    },
+    {
+      "prompt": "When are prefix sums worth building?",
+      "options": [
+        {
+          "text": "Many range-sum questions on data that does not change",
+          "explanation": "Right. One pass to build, then every question is a subtraction."
+        },
+        {
+          "text": "A single range sum, asked once",
+          "explanation": "Just add that range up; building P is extra work for one question."
+        },
+        {
+          "text": "Data that changes after every question",
+          "explanation": "P would have to be rebuilt each time."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

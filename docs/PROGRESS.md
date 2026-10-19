@@ -4,11 +4,16 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 ## Current phase
 
-Phase 3, Logic foundations, then Phase 4, DSA: the owner asked for both in one go (2026-10-19). Built in order, Phase 3 first.
+Phases 3 and 4 built (2026-10-19), committed locally, not pushed. Not finished until the owner reviews the lesson content (CLAUDE.md: Phase 3 is done when reviewed by the owner), pushes, and checks on the phone.
 
-Phase 2, Rewards and progress: **done**, approved 2026-10-19 ("all good" on site and phone). Afterwards, persistence across launches was strengthened: persistent-storage request, plus a relaunch check across simulated days (`browser-check.mjs persist`, 11/11).
+Phases 0, 1 and 2: **done** and approved. Live at https://gaurav-ace.github.io/Logic_Quest/.
 
-Phase 1, Animation engine: **done**, approved 2026-10-19. Phase 0, Foundations: **done**, approved 2026-10-19. Live at https://gaurav-ace.github.io/Logic_Quest/.
+## Done (Phase 4), awaiting the owner's review
+
+- 4.1 New views: stack, queue, linked list, hash buckets, tree (binary and n-ary), graph, table cell highlight. Tree layout tested on 100 random BSTs.
+- 4.2–4.4 Thirty DSA lessons, each a computed trace checked against a reference on 200 random inputs (often an independent algorithm), plus claim tests (`src/trace/programs/dsa-claims.test.ts`).
+- Checks run: `npm run check` 368/368; browser `ui` 378/378 (all 42 lessons walked to their quiz at 360 px), `pwa` 7/7, `persist` 11/11.
+- Bugs found by the checks and fixed: real-size SVGs scaled down by an old rule (9.9 px text); wide arrays overflowing the page; graph wider than the phone; my hard-coded wrong expectation in one test.
 
 ## Done (Phase 3), awaiting the owner's content review
 
@@ -46,13 +51,14 @@ Phase 1, Animation engine: **done**, approved 2026-10-19. Phase 0, Foundations: 
 
 ## Next step
 
-1. Owner pushes Phase 2 (`git push origin main`).
-2. Owner checks on phone: rewards after a quiz, home stats, progress screen, export (file lands in Downloads) and import of that file.
-3. Owner approves Phase 2 → Phase 3 plan (logic foundations, 8 lessons).
+1. Owner pushes and checks Phases 3 and 4 on the phone.
+2. Owner reviews lesson content (42 lessons; the 38 new ones are drafted by Claude).
+3. Then the Phase 5 plan (system design, HLD).
 
 ## Blockers and questions for the owner
 
-- Push, phone check and Phase 2 approval (above).
+- Content review and phone check of Phases 3 and 4.
+- Wikipedia is cited for a few facts (square numbers, off-by-one, prefix sums, cycle detection, Big O, space–time tradeoff, topological sorting); the owner may veto it.
 
 ## Not tested yet
 
@@ -87,3 +93,4 @@ Phase 1, Animation engine: **done**, approved 2026-10-19. Phase 0, Foundations: 
 - 2026-10-19: Owner asked for streak penalties; chose XP + streak coins (CLAUDE.md section 7 updated). Built Phase 2 tasks 2.1–2.4, one commit each. Not pushed.
 - 2026-10-19: Owner approved Phase 2 and asked to make sure progress resumes across launches and days, then to build Phases 3 and 4. Added the persistent-storage request and the relaunch check. Owner chose tap-based DSA exercises (no code editor for now).
 - 2026-10-19: Built Phase 3 (3.1–3.4). Fixed my own check-script bug (a recursive helper hung a run) and stopped 8 leftover headless Chrome processes it left behind; the script now refuses to start if its debug port is taken.
+- 2026-10-19: Built Phase 4 (30 DSA lessons and 6 new views). Batches 4.2–4.4 committed as one change because they share the registry, catalog and claim tests.

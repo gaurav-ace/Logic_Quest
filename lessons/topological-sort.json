@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "topological-sort",
+  "title": "Topological sort",
+  "track": "dsa",
+  "level": "medium",
+  "objective": "Order tasks that depend on each other, so every task comes after what it needs.",
+  "program": "topo-sort",
+  "requires": [
+    "bfs"
+  ],
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): topological sort"
+    },
+    {
+      "title": "Wikipedia: Topological sorting (Kahn's algorithm)",
+      "url": "https://en.wikipedia.org/wiki/Topological_sorting"
+    }
+  ],
+  "simplifies": "Every example here is possible to order. If tasks waited on each other in a loop, some would never become ready: Kahn's method would end with tasks left over, which is how it detects a cycle.",
+  "quiz": [
+    {
+      "prompt": "Which tasks can go first?",
+      "options": [
+        {
+          "text": "Those waiting on nothing",
+          "explanation": "Right. They have no incoming arrows, so nothing must happen before them."
+        },
+        {
+          "text": "Those with the most arrows out",
+          "explanation": "Arrows out don't matter; a task can start once nothing is waiting in front of it."
+        },
+        {
+          "text": "Any task",
+          "explanation": "A task with an incoming arrow must wait for that task."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "If two tasks each wait on the other, what happens?",
+      "options": [
+        {
+          "text": "Neither ever becomes ready, so no valid order exists",
+          "explanation": "Right. A cycle makes ordering impossible; Kahn's method ends with tasks left over."
+        },
+        {
+          "text": "They run at the same time",
+          "explanation": "In this model they can't: each needs the other finished first."
+        },
+        {
+          "text": "The one with the smaller name goes first",
+          "explanation": "Names don't break a cycle."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "queues-deques",
+  "title": "Queues and deques",
+  "track": "dsa",
+  "level": "medium",
+  "objective": "Use first in, first out, and a double-ended queue, to find the maximum of every window.",
+  "program": "window-max",
+  "requires": [
+    "sliding-window"
+  ],
+  "sources": [
+    {
+      "title": "Laaksonen, Competitive Programmer's Handbook: sliding window minimum (the same method for the maximum)",
+      "url": "https://cses.fi/book/book.pdf"
+    },
+    {
+      "title": "Python documentation: collections.deque",
+      "url": "https://docs.python.org/3/library/collections.html#collections.deque"
+    }
+  ],
+  "simplifies": "A plain queue only removes from the front. This uses a deque, which removes from both ends; both ends are O(1) in Python's deque.",
+  "quiz": [
+    {
+      "prompt": "Why drop smaller values from the back when a bigger one arrives?",
+      "options": [
+        {
+          "text": "They can never be a window's maximum while that bigger, newer value is in the window",
+          "explanation": "Right. The newer value stays at least as long and beats them, so they are useless."
+        },
+        {
+          "text": "Only to save memory",
+          "explanation": "It saves memory too, but the reason is that they can no longer be an answer."
+        },
+        {
+          "text": "To sort the whole array",
+          "explanation": "Nothing is sorted; the deque just keeps useful candidates."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "In what order does a queue serve items?",
+      "options": [
+        {
+          "text": "First in, first out",
+          "explanation": "Right. Like a line at a counter."
+        },
+        {
+          "text": "Last in, first out",
+          "explanation": "That is a stack."
+        },
+        {
+          "text": "Biggest first",
+          "explanation": "That is a priority queue (heap), covered later."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "backtracking",
+  "title": "Backtracking",
+  "track": "dsa",
+  "level": "hard",
+  "objective": "Try a choice, explore it, undo it, and try the other choice, pruning paths that cannot work.",
+  "program": "subset-sum",
+  "requires": [
+    "recursion"
+  ],
+  "sources": [
+    {
+      "title": "Laaksonen, Competitive Programmer's Handbook: backtracking",
+      "url": "https://cses.fi/book/book.pdf"
+    },
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): recursion"
+    }
+  ],
+  "simplifies": "All numbers are positive here, which is what makes \"the total went over\" a safe reason to stop. With negative numbers, that pruning would be wrong.",
+  "quiz": [
+    {
+      "prompt": "Why undo the choice (pick.pop()) after exploring it?",
+      "options": [
+        {
+          "text": "So the next branch starts from the same state, without that number",
+          "explanation": "Right. Choose, explore, undo: every branch sees a clean starting point."
+        },
+        {
+          "text": "To save memory only",
+          "explanation": "It keeps the state correct for the next branch; memory is a side effect."
+        },
+        {
+          "text": "Because Python needs it",
+          "explanation": "Python doesn't care; the algorithm does."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why is it safe to stop as soon as the total goes over the target?",
+      "options": [
+        {
+          "text": "All numbers are positive, so adding more can only make it bigger",
+          "explanation": "Right. That is the pruning, and it relies on positive numbers."
+        },
+        {
+          "text": "Because the target is small",
+          "explanation": "Size doesn't matter; the sign of the numbers does."
+        },
+        {
+          "text": "It isn't safe; it can miss answers",
+          "explanation": "With positive numbers it can't: an over-target path can never come back down."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

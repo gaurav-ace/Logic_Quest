@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "counting-grouping",
+  "title": "Counting and grouping",
+  "track": "dsa",
+  "level": "medium",
+  "objective": "Group items in one pass by giving each a key that matching items share.",
+  "program": "anagram-groups",
+  "requires": [
+    "hash-maps"
+  ],
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): hash tables"
+    },
+    {
+      "title": "Python documentation: dict.setdefault",
+      "url": "https://docs.python.org/3/builtins/stdtypes.html#dict.setdefault"
+    }
+  ],
+  "simplifies": "Sorting each word costs a little (k log k for a word of k letters). Counting the letters instead is another common key; the grouping idea is the same.",
+  "quiz": [
+    {
+      "prompt": "Which key puts \"listen\" and \"silent\" in the same group?",
+      "options": [
+        {
+          "text": "The letters in alphabetical order: \"eilnst\"",
+          "explanation": "Right. Both sort to the same letters, so they share a key."
+        },
+        {
+          "text": "The first letter",
+          "explanation": "\"listen\" starts with l and \"silent\" with s."
+        },
+        {
+          "text": "The word length",
+          "explanation": "Length alone would also group \"listen\" with \"orange\"."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why use a dict instead of comparing every pair of words?",
+      "options": [
+        {
+          "text": "One pass with a dict lookup per word, instead of checking every pair",
+          "explanation": "Right. That is about n steps rather than about n² pairs."
+        },
+        {
+          "text": "Dicts sort the words",
+          "explanation": "Dicts keep insertion order, not sorted order; the speed comes from the lookups."
+        },
+        {
+          "text": "Pairs cannot find anagrams",
+          "explanation": "They can, just slowly."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

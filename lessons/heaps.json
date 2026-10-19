@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "heaps",
+  "title": "Heaps",
+  "track": "dsa",
+  "level": "medium",
+  "objective": "Keep the smallest item on top as items arrive, using a tree stored in a plain list.",
+  "program": "heap-push",
+  "requires": [
+    "arrays"
+  ],
+  "sources": [
+    {
+      "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): heaps and priority queues"
+    },
+    {
+      "title": "Python documentation: heapq",
+      "url": "https://docs.python.org/3/library/heapq.html"
+    }
+  ],
+  "simplifies": "Only pushing is shown. Removing the top (pop) moves the last item to the top and swaps it down; it is the mirror image and also O(log n).",
+  "quiz": [
+    {
+      "prompt": "In a min-heap stored as a list, where are the children of index 2?",
+      "options": [
+        {
+          "text": "Indexes 5 and 6",
+          "explanation": "Right. Children of i are at 2i + 1 and 2i + 2."
+        },
+        {
+          "text": "Indexes 3 and 4",
+          "explanation": "Those are the children of index 1."
+        },
+        {
+          "text": "Indexes 4 and 5",
+          "explanation": "Use 2i + 1 and 2i + 2: 5 and 6."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "What does a min-heap guarantee?",
+      "options": [
+        {
+          "text": "Every parent is no bigger than its children, so the smallest is at the top",
+          "explanation": "Right. That is less than fully sorted, which is why pushes are cheap."
+        },
+        {
+          "text": "The list is sorted",
+          "explanation": "Not fully: only parents versus children are ordered."
+        },
+        {
+          "text": "The biggest item is at the end",
+          "explanation": "Not necessarily; only the top is fixed."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}
