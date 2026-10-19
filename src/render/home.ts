@@ -1,24 +1,50 @@
 import type { Lesson } from '../lesson/schema';
+import { groupByTrack, missingRequirements, trackToOpen } from '../lesson/unlock';
 import type { Progress } from '../rewards/engine';
 import { el } from './dom';
 import { renderHud } from './hud';
 
 export function renderHome(root: HTMLElement, lessons: Lesson[], progress: Progress, bufferCost: number, open: (id: string) => void): void {
-  const intro = el('p', { class: 'objective' }, 'Watch a system run, then prove you got it.');
-  const list = el('ul', { class: 'lesson-list' });
-  for (const lesson of lessons) {
+  const byId = new Map(lessons.map((l) => [l.id, l]));
+  const groups = groupByTrack(lessons, progress.completed);
+  const openTrack = trackToOpen(groups);
+  const sections = groups.map((g) => {
+    // Tracks fold away, so a long curriculum stays easy to scan on a phone.
+    const section = el('details', { class: 'track', 'data-track': g.track });
+    if (g.track === openTrack) section.open = true;
+    const summary = el('summary');
+    summary.append(el('span', { class: 'track-name' }, g.name), el('span', { class: 'track-count' }, `${g.done} of ${g.lessons.length} done`));
+    const list = el('ul', { class: 'lesson-list' });
+    for (const lesson of g.lessons) list.append(card(lesson));
+    section.append(summary, list);
+    return section;
+  });
+  root.replaceChildren(renderHud(progress, bufferCost), el('h2', {}, 'Lessons'), el('p', { class: 'objective' }, 'Watch a system run, then prove you got it.'), ...sections);
+
+  function card(lesson: Lesson): HTMLElement {
     const done = progress.completed.has(lesson.id);
-    const card = el('button', { type: 'button', class: `lesson-card${done ? ' done' : ''}`, 'data-id': lesson.id });
+    const missing = missingRequirements(lesson, progress.completed, byId);
+    const locked = missing.length > 0;
+    const b = el('button', { type: 'button', class: `lesson-card${done ? ' done' : ''}${locked ? ' locked' : ''}`, 'data-id': lesson.id });
     const questions = lesson.quiz.length === 1 ? '1 question' : `${lesson.quiz.length} questions`;
-    card.append(
+    const kind = lesson.kind === 'trace' ? 'Trace' : `${lesson.steps.length} steps`;
+    const status = done ? '✓ Done · ' : locked ? '🔒 ' : '';
+    const note = el('span', { class: 'lesson-lock', 'aria-live': 'polite' });
+    b.append(
       el('span', { class: 'lesson-title' }, lesson.title),
       el('span', { class: 'lesson-goal' }, lesson.objective),
-      el('span', { class: 'lesson-meta' }, `${done ? '✓ Done · ' : ''}${lesson.kind === 'trace' ? 'Trace' : `${lesson.steps.length} steps`} · ${questions}`),
+      el('span', { class: 'lesson-meta' }, `${status}${capitalise(lesson.level)} · ${kind} · ${questions}`),
+      note,
     );
-    card.addEventListener('click', () => open(lesson.id));
+    b.addEventListener('click', () => {
+      // A locked card explains itself instead of doing nothing.
+      if (locked) note.textContent = `Finish ${missing.map((l) => `“${l.title}”`).join(' and ')} first.`;
+      else open(lesson.id);
+    });
     const li = el('li');
-    li.append(card);
-    list.append(li);
+    li.append(b);
+    return li;
   }
-  root.replaceChildren(renderHud(progress, bufferCost), el('h2', {}, 'Lessons'), intro, list);
 }
+
+const capitalise = (s: string) => s[0]!.toUpperCase() + s.slice(1);

@@ -820,3 +820,65 @@ button.link {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+.track {
+  margin-top: 12px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.track > summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: var(--tap);
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.track-count {
+  color: var(--mute);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.track .lesson-list {
+  margin: 0;
+  padding: 0 10px 12px;
+}
+
+.lesson-card.locked {
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.lesson-card.locked .lesson-title,
+.lesson-card.locked .lesson-goal {
+  opacity: 0.7;
+}
+
+.lesson-lock:empty {
+  display: none;
+}
+
+.lesson-lock {
+  color: var(--blue);
+  font-weight: 700;
+}
+
+.track > summary::before {
+  content: '▸';
+  margin-right: -4px;
+}
+
+.track[open] > summary::before {
+  content: '▾';
+}
+
+.track > summary .track-name {
+  flex: 1;
+}
