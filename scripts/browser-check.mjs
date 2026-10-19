@@ -242,6 +242,27 @@ async function walkExercise(id) {
   await tap('On to the quiz');
 }
 
+// Case studies: the shortest way through "critique the design" (check with nothing picked,
+// "Show me", then each fix-first option in turn), checking the layout of each part.
+async function walkCritique(id) {
+  await layoutChecks(`${id}-360 critique`);
+  await shot(`${id}-360-critique`);
+  await tap('Check');
+  check(`${id}: an empty critique gets a hint, not the answer`, (await text('.critique .feedback')).startsWith('Not quite:'), await text('.critique .feedback'));
+  await tap('Show me');
+  const real = lessonData(id).critique.risks.filter((r) => r.real).length;
+  check(`${id}: every real risk is marked after "Show me"`, (await evaluate(`document.querySelectorAll('.critique .risk.right').length`)) === real);
+  await layoutChecks(`${id}-360 critique revealed`);
+  await shot(`${id}-360-critique-revealed`);
+  await tap('Next: what to fix first');
+  for (let i = 0; i < 6 && !(await evaluate(`[...document.querySelectorAll('button')].some((b) => b.offsetParent && b.textContent === 'On to the quiz')`)); i++) {
+    if (await evaluate(`!document.querySelectorAll('.critique .option')[${i}].disabled`)) await tapSel('.critique .option', i);
+  }
+  await layoutChecks(`${id}-360 fix first`);
+  await shot(`${id}-360-fix-first`);
+  await tap('On to the quiz');
+}
+
 // Every lesson: layout, labels, and a walk through all steps to the quiz.
 async function walkLessons() {
   await load();
@@ -257,6 +278,7 @@ async function walkLessons() {
       await sleep(600);
       await shot(`${id}-360-mid`);
       await tap('Take the quiz');
+      if (await evaluate(`!!document.querySelector('.critique:not([hidden])')`)) await walkCritique(id);
       check(`${id}: sim runs and its quiz opens`, await evaluate(`!document.querySelector('.quiz').hidden`));
       continue;
     }
@@ -268,7 +290,8 @@ async function walkLessons() {
     }
     await layoutChecks(`${id}-360 last step`);
     await takeQuiz();
-    if (await evaluate(`!!document.querySelector('.exercise:not([hidden])')`)) await walkExercise(id);
+    if (await evaluate(`!!document.querySelector('.critique:not([hidden])')`)) await walkCritique(id);
+    else if (await evaluate(`!!document.querySelector('.exercise:not([hidden])')`)) await walkExercise(id);
     const quizShown = await evaluate(`!document.querySelector('.quiz').hidden`);
     check(`${id}: walked every step to the quiz`, guard < 80 && quizShown, `${guard} steps`);
   }
