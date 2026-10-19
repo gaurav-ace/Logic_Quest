@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
+  "kind": "diagram",
   "id": "load-balancer",
   "title": "Load balancer",
   "track": "hld",
@@ -13,43 +14,144 @@
   ],
   "simplifies": "Every request here takes the same effort, so taking turns is fair. Real requests differ, which is why balancers also offer other methods, such as sending to the server with the fewest active connections, and server weights. Failure handling is simplified too: NGINX, for example, marks a server as failed only after a request to it fails, avoids it for a while, then tries it again with real requests.",
   "nodes": [
-    { "id": "client", "label": "User", "x": 60, "y": 100, "width": 96 },
-    { "id": "balancer", "label": "Balancer", "x": 205, "y": 100, "width": 110 },
-    { "id": "s1", "label": "Server 1", "x": 355, "y": 36, "width": 110 },
-    { "id": "s2", "label": "Server 2", "x": 355, "y": 100, "width": 110 },
-    { "id": "s3", "label": "Server 3", "x": 355, "y": 164, "width": 110 }
+    {
+      "id": "client",
+      "label": "User",
+      "x": 60,
+      "y": 100,
+      "width": 96
+    },
+    {
+      "id": "balancer",
+      "label": "Balancer",
+      "x": 205,
+      "y": 100,
+      "width": 110
+    },
+    {
+      "id": "s1",
+      "label": "Server 1",
+      "x": 355,
+      "y": 36,
+      "width": 110
+    },
+    {
+      "id": "s2",
+      "label": "Server 2",
+      "x": 355,
+      "y": 100,
+      "width": 110
+    },
+    {
+      "id": "s3",
+      "label": "Server 3",
+      "x": 355,
+      "y": 164,
+      "width": 110
+    }
   ],
   "edges": [
-    ["client", "balancer"],
-    ["balancer", "s1"],
-    ["balancer", "s2"],
-    ["balancer", "s3"]
+    [
+      "client",
+      "balancer"
+    ],
+    [
+      "balancer",
+      "s1"
+    ],
+    [
+      "balancer",
+      "s2"
+    ],
+    [
+      "balancer",
+      "s3"
+    ]
   ],
   "steps": [
     {
       "caption": "A user opens your app. Their request goes to the load balancer, not straight to a server.",
-      "highlight": ["client"],
-      "path": [["client", "balancer"]]
+      "highlight": [
+        "client"
+      ],
+      "path": [
+        [
+          "client",
+          "balancer"
+        ]
+      ]
     },
     {
       "caption": "The balancer keeps track of which servers have been failing. Right now all three are working, so any of them can be picked.",
-      "highlight": ["s1", "s2", "s3"],
+      "highlight": [
+        "s1",
+        "s2",
+        "s3"
+      ],
       "path": []
     },
     {
       "caption": "It picks Server 1. With round robin, the servers simply take turns in order.",
-      "highlight": ["balancer", "s1"],
-      "path": [["balancer", "s1"]]
+      "highlight": [
+        "balancer",
+        "s1"
+      ],
+      "path": [
+        [
+          "balancer",
+          "s1"
+        ]
+      ]
     },
     {
       "caption": "Server 1 handles the request. The reply goes back through the balancer to the user.",
-      "highlight": ["s1"],
-      "path": [["s1", "balancer"], ["balancer", "client"]]
+      "highlight": [
+        "s1"
+      ],
+      "path": [
+        [
+          "s1",
+          "balancer"
+        ],
+        [
+          "balancer",
+          "client"
+        ]
+      ]
     },
     {
       "caption": "The next request goes to Server 2, and the one after that to Server 3. The work spreads across all three.",
-      "highlight": ["s2"],
-      "path": [["client", "balancer"], ["balancer", "s2"]]
+      "highlight": [
+        "s2"
+      ],
+      "path": [
+        [
+          "client",
+          "balancer"
+        ],
+        [
+          "balancer",
+          "s2"
+        ]
+      ],
+      "predict": {
+        "prompt": "Server 1 just handled a request. With round robin, where does the next request go?",
+        "options": [
+          {
+            "text": "Server 1 again",
+            "explanation": "No. Round robin moves on after every request, so Server 1 waits for its next turn."
+          },
+          {
+            "text": "Server 2",
+            "explanation": "Right. The servers take turns in order: 1, then 2, then 3, then back to 1."
+          },
+          {
+            "text": "Whichever server is least busy",
+            "explanation": "No. That is a different method (least connections). Round robin only follows the order."
+          }
+        ],
+        "answer": 1
+      }
     }
   ],
   "quiz": [

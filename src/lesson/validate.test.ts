@@ -131,6 +131,34 @@ describe('validateLesson', () => {
     expect(problemsOf({ ...lesson(), level: 'expert' })).toContain('level: must be one of easy, medium, hard');
   });
 
+  it('requires a known kind', () => {
+    const l = lesson();
+    delete l.kind;
+    expect(problemsOf(l)).toContain('kind: must be one of diagram, trace');
+  });
+
+  it('checks a step prediction like a quiz question', () => {
+    const l = lesson();
+    const predict = { prompt: 'What next?', options: [{ text: 'A', explanation: 'Yes.' }, { text: 'B', explanation: 'No.' }], answer: 0 };
+    (l.steps as Record<string, unknown>[])[1]!.predict = predict;
+    expect(() => validateLesson(l)).not.toThrow();
+    (l.steps as Record<string, unknown>[])[1]!.predict = { ...predict, answer: 5 };
+    expect(problemsOf(l)).toContain('steps[1].predict.answer: must be an option index from 0 to 1');
+  });
+
+  it('accepts a trace lesson naming a program, without diagram fields', () => {
+    const { nodes, edges, steps, ...rest } = lesson();
+    void nodes; void edges; void steps;
+    expect(() => validateLesson({ ...rest, kind: 'trace', program: 'find-max' })).not.toThrow();
+    expect(problemsOf({ ...rest, kind: 'trace', program: 'Find Max' })).toContain('program: must be a program id (lowercase words joined by hyphens)');
+    expect(problemsOf({ ...rest, kind: 'trace', program: 'find-max', nodes: [] })).toContain('nodes: unknown field');
+  });
+
+  it('checks requires is a list of lesson ids', () => {
+    expect(() => validateLesson({ ...lesson(), requires: ['cache'] })).not.toThrow();
+    expect(problemsOf({ ...lesson(), requires: 'cache' })).toContain('requires: must be a list of lesson ids');
+  });
+
   it('rejects a wrong schema version', () => {
     expect(problemsOf({ ...lesson(), schemaVersion: 2 })).toContain('schemaVersion: must be 1');
   });

@@ -1,5 +1,6 @@
 import {
   DEFAULT_NODE_W,
+  KINDS,
   LEVELS,
   TRACKS,
   DIAGRAM_H,
@@ -40,8 +41,12 @@ export function validateLesson(data: unknown): Lesson {
   if (!isObj(data)) throw new LessonValidationError('(unknown)', ['lesson: must be an object']);
   const lessonId = isText(data.id) ? data.id : '(unknown)';
 
+  const kind = data.kind;
+  if (!KINDS.includes(kind as never)) bad('kind', `must be one of ${KINDS.join(', ')}`);
+
   // A misspelt optional key (e.g. "simplify") would otherwise vanish silently.
-  const known = ['schemaVersion', 'id', 'title', 'track', 'level', 'objective', 'sources', 'simplifies', 'nodes', 'edges', 'steps', 'quiz'];
+  const common = ['schemaVersion', 'kind', 'id', 'title', 'track', 'level', 'objective', 'sources', 'simplifies', 'requires', 'quiz'];
+  const known = [...common, ...(kind === 'trace' ? ['program'] : ['nodes', 'edges', 'steps'])];
   for (const key of Object.keys(data)) if (!known.includes(key)) bad(key, 'unknown field');
 
   if (data.schemaVersion !== SCHEMA_VERSION) bad('schemaVersion', `must be ${SCHEMA_VERSION}`);
@@ -52,21 +57,32 @@ export function validateLesson(data: unknown): Lesson {
   if (data.simplifies !== undefined && !isText(data.simplifies)) bad('simplifies', 'must be non-empty text when present');
 
   checkList(data.sources, 'sources', bad, checkSource);
-  const nodeIds = new Set<string>();
-  checkList(data.nodes, 'nodes', bad, (n, p) => checkNode(n, p, bad, nodeIds));
-  const edgeKeys = new Set<string>();
-  checkList(data.edges, 'edges', bad, (e, p) => {
-    if (checkEdge(e, p, bad, nodeIds)) {
-      const key = edgeKey(e);
-      if (edgeKeys.has(key)) bad(p, 'duplicate edge');
-      edgeKeys.add(key);
-    }
-  });
-  checkList(data.steps, 'steps', bad, (s, p) => checkStep(s, p, bad, nodeIds, edgeKeys));
+  if (data.requires !== undefined && !(Array.isArray(data.requires) && data.requires.every((r) => isText(r) && ID.test(r)))) {
+    bad('requires', 'must be a list of lesson ids');
+  }
   checkList(data.quiz, 'quiz', bad, (q, p) => checkQuestion(q, p, bad));
+  if (kind === 'trace') {
+    if (!isText(data.program) || !ID.test(data.program)) bad('program', 'must be a program id (lowercase words joined by hyphens)');
+  } else {
+    checkDiagram(data);
+  }
 
   if (problems.length) throw new LessonValidationError(lessonId, problems);
   return data as unknown as Lesson;
+
+  function checkDiagram(data: Obj): void {
+    const nodeIds = new Set<string>();
+    checkList(data.nodes, 'nodes', bad, (n, p) => checkNode(n, p, bad, nodeIds));
+    const edgeKeys = new Set<string>();
+    checkList(data.edges, 'edges', bad, (e, p) => {
+      if (checkEdge(e, p, bad, nodeIds)) {
+        const key = edgeKey(e);
+        if (edgeKeys.has(key)) bad(p, 'duplicate edge');
+        edgeKeys.add(key);
+      }
+    });
+    checkList(data.steps, 'steps', bad, (s, p) => checkStep(s, p, bad, nodeIds, edgeKeys));
+  }
 
   function checkSource(s: unknown, p: string): void {
     if (!isObj(s)) return void bad(p, 'must be an object');
@@ -133,6 +149,7 @@ function checkStep(s: unknown, p: string, bad: Bad, nodeIds: Set<string>, edgeKe
   else step.highlight.forEach((id, i) => {
     if (!nodeIds.has(id)) bad(`${p}.highlight[${i}]`, `unknown node "${String(id)}"`);
   });
+  if (step.predict !== undefined) checkQuestion(step.predict, `${p}.predict`, bad);
   if (!Array.isArray(step.path)) return void bad(`${p}.path`, 'must be a list of hops');
   step.path.forEach((hop, i) => {
     const hp = `${p}.path[${i}]`;

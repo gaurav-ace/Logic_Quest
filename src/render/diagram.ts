@@ -1,5 +1,5 @@
 import type { Point } from '../engine/packet';
-import { DEFAULT_NODE_W, DIAGRAM_H, DIAGRAM_W, NODE_H, type Lesson } from '../lesson/schema';
+import { DEFAULT_NODE_W, DIAGRAM_H, DIAGRAM_W, NODE_H, type DiagramLesson } from '../lesson/schema';
 import { svg } from './dom';
 
 
@@ -10,7 +10,7 @@ export interface Diagram {
   placePacket(at: Point | null): void;
 }
 
-export function buildDiagram(lesson: Lesson): Diagram {
+export function buildDiagram(lesson: DiagramLesson): Diagram {
   const byId = new Map(lesson.nodes.map((n) => [n.id, n]));
   const root = svg('svg', { viewBox: `0 0 ${DIAGRAM_W} ${DIAGRAM_H}`, role: 'img', 'aria-label': `Diagram: ${lesson.title}` });
 

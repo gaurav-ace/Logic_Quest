@@ -13,7 +13,7 @@ export function renderHome(root: HTMLElement, lessons: Lesson[], progress: Progr
     card.append(
       el('span', { class: 'lesson-title' }, lesson.title),
       el('span', { class: 'lesson-goal' }, lesson.objective),
-      el('span', { class: 'lesson-meta' }, `${done ? '✓ Done · ' : ''}${lesson.steps.length} steps · ${questions}`),
+      el('span', { class: 'lesson-meta' }, `${done ? '✓ Done · ' : ''}${lesson.kind === 'trace' ? 'Trace' : `${lesson.steps.length} steps`} · ${questions}`),
     );
     card.addEventListener('click', () => open(lesson.id));
     const li = el('li');

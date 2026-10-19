@@ -41,6 +41,8 @@ export interface Step {
   highlight: string[];
   /** Hops the packet travels, in order. Each hop must follow an existing edge. */
   path: Edge[];
+  /** "What happens next?", asked before this step plays (predict, then reveal). */
+  predict?: QuizQuestion;
 }
 
 export interface QuizOption {
@@ -56,7 +58,7 @@ export interface QuizQuestion {
   answer: number;
 }
 
-export interface Lesson {
+interface LessonBase {
   schemaVersion: typeof SCHEMA_VERSION;
   id: string;
   title: string;
@@ -67,8 +69,26 @@ export interface Lesson {
   sources: Source[];
   /** "What this simplifies" note. Required whenever the animation leaves out real behaviour. */
   simplifies?: string;
+  /** Lessons to finish first; until then this one is shown locked. */
+  requires?: string[];
+  quiz: QuizQuestion[];
+}
+
+/** A hand-written concept diagram (allowed for system concepts, CLAUDE.md section 5.6). */
+export interface DiagramLesson extends LessonBase {
+  kind: 'diagram';
   nodes: LessonNode[];
   edges: Edge[];
   steps: Step[];
-  quiz: QuizQuestion[];
 }
+
+/** A computed trace: the steps come from running a real program (src/trace/programs). */
+export interface TraceLesson extends LessonBase {
+  kind: 'trace';
+  /** Id of a registered program. */
+  program: string;
+}
+
+export type Lesson = DiagramLesson | TraceLesson;
+
+export const KINDS = ['diagram', 'trace'] as const;

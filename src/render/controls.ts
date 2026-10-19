@@ -3,7 +3,8 @@ import { button, el } from './dom';
 
 export interface Controls {
   element: HTMLElement;
-  update(state: PlayerState, atEnd: boolean): void;
+  /** `lockForward` while a prediction is open: answer it (or skip) to move on. */
+  update(state: PlayerState, atEnd: boolean, lockForward?: boolean): void;
 }
 
 // Two rows so everything fits at 360 px with 48 px targets: step dots and speed on top,
@@ -28,7 +29,7 @@ export function buildControls(stepCount: number, dispatch: (a: PlayerAction) => 
 
   return {
     element,
-    update(s, atEnd) {
+    update(s, atEnd, lockForward = false) {
       dots.forEach((d, i) => {
         d.classList.toggle('seen', i <= s.step);
         if (i === s.step) d.setAttribute('aria-current', 'step');
@@ -40,7 +41,9 @@ export function buildControls(stepCount: number, dispatch: (a: PlayerAction) => 
       play.textContent = s.playing ? 'Pause' : atEnd ? 'Replay' : 'Play';
       play.setAttribute('aria-pressed', String(s.playing));
       next.textContent = s.step === stepCount - 1 ? 'Take the quiz' : 'Next';
-      next.disabled = s.finished; // the quiz is already open below
+      next.disabled = s.finished || lockForward; // the quiz is already open below, or a prediction is open
+      play.disabled = lockForward;
+      for (const d of dots) d.disabled = lockForward;
     },
   };
 }

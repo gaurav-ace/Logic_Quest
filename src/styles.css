@@ -586,3 +586,29 @@ button[aria-pressed='true'] {
   color: var(--bad);
   font-weight: 700;
 }
+
+.predict {
+  padding: 14px;
+  margin: 0 0 12px;
+  border-color: var(--blue);
+}
+
+.predict h3 {
+  font-size: 1.0625rem;
+  margin: 0 0 12px;
+}
+
+button.link {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  color: var(--blue);
+  text-decoration: underline;
+  padding-inline: 4px;
+  font-weight: 600;
+}
+
+.tally {
+  margin: 16px 2px 0;
+  font-weight: 700;
+}

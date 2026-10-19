@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
+  "kind": "diagram",
   "id": "cache",
   "title": "Cache",
   "track": "hld",
@@ -13,39 +14,124 @@
   ],
   "simplifies": "One app, one cache, one record. Here the app does the cache work itself (the cache-aside pattern); some caches fetch from the database on their own (read-through). Real caches also expire entries after a set time and are often shared by many app servers, which makes keeping them up to date harder.",
   "nodes": [
-    { "id": "app", "label": "App", "x": 60, "y": 100, "width": 90 },
-    { "id": "cache", "label": "Cache", "x": 220, "y": 40, "width": 100 },
-    { "id": "db", "label": "Database", "x": 350, "y": 160, "width": 120 }
+    {
+      "id": "app",
+      "label": "App",
+      "x": 60,
+      "y": 100,
+      "width": 90
+    },
+    {
+      "id": "cache",
+      "label": "Cache",
+      "x": 220,
+      "y": 40,
+      "width": 100
+    },
+    {
+      "id": "db",
+      "label": "Database",
+      "x": 350,
+      "y": 160,
+      "width": 120
+    }
   ],
   "edges": [
-    ["app", "cache"],
-    ["app", "db"]
+    [
+      "app",
+      "cache"
+    ],
+    [
+      "app",
+      "db"
+    ]
   ],
   "steps": [
     {
       "caption": "The app needs a user's profile. It asks the cache first, because reading from the cache is faster than asking the database.",
-      "highlight": ["app"],
-      "path": [["app", "cache"]]
+      "highlight": [
+        "app"
+      ],
+      "path": [
+        [
+          "app",
+          "cache"
+        ]
+      ]
     },
     {
       "caption": "Cache miss: the profile isn't in the cache yet, so the cache has nothing to return.",
-      "highlight": ["cache"],
-      "path": [["cache", "app"]]
+      "highlight": [
+        "cache"
+      ],
+      "path": [
+        [
+          "cache",
+          "app"
+        ]
+      ],
+      "predict": {
+        "prompt": "This is the first time anyone has asked for this profile. What does the cache answer?",
+        "options": [
+          {
+            "text": "It returns the profile",
+            "explanation": "No. Nothing has been saved in the cache yet, so it has no copy to return."
+          },
+          {
+            "text": "It has nothing: a cache miss",
+            "explanation": "Right. The cache only holds what was put in it, and this profile hasn't been yet."
+          },
+          {
+            "text": "It fetches the profile from the database itself",
+            "explanation": "No. In this pattern (cache-aside) the app does the database read, not the cache."
+          }
+        ],
+        "answer": 1
+      }
     },
     {
       "caption": "So the app reads the profile from the database instead.",
-      "highlight": ["db"],
-      "path": [["app", "db"], ["db", "app"]]
+      "highlight": [
+        "db"
+      ],
+      "path": [
+        [
+          "app",
+          "db"
+        ],
+        [
+          "db",
+          "app"
+        ]
+      ]
     },
     {
       "caption": "The app saves a copy in the cache, so the next read can skip the database.",
-      "highlight": ["cache"],
-      "path": [["app", "cache"]]
+      "highlight": [
+        "cache"
+      ],
+      "path": [
+        [
+          "app",
+          "cache"
+        ]
+      ]
     },
     {
       "caption": "The next time someone asks: cache hit. The answer comes straight from the cache, and the database isn't asked at all.",
-      "highlight": ["cache"],
-      "path": [["app", "cache"], ["cache", "app"]]
+      "highlight": [
+        "cache"
+      ],
+      "path": [
+        [
+          "app",
+          "cache"
+        ],
+        [
+          "cache",
+          "app"
+        ]
+      ]
     }
   ],
   "quiz": [

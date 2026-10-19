@@ -33,6 +33,9 @@ const events = [];
 // Start Chrome on a profile folder. Reusing the folder later is a real relaunch: whatever the
 // app saved to disk must still be there.
 async function launch(profileDir = mkdtempSync(join(tmpdir(), 'lq-cdp-'))) {
+  // A Chrome left over from an interrupted run would answer instead of ours: fail clearly.
+  const leftover = await fetch(`http://127.0.0.1:${PORT}/json/version`).then(() => true, () => false);
+  if (leftover) throw new Error(`Port ${PORT} is already in use, probably by a headless Chrome from an interrupted run. Close it and retry.`);
   chrome = spawn(process.env.CHROME_PATH ?? defaultChrome, [
     '--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profileDir}`,
     '--no-first-run', '--no-default-browser-check', 'about:blank',
@@ -154,6 +157,15 @@ const browserBack = async () => {
 };
 const hash = () => evaluate('location.hash');
 
+// Answer "Skip" on any open prediction, so a walk-through can move on.
+const skipPrediction = async () => {
+  if (await evaluate(`!!document.querySelector('.predict:not([hidden])')`)) await tap('Skip, just show me');
+};
+const takeQuiz = async () => {
+  await skipPrediction();
+  await tap('Take the quiz');
+};
+
 const layoutChecks = async (label) => {
   const m = await evaluate(`(() => {
     const targets = [...document.querySelectorAll('button, summary, a')].filter((b) => b.offsetParent)
@@ -194,7 +206,7 @@ if (mode === 'ui') {
   check('"← Lessons" returns to the list', (await text('h2')) === 'Lessons');
   await tapSel('.lesson-card', 1);
   await tap('Go to step 5', 'label');
-  await tap('Take the quiz');
+  await takeQuiz();
   await browserBack();
   check('guard makes Stay the prominent choice', (await text('.guard .primary')) === 'Stay');
   check('back during the quiz asks first and stays on the lesson', (await hash()) === '#/lesson/load-balancer' && (await evaluate(`!document.querySelector('.guard').hidden`)));
@@ -218,7 +230,7 @@ if (mode === 'ui') {
   check('HUD shows today and the way to start a streak', (await text('.hud-today')) === 'Today: 0 / 1. Finish 1 lesson today to start a streak.');
   await load(url + '#/lesson/hello-request-response');
   await tap('Go to step 2', 'label');
-  await tap('Take the quiz');
+  await takeQuiz();
   await tap('The browser, by sending a request');
   const reward = await evaluate(`[...document.querySelectorAll('.reward span')].map((s) => s.textContent)`);
   check('first-try answer shows XP, lesson bonus, goal and badges, one per line',
@@ -237,12 +249,12 @@ if (mode === 'ui') {
   check('progress survives a reload', (await text('.hud-stats')) === 'Level1XP20 / 30Streak1 dayCoins5', await text('.hud-stats'));
   await load(url + '#/lesson/hello-request-response');
   await tap('Go to step 2', 'label');
-  await tap('Take the quiz');
+  await takeQuiz();
   await tap('The browser, by sending a request');
   check('replay says already scored, no new XP', (await text('.reward')).startsWith('Already scored.'), await text('.reward'));
   await load(url + '#/lesson/load-balancer');
   await tap('Go to step 5', 'label');
-  await tap('Take the quiz');
+  await takeQuiz();
   await tap('Keep sending it every third request');
   check('wrong answer shows no reward', (await text('.reward')) === '');
   await tap('Stop sending it requests for a while, then try it again');
@@ -263,7 +275,7 @@ if (mode === 'ui') {
   check('calm mode turns on', (await evaluate(`!!document.querySelector('[aria-pressed="true"]') && [...document.querySelectorAll('button')].some((b) => b.textContent === 'Calm mode: on')`)));
   await load(url + '#/lesson/cache');
   await tap('Go to step 5', 'label');
-  await tap('Take the quiz');
+  await takeQuiz();
   await tap('Users may see the old profile');
   const calmLines = await evaluate(`[...document.querySelectorAll('.reward span')].map((s) => s.textContent)`);
   // 20 + 5 XP so far, +10 here crosses the level-2 threshold (30).
@@ -315,15 +327,38 @@ if (mode === 'ui') {
   await browserBack();
   check('back from a progress deep link goes to the list', (await text('h2')) === 'Lessons');
 
+  // Predict, then reveal (cache lesson, step 2).
+  await load(url + '#/lesson/cache');
+  await tap('Next');
+  check('prediction appears before step 2 plays', await evaluate(`!document.querySelector('.predict').hidden`) && (await text('.caption')) === 'Before this step plays: what do you think happens?');
+  check('prediction hides the answer: step 1 state still shown', (await evaluate(`[...document.querySelectorAll('.node.on')].map((g) => g.textContent).join()`)) === 'App');
+  check('Next and Play are locked until answered or skipped', await evaluate(`document.querySelector('.controls .primary').disabled && document.querySelector('.play').disabled`));
+  await layoutChecks('predict-360');
+  await shot('predict-360');
+  await tap('It returns the profile');
+  check('wrong prediction is explained, with another try', (await text('.predict .feedback')).startsWith('No. Nothing has been saved') && (await text('.predict .quiz-after')) === 'Not quite. Try another option.');
+  await tap('It has nothing: a cache miss');
+  await tap('See what happens');
+  check('reveal shows the real step', (await text('.caption')).startsWith('Cache miss') && (await evaluate(`document.querySelector('.predict').hidden`)));
+  await tap('Back');
+  await tap('Next');
+  check('an answered prediction is not asked again in the same run', await evaluate(`document.querySelector('.predict').hidden`));
+  await tap('Go to step 5', 'label');
+  await takeQuiz();
+  check('tally before the quiz counts first-try predictions', (await text('.tally')) === 'You predicted 0 of 1 step right on the first try.', await text('.tally'));
+
   // Every lesson: layout, labels, and a walk through all steps to the quiz.
   for (const id of ['load-balancer', 'cache', 'agent-loop']) {
     await load(url + '#/lesson/' + id);
     await layoutChecks(`${id}-360`);
     await shot(`${id}-360-step1`);
     const steps = await evaluate(`document.querySelectorAll('.dot').length`);
-    for (let k = 1; k < steps; k++) await tap('Next');
+    for (let k = 1; k < steps; k++) {
+      await skipPrediction();
+      await tap('Next');
+    }
     await shot(`${id}-360-last`);
-    await tap('Take the quiz');
+    await takeQuiz();
     check(`${id}: quiz opens with question 1 of 2`, (await text('.quiz-count')) === 'Question 1 of 2');
   }
 
@@ -352,7 +387,7 @@ if (mode === 'ui') {
   check('hidden tab pauses auto-play', (await text('.play')) === 'Play');
   await evaluate(`delete document.hidden; document.dispatchEvent(new Event('visibilitychange'))`);
   await tap('Go to step 2', 'label');
-  await tap('Take the quiz');
+  await takeQuiz();
   check('quiz appears after the last step', await evaluate(`!document.querySelector('.quiz').hidden`));
   check('"Take the quiz" is disabled while the quiz is open', await evaluate(`document.querySelector('.controls .primary').disabled`));
   await tap('The server, by sending the page when it is ready');
@@ -362,7 +397,7 @@ if (mode === 'ui') {
   check('Replay the steps → step 1 playing, quiz hidden', (await text('.step-label')) === 'Step 1 of 2' && (await evaluate(`document.querySelector('.quiz').hidden`)));
   await tap('Pause');
   await tap('Go to step 2', 'label');
-  await tap('Take the quiz');
+  await takeQuiz();
   await tap('The browser, by sending a request');
   check('right answer marked and explained', await evaluate(`!!document.querySelector('.option.right') && document.querySelector('.feedback').textContent.startsWith('Right.')`));
   await layoutChecks('phone-360 quiz');
@@ -432,7 +467,7 @@ if (mode === 'persist') {
   await openOnDay(0);
   await load(url + '#/lesson/hello-request-response');
   await tap('Go to step 2', 'label');
-  await tap('Take the quiz');
+  await takeQuiz();
   await tap('The browser, by sending a request');
   await load();
   check('day 1: one lesson done', (await stats()) === 'Level1XP20 / 30Streak1 dayCoins5', await stats());
@@ -446,7 +481,7 @@ if (mode === 'persist') {
   check('progress screen reports the storage protection state', /keep your progress|may clear it/.test(await text('.persist-state')), await text('.persist-state'));
   await load(url + '#/lesson/cache');
   await tap('Go to step 5', 'label');
-  await tap('Take the quiz');
+  await takeQuiz();
   await tap('Users may see the old profile');
   await tap('Next question');
   await tap('So the next request is a cache hit');
