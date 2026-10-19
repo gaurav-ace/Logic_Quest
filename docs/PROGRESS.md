@@ -28,7 +28,7 @@ Phase 0, Foundations: **done**, approved 2026-10-19 after the owner tested on we
 ## Next step
 
 1. Owner reviews the lesson text in `lessons/load-balancer.json`, `cache.json`, `agent-loop.json` (or in the app).
-2. Owner approves `git push origin main` (Phase 1 commits).
+2. Done: owner pushed Phase 1; run 39217743772 (f7e1a44) passed check and deploy on its own. Live site serves that build (sw version 0b466140).
 3. Owner checks on phone and desktop, then approves Phase 1 → Phase 2 plan (rewards and progress).
 
 ## Blockers and questions for the owner
@@ -58,3 +58,4 @@ Phase 0, Foundations: **done**, approved 2026-10-19 after the owner tested on we
 - 2026-10-19: Owner pushed. CI checks green on GitHub; deploy blocked until Pages source is set to GitHub Actions.
 - 2026-10-19: CI green and Pages live. Owner tested on web and Android: works. Phase 0 closed. Phase 1 plan written.
 - 2026-10-19: Owner approved the Phase 1 plan, chose "Claude drafts, owner reviews" for lessons, and asked for the check script in the repo. Built 1.1–1.4, one commit each. Not pushed.
+- 2026-10-19: A manual 3rd re-run of the old Phase 0 run failed with "Multiple artifacts named github-pages" (attempts 2 and 3 both uploaded one). Fixed by naming the artifact per attempt. Not pushed yet.
