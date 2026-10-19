@@ -1,6 +1,6 @@
 # Phase 3 plan: Logic foundations
 
-Status: 3.1–3.4 built 2026-10-19. Waiting for the owner's content review of the 8 lessons (CLAUDE.md: done when reviewed by the owner).
+Status: done 2026-10-19, approved by the owner.
 
 **Goal (CLAUDE.md section 9):** decomposition, pattern spotting, dry-running code, edge cases, invariants.
 

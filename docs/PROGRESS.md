@@ -4,18 +4,18 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 ## Current phase
 
-Phases 3 and 4 built (2026-10-19), committed locally, not pushed. Not finished until the owner reviews the lesson content (CLAUDE.md: Phase 3 is done when reviewed by the owner), pushes, and checks on the phone.
+Phase 5, System design (HLD): plan approved 2026-10-19 (all of 5.1–5.4). Building.
 
-Phases 0, 1 and 2: **done** and approved. Live at https://gaurav-ace.github.io/Logic_Quest/.
+Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19 without a line-by-line content review; the owner will report any content problems they find later). Live at https://gaurav-ace.github.io/Logic_Quest/.
 
-## Done (Phase 4), awaiting the owner's review
+## Done (Phase 4)
 
 - 4.1 New views: stack, queue, linked list, hash buckets, tree (binary and n-ary), graph, table cell highlight. Tree layout tested on 100 random BSTs.
 - 4.2–4.4 Thirty DSA lessons, each a computed trace checked against a reference on 200 random inputs (often an independent algorithm), plus claim tests (`src/trace/programs/dsa-claims.test.ts`).
 - Checks run: `npm run check` 368/368; browser `ui` 378/378 (all 42 lessons walked to their quiz at 360 px), `pwa` 7/7, `persist` 11/11.
 - Bugs found by the checks and fixed: real-size SVGs scaled down by an old rule (9.9 px text); wide arrays overflowing the page; graph wider than the phone; my hard-coded wrong expectation in one test.
 
-## Done (Phase 3), awaiting the owner's content review
+## Done (Phase 3)
 
 - 3.1 Predict-then-reveal questions on diagram steps; tally before the quiz; shared stepped shell (`src/render/stepped.ts`).
 - 3.2 Trace engine (`src/trace/`): programs really run and record frames; predictions computed from the run; every program tested against a reference on 200 seeded random inputs; "New example".
@@ -51,19 +51,16 @@ Phases 0, 1 and 2: **done** and approved. Live at https://gaurav-ace.github.io/L
 
 ## Next step
 
-1. Owner pushes and checks Phases 3 and 4 on the phone.
-2. Owner reviews lesson content (42 lessons; the 38 new ones are drafted by Claude).
-3. Then the Phase 5 plan (system design, HLD).
+Build Phase 5 tasks 5.1–5.4 (`docs/PHASE5_PLAN.md`), one commit per batch.
 
 ## Blockers and questions for the owner
 
-- Content review and phone check of Phases 3 and 4.
 - Wikipedia is cited for a few facts (square numbers, off-by-one, prefix sums, cycle detection, Big O, space–time tradeoff, topological sorting); the owner may veto it.
 
 ## Not tested yet
 
 - Owner checked Phase 0 on their Android phone (2026-10-19): works. Device model and Android version not recorded.
-- Service worker update path (new deploy replacing the old cache) is reasoned about, not tested.
+- Service worker update path is tested in headless Chrome (`browser-check.mjs update`), not yet confirmed on the owner's phone.
 - `vite.config.ts` is not type-checked (it would need `@types/node`, not approved). See `docs/IDEAS.md`.
 - Screen reader behaviour has not been tested; captions use `aria-live`.
 - Owner checked Phase 1 on the site and their Android phone (2026-10-19): all good.
@@ -95,3 +92,4 @@ Phases 0, 1 and 2: **done** and approved. Live at https://gaurav-ace.github.io/L
 - 2026-10-19: Built Phase 3 (3.1–3.4). Fixed my own check-script bug (a recursive helper hung a run) and stopped 8 leftover headless Chrome processes it left behind; the script now refuses to start if its debug port is taken.
 - 2026-10-19: Built Phase 4 (30 DSA lessons and 6 new views). Batches 4.2–4.4 committed as one change because they share the registry, catalog and claim tests.
 - 2026-10-19: Owner reported the phone app didn't show new content after the push. Cause: cache-first page loading (new version only on the launch after next). Fixed with network-first pages, update checks on resume, and a Reload banner. `update` check reproduced the bug on the old worker (1 failure) and passes on the new one (6/6); pwa 7/7, persist 11/11.
+- 2026-10-19 (new session): the update fix (c477bde) was pushed and deployed (CI green). Owner approved Phases 3 and 4 and the Phase 5 plan.
