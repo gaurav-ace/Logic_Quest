@@ -37,6 +37,7 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
@@ -46,7 +47,24 @@ jobs:
       group: pages
       cancel-in-progress: false
     steps:
+      # A re-run of an old run builds that run's old commit. Publishing it would put an older
+      # version over a newer one (this happened twice on 2026-10-19), so only the commit that
+      # main points to right now is deployed.
+      - id: latest
+        name: Deploy only the latest main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head=$(git ls-remote "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" refs/heads/main | cut -f1)
+          echo "main is ${head}, this run is ${GITHUB_SHA}"
+          if [ -n "$head" ] && [ "$head" = "$GITHUB_SHA" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Not deploying: this run is for ${GITHUB_SHA}, but main is now ${head}. Use Run workflow on main instead of Re-run."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
       - id: deployment
+        if: steps.latest.outputs.ok == 'true'
         uses: actions/deploy-pages@v5
         with:
           artifact_name: github-pages-${{ github.run_attempt }}
