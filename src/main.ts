@@ -1,6 +1,7 @@
 import './styles.css';
 import hello from '../lessons/hello.json';
 import { LessonValidationError, validateLesson } from './lesson/validate';
+import { registerServiceWorker } from './pwa/register';
 import { renderLesson } from './render/lesson';
 
 const APP_NAME = 'Logic Quest';
@@ -22,5 +23,6 @@ function start(root: HTMLElement): void {
   }
 }
 
+registerServiceWorker();
 const root = document.getElementById('app');
 if (root) start(root);
