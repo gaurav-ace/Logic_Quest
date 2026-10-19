@@ -7,12 +7,19 @@ export interface Controls {
   update(state: PlayerState, atEnd: boolean, lockForward?: boolean): void;
 }
 
-// Two rows so everything fits at 360 px with 48 px targets: step dots and speed on top,
-// Back / Play / Next within thumb reach below.
+/** Up to this many steps fit as 48 px dots in one row on a 360 px phone. */
+const MAX_DOTS = 6;
+
+// Two rows so everything fits at 360 px with 48 px targets: step dots (or, for long traces, a
+// progress bar) and speed on top, Back / Play / Next within thumb reach below.
 export function buildControls(stepCount: number, dispatch: (a: PlayerAction) => void): Controls {
-  const dots = Array.from({ length: stepCount }, (_, i) =>
-    button('', () => dispatch({ type: 'goTo', step: i }), { class: 'dot', 'aria-label': `Go to step ${i + 1}` }),
-  );
+  const useDots = stepCount <= MAX_DOTS;
+  const dots = useDots
+    ? Array.from({ length: stepCount }, (_, i) => button('', () => dispatch({ type: 'goTo', step: i }), { class: 'dot', 'aria-label': `Go to step ${i + 1}` }))
+    : [];
+  const bar = el('div', { class: 'step-bar', role: 'progressbar', 'aria-label': 'Steps', 'aria-valuemin': 1, 'aria-valuemax': stepCount });
+  const fill = el('i');
+  bar.append(fill);
   const speed = button('', () => dispatch({ type: 'cycleSpeed' }), { class: 'speed' });
   const back = button('Back', () => dispatch({ type: 'back' }));
   const play = button('', () => dispatch({ type: 'toggle' }), { class: 'play' });
@@ -21,7 +28,7 @@ export function buildControls(stepCount: number, dispatch: (a: PlayerAction) => 
   const top = el('div', { class: 'controls-top' });
   const dotRow = el('div', { class: 'dots', role: 'group', 'aria-label': 'Steps' });
   dotRow.append(...dots);
-  top.append(dotRow, speed);
+  top.append(useDots ? dotRow : bar, speed);
   const bottom = el('div', { class: 'controls' });
   bottom.append(back, play, next);
   const element = el('div', { class: 'player-controls' });
@@ -35,6 +42,8 @@ export function buildControls(stepCount: number, dispatch: (a: PlayerAction) => 
         if (i === s.step) d.setAttribute('aria-current', 'step');
         else d.removeAttribute('aria-current');
       });
+      bar.setAttribute('aria-valuenow', String(s.step + 1));
+      fill.style.width = `${((s.step + 1) / stepCount) * 100}%`;
       speed.textContent = `${s.speed}x`;
       speed.setAttribute('aria-label', `Speed ${s.speed}x. Tap to change.`);
       back.disabled = s.step === 0;

@@ -17,7 +17,7 @@ describe('lesson catalog', () => {
   });
 
   it('loads all lessons in order', () => {
-    expect(loadCatalog().map((l) => l.id)).toEqual(['hello-request-response', 'load-balancer', 'cache', 'agent-loop']);
+    expect(loadCatalog().map((l) => l.id)).toEqual(['hello-request-response', 'dry-run', 'load-balancer', 'cache', 'agent-loop']);
   });
 
   it('every lesson has an objective, sources, a quiz and a simplifies note', () => {
@@ -27,6 +27,21 @@ describe('lesson catalog', () => {
       expect(l.quiz.length, l.id).toBeGreaterThan(0);
       expect(l.simplifies, l.id).toBeTruthy();
     }
+  });
+
+  it('rejects a trace lesson whose program does not exist', () => {
+    const trace: Record<string, unknown> = { ...(structuredClone(LESSON_DATA[0]) as Record<string, unknown>), id: 'some-trace', kind: 'trace', program: 'no-such-program' };
+    for (const k of ['nodes', 'edges', 'steps']) delete trace[k];
+    expect(() => loadCatalog([trace])).toThrow('names unknown program "no-such-program"');
+  });
+
+  it('rejects unknown and circular requirements', () => {
+    const base = structuredClone(LESSON_DATA[0]) as Record<string, unknown>;
+    expect(() => loadCatalog([{ ...base, requires: ['nope'] }])).toThrow('requires unknown lesson "nope"');
+    const a = { ...base, id: 'a', requires: ['b'] };
+    const b = { ...base, id: 'b', requires: ['a'] };
+    expect(() => loadCatalog([a, b])).toThrow('Lessons require each other in a loop: a -> b -> a');
+    expect(() => loadCatalog([{ ...base, id: 'a' }, { ...base, id: 'b', requires: ['a'] }])).not.toThrow();
   });
 
   it('rejects two lessons with the same id', () => {

@@ -61,7 +61,11 @@ export function renderStepped(root: HTMLElement, lesson: Lesson, stage: Stage, h
   const quiz = el('section', { class: 'card quiz', 'aria-label': 'Quiz' });
   quiz.hidden = true;
 
-  root.replaceChildren(title, objective, stage.element, stepLabel, caption, predictBox, controls.element, tally, quiz, ...(options.footer ? [options.footer] : []), notes(lesson));
+  // Caption and controls share one bar pinned to the bottom of the screen: what just happened
+  // and what to tap next are always visible together, within thumb reach (CLAUDE.md section 8).
+  const player = el('div', { class: 'player' });
+  player.append(stepLabel, caption, controls.element);
+  root.replaceChildren(title, objective, stage.element, predictBox, player, tally, quiz, ...(options.footer ? [options.footer] : []), notes(lesson));
 
   /** Predictions answered in this run: step index -> right on the first try. */
   const predicted = new Map<number, boolean>();

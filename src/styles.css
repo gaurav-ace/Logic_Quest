@@ -184,7 +184,7 @@ h2 {
 }
 
 .step-label {
-  margin: 12px 2px 0;
+  margin: 4px 2px 0;
   color: var(--mute);
   font-size: 0.875rem;
   font-weight: 700;
@@ -192,7 +192,7 @@ h2 {
 
 .caption {
   font-size: 1.0625rem;
-  min-height: 4.5em;
+  min-height: 3em;
   margin: 2px 2px 8px;
 }
 
@@ -237,8 +237,26 @@ button.dot[aria-current='step']::before {
   height: 20px;
 }
 
-button.dot:active {
+button.dot:active,
+button.dot:disabled {
   transform: none;
+  box-shadow: none;
+}
+
+.step-bar {
+  flex: 1;
+  height: 12px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--card);
+}
+
+.step-bar i {
+  display: block;
+  height: 100%;
+  background: var(--blue);
+  transition: width 0.2s;
 }
 
 button.speed {
@@ -254,6 +272,17 @@ button.speed {
 
 button.play {
   min-width: 96px;
+}
+
+/* Caption, Back / Play / Next stay within thumb reach while a tall stage scrolls (CLAUDE.md section 8). */
+.player {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin: 12px -16px 0;
+  padding: 6px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: var(--bg);
+  border-top: 2px solid var(--line);
 }
 
 button {
@@ -438,7 +467,7 @@ button.primary {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(150px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   width: max-content;
   max-width: calc(100% - 32px);
@@ -589,7 +618,7 @@ button[aria-pressed='true'] {
 
 .predict {
   padding: 14px;
-  margin: 0 0 12px;
+  margin: 12px 0 0;
   border-color: var(--blue);
 }
 
@@ -611,4 +640,183 @@ button.link {
 .tally {
   margin: 16px 2px 0;
   font-weight: 700;
+}
+
+/* Trace lessons: code, data views and variables. */
+.stage.trace {
+  padding: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.trace-input {
+  margin: 0;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Roboto Mono', monospace;
+  font-size: 0.875rem;
+  color: var(--mute);
+  overflow-wrap: anywhere;
+}
+
+.scroll-x {
+  overflow-x: auto;
+}
+
+.code {
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+  counter-reset: line;
+  font: 0.875rem/1.55 ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Roboto Mono', monospace;
+  background: color-mix(in srgb, var(--grid) 55%, var(--card));
+  border-radius: 10px;
+  min-width: max-content;
+}
+
+.code li {
+  counter-increment: line;
+  padding: 0 10px 0 6px;
+  white-space: pre;
+  border-left: 4px solid transparent;
+}
+
+.code li::before {
+  content: counter(line);
+  display: inline-block;
+  width: 1.6em;
+  margin-right: 8px;
+  text-align: right;
+  color: var(--mute);
+}
+
+.code li.current {
+  background: var(--hi);
+  color: var(--hi-ink);
+  border-left-color: var(--line);
+}
+
+.code li.current::before {
+  color: var(--hi-ink);
+}
+
+.code code {
+  font: inherit;
+}
+
+.view {
+  margin: 0;
+}
+
+.view figcaption,
+.vars-box h4 {
+  margin: 0 0 4px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--mute);
+}
+
+.cells {
+  display: grid;
+  grid-template-columns: repeat(var(--n), minmax(36px, 1fr));
+  gap: 4px;
+}
+
+.cell {
+  display: grid;
+  grid-template-rows: 1.2em auto 1.1em;
+  text-align: center;
+  align-items: center;
+}
+
+.cell .ptr {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--blue);
+  white-space: nowrap;
+}
+
+.cell .val {
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 2px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  background: var(--card);
+}
+
+.cell .idx {
+  font-size: 0.75rem;
+  color: var(--mute);
+}
+
+.cell.hl .val {
+  background: var(--hi);
+  color: var(--hi-ink);
+}
+
+.cell.done .val {
+  opacity: 0.55;
+}
+
+.cell.out .val {
+  opacity: 0.3;
+  border-style: dashed;
+}
+
+.view-table table {
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.view-table th,
+.view-table td {
+  border: 1px solid var(--mute);
+  padding: 4px 10px;
+  text-align: center;
+}
+
+.view-table tr.hl td {
+  background: var(--hi);
+  color: var(--hi-ink);
+  font-weight: 800;
+}
+
+.vars {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.vars div {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  padding: 2px 8px;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Roboto Mono', monospace;
+  font-size: 0.875rem;
+}
+
+.vars dt {
+  color: var(--mute);
+}
+
+.vars dd {
+  margin: 0;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.new-example p {
+  margin: 0 0 10px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

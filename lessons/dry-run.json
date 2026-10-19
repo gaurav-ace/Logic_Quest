@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "dry-run",
+  "title": "Dry-run code",
+  "track": "logic",
+  "level": "easy",
+  "objective": "Predict what a short function returns by tracking its variables line by line, before running it.",
+  "program": "find-max",
+  "sources": [
+    {
+      "title": "Myers, Sandler and Badgett, The Art of Software Testing, 3rd ed. (Wiley, 2011): desk checking, reading code by hand to find errors"
+    }
+  ],
+  "simplifies": "The trace shows one variable changing at a time. Real code often has several changing at once; the habit is the same: write each value down as the line runs, never guess ahead.",
+  "quiz": [
+    {
+      "prompt": "largest([5, 5, 2]) runs. How many times does line 5 (best = nums[i]) run?",
+      "options": [
+        { "text": "0 times", "explanation": "Right. best starts at 5; the second 5 is not greater than 5 (line 4 uses >), and 2 is smaller, so line 5 never runs." },
+        { "text": "1 time", "explanation": "No. That would need a number strictly greater than the current best. 5 > 5 is false." },
+        { "text": "2 times", "explanation": "No. Line 5 only runs when nums[i] is greater than best, and neither 5 nor 2 is greater than 5." }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "What would largest([]) do with this code?",
+      "options": [
+        { "text": "Return 0", "explanation": "No. Nothing in the code returns 0; it never gets that far." },
+        { "text": "Fail on line 2, because nums[0] doesn't exist", "explanation": "Right. An empty list has no first item, so line 2 raises an error. Dry-running an edge case like this, before running the code, is how you catch it." },
+        { "text": "Return None", "explanation": "No. The function never reaches return; line 2 fails first." }
+      ],
+      "answer": 1
+    }
+  ]
+}

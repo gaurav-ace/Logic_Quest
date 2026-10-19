@@ -195,16 +195,16 @@ if (mode === 'ui') {
   await layoutChecks('home-360');
   await shot('home-360');
   const titles = await evaluate(`[...document.querySelectorAll('.lesson-title')].map((t) => t.textContent)`);
-  check('home lists the 4 lessons in order', JSON.stringify(titles) === JSON.stringify(['Hello, request', 'Load balancer', 'Cache', 'AI agent loop']), titles.join(', '));
+  check('home lists the lessons in order', JSON.stringify(titles) === JSON.stringify(['Hello, request', 'Dry-run code', 'Load balancer', 'Cache', 'AI agent loop']), titles.join(', '));
   check('no "← Lessons" button on home', !(await evaluate(`!!document.querySelector('.nav-back').offsetParent`)));
-  await tapSel('.lesson-card', 2);
+  await tapSel('.lesson-card', 3);
   check('tapping a card opens that lesson', (await hash()) === '#/lesson/cache' && (await text('h2')) === 'Cache');
   await browserBack();
   check('back button returns to the list', (await hash()) === '#/' && (await text('h2')) === 'Lessons');
-  await tapSel('.lesson-card', 1);
+  await tapSel('.lesson-card', 2);
   await tap('← Lessons');
   check('"← Lessons" returns to the list', (await text('h2')) === 'Lessons');
-  await tapSel('.lesson-card', 1);
+  await tapSel('.lesson-card', 2);
   await tap('Go to step 5', 'label');
   await takeQuiz();
   await browserBack();
@@ -326,6 +326,26 @@ if (mode === 'ui') {
   await load(url + '#/progress');
   await browserBack();
   check('back from a progress deep link goes to the list', (await text('h2')) === 'Lessons');
+
+  // Trace lesson: computed frames, code highlighting, a prediction from the real run.
+  await load(url + '#/lesson/dry-run');
+  await layoutChecks('trace-360');
+  await shot('trace-360-start');
+  check('trace shows the input and the code', (await text('.trace-input')) === 'nums = [3, 8, 2, 9, 4]' && (await evaluate(`document.querySelectorAll('.code li').length`)) === 6);
+  await tap('Next');
+  check('line 2 runs: highlighted, best = 3', (await evaluate(`[...document.querySelectorAll('.code li')].findIndex((l) => l.classList.contains('current'))`)) === 1 && (await text('.vars')).includes('best3'), await text('.vars'));
+  await tap('Next');
+  await tap('Next');
+  check('a computed prediction opens before the comparison', await evaluate(`!!document.querySelector('.predict:not([hidden])')`) && (await text('.predict h3')).startsWith('Predict: nums[i] is 8 and best is 3.'), await text('.predict h3'));
+  await shot('trace-360-predict');
+  await tap('3');
+  check('the wrong guess is explained from the real values', (await text('.predict .feedback')) === 'No. 8 > 3, so line 5 does run and replaces best.', await text('.predict .feedback'));
+  await tap('8');
+  await tap('See what happens');
+  check('reveal runs line 5: best = 8', (await evaluate(`document.querySelector('.code li.current').textContent`)).includes('best = nums[i]') && (await text('.vars')).includes('best8'));
+  await tap('New example');
+  check('New example traces a fresh input from the start', (await text('.trace-input')).startsWith('Example 2: nums = ') && (await text('.step-label')).startsWith('Step 1 of '), await text('.trace-input'));
+  await layoutChecks('trace-360 new example');
 
   // Predict, then reveal (cache lesson, step 2).
   await load(url + '#/lesson/cache');

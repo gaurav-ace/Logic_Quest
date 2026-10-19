@@ -4,12 +4,12 @@ import { buildDiagram } from './diagram';
 import { el } from './dom';
 import type { QuizHooks } from './quiz';
 import { renderStepped, type LessonView, type Stage } from './stepped';
+import { renderTrace } from './trace';
 
 export type { LessonView } from './stepped';
 
 export function renderLesson(root: HTMLElement, lesson: Lesson, hooks: QuizHooks): LessonView {
-  if (lesson.kind === 'trace') throw new Error('Trace lessons arrive in task 3.2');
-  return renderStepped(root, lesson, diagramStage(lesson), hooks);
+  return lesson.kind === 'trace' ? renderTrace(root, lesson, hooks) : renderStepped(root, lesson, diagramStage(lesson), hooks);
 }
 
 function diagramStage(lesson: DiagramLesson): Stage {
