@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { randomInt, seeded } from '../tools';
 import { limiterClass, perUser } from './limiter-class';
 import { lruCache, lruReference } from './lru-cache';
+import { bruteForce, nearby } from './nearby';
+import { idOf, slots, snowflake } from './snowflake';
 import { EVENTS, MOVES, runMachine, stateMachine } from './state-machine';
 
 // What the LLD trace lessons teach, checked beyond their examples.
@@ -107,5 +109,45 @@ describe('rate limiter class (O13)', () => {
         expect(inWindow).toBeLessThanOrEqual(2 * rate);
       }
     }
+  });
+});
+
+describe('nearby drivers (R3)', () => {
+  it('finds exactly the drivers a full scan finds, measuring only the 9 nearby cells, on 500 random cities', () => {
+    const r = seeded(53);
+    for (let run = 0; run < 500; run++) {
+      const input = nearby.randomInput(r);
+      // Half the riders sit exactly on a cell corner, where a missing neighbour would show.
+      if (run % 2) input.rider = [randomInt(r, 1, 5), randomInt(r, 1, 5)];
+      const [found, checked] = nearby.run(input).at(-1)!.vars.find(([n]) => n === 'result')![1] as [string[], number];
+      expect(found).toEqual(bruteForce(input)[0]);
+      expect(checked).toBeLessThanOrEqual(input.drivers.length);
+    }
+  });
+});
+
+describe('snowflake IDs (R11)', () => {
+  it('never repeats an ID, and sorting IDs sorts them by time, on 500 random bursts', () => {
+    const r = seeded(59);
+    for (let run = 0; run < 500; run++) {
+      const input = snowflake.randomInput(r);
+      // Bursts on one machine make the sequence run out within a millisecond.
+      if (run % 3 === 0) input.reqs = Array.from({ length: 9 }, () => [1000, 1] as [number, number]);
+      const ids = slots(input);
+      expect(new Set(ids).size).toBe(ids.length);
+      const used = ids.map((id) => id >> 4);
+      const sorted = [...ids].sort((a, b) => a - b);
+      expect(sorted.map((id) => id >> 4)).toEqual([...used].sort((a, b) => a - b));
+      // Each machine's IDs only ever go up.
+      for (const m of [0, 1, 2]) {
+        const mine = ids.filter((_, i) => input.reqs[i]![1] === m);
+        expect(mine).toEqual([...mine].sort((a, b) => a - b));
+      }
+    }
+  });
+
+  it('packs time, machine and sequence into separate bits', () => {
+    expect(idOf(1000, 2, 3)).toBe(1000 * 16 + 2 * 4 + 3);
+    expect(idOf(1001, 0, 0)).toBeGreaterThan(idOf(1000, 3, 3));
   });
 });

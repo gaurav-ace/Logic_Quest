@@ -10,7 +10,7 @@ export interface Diagram {
   placePacket(at: Point | null): void;
 }
 
-export function buildDiagram(lesson: DiagramLesson): Diagram {
+export function buildDiagram(lesson: Pick<DiagramLesson, 'title' | 'nodes' | 'edges'>): Diagram {
   const byId = new Map(lesson.nodes.map((n) => [n.id, n]));
   const root = svg('svg', { viewBox: `0 0 ${DIAGRAM_W} ${DIAGRAM_H}`, role: 'img', 'aria-label': `Diagram: ${lesson.title}` });
 

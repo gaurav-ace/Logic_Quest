@@ -70,6 +70,10 @@ import designParkingLotLesson from '../../lessons/design-parking-lot.json';
 import designLruCacheLesson from '../../lessons/design-lru-cache.json';
 import designRateLimiterLesson from '../../lessons/design-rate-limiter.json';
 import designAgentClassesLesson from '../../lessons/design-agent-classes.json';
+import casePaymentGatewayLesson from '../../lessons/case-payment-gateway.json';
+import caseFoodDeliveryLesson from '../../lessons/case-food-delivery.json';
+import caseRideHailingLesson from '../../lessons/case-ride-hailing.json';
+import caseTrainBookingLesson from '../../lessons/case-train-booking.json';
 import { getModel } from '../sim/registry';
 import { getProgram } from '../trace/registry';
 import type { Lesson, SimLesson } from './schema';
@@ -151,6 +155,10 @@ export const LESSON_DATA: unknown[] = [
   designLruCacheLesson,
   designRateLimiterLesson,
   designAgentClassesLesson,
+  casePaymentGatewayLesson,
+  caseFoodDeliveryLesson,
+  caseRideHailingLesson,
+  caseTrainBookingLesson,
   agentLoop,
 ];
 

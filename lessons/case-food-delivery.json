@@ -1,0 +1,360 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "case-food-delivery",
+  "title": "Case study: food delivery",
+  "track": "real-world",
+  "level": "hard",
+  "objective": "Design a food delivery service: the order's life as a state machine, matching delivery partners, live locations, and the dinner-time peak.",
+  "requires": [
+    "case-payment-gateway",
+    "state-machines",
+    "message-queues"
+  ],
+  "company": {
+    "name": "Swiggy",
+    "domains": [
+      "swiggy.com"
+    ]
+  },
+  "basis": "plausible",
+  "sources": [
+    {
+      "title": "Martin Kleppmann, Designing Data-Intensive Applications (O'Reilly, 2017)"
+    },
+    {
+      "title": "Gamma, Helm, Johnson and Vlissides, Design Patterns (Addison-Wesley, 1994): the State pattern"
+    }
+  ],
+  "simplifies": "Swiggy is named only for context; this is not its architecture (its engineering blog couldn't be reached to check anything about it). Real apps add restaurant menus and stock, payments, refunds, promotions and support. Peak sizes and update intervals are illustrative.",
+  "nodes": [
+    {
+      "id": "app",
+      "label": "App",
+      "x": 55,
+      "y": 100,
+      "width": 90
+    },
+    {
+      "id": "orders",
+      "label": "Orders",
+      "x": 190,
+      "y": 50,
+      "width": 110
+    },
+    {
+      "id": "restaurant",
+      "label": "Restaurant",
+      "x": 345,
+      "y": 40,
+      "width": 130
+    },
+    {
+      "id": "dispatch",
+      "label": "Dispatch",
+      "x": 190,
+      "y": 155,
+      "width": 110
+    },
+    {
+      "id": "partners",
+      "label": "Partners",
+      "x": 345,
+      "y": 160,
+      "width": 120
+    }
+  ],
+  "edges": [
+    [
+      "app",
+      "orders"
+    ],
+    [
+      "orders",
+      "restaurant"
+    ],
+    [
+      "orders",
+      "dispatch"
+    ],
+    [
+      "dispatch",
+      "partners"
+    ],
+    [
+      "app",
+      "dispatch"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "Requirements: customers order from restaurants; a delivery partner picks up and delivers; everyone sees live status. Dinner time brings several times the afternoon's orders (illustrative).",
+      "highlight": [
+        "orders"
+      ],
+      "path": []
+    },
+    {
+      "caption": "The order is a state machine: placed → accepted → preparing → picked up → delivered, with cancelling allowed only early on. Every service sends events; only allowed moves happen.",
+      "highlight": [
+        "orders"
+      ],
+      "path": [
+        [
+          "app",
+          "orders"
+        ],
+        [
+          "orders",
+          "restaurant"
+        ]
+      ],
+      "predict": {
+        "prompt": "The restaurant hasn't accepted an order after 5 minutes. What should happen?",
+        "options": [
+          {
+            "text": "A timeout moves it on: tell the customer, and offer a refund or another restaurant",
+            "explanation": "Right. Every waiting state needs a timeout, or orders get stuck forever."
+          },
+          {
+            "text": "Keep waiting: the restaurant will see it eventually",
+            "explanation": "The customer is hungry and waiting; a stuck order needs a decision."
+          },
+          {
+            "text": "Mark it delivered",
+            "explanation": "That would be an impossible move in the state machine."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Dispatch finds free partners near the restaurant (the grid search from Ride-hailing), offers the job, and moves on to the next partner if it's declined or not answered in time.",
+      "highlight": [
+        "dispatch",
+        "partners"
+      ],
+      "path": [
+        [
+          "orders",
+          "dispatch"
+        ],
+        [
+          "dispatch",
+          "partners"
+        ]
+      ],
+      "predict": {
+        "prompt": "When should a partner be assigned: as soon as the order is placed, or when the food is nearly ready?",
+        "options": [
+          {
+            "text": "Close to when the food will be ready, so partners don't wait idle and the food doesn't wait either",
+            "explanation": "Right. It's a timing trade-off, based on the restaurant's preparation estimate."
+          },
+          {
+            "text": "Always the moment the order is placed",
+            "explanation": "The partner may then wait at the restaurant for half an hour, unable to take other jobs."
+          },
+          {
+            "text": "Only after the food is fully packed",
+            "explanation": "Then the food waits while a partner travels there."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Live location: partners' apps send their position every few seconds (illustrative). Keep only the latest position per partner in a fast in-memory store; the customer's app reads that, not the whole history.",
+      "highlight": [
+        "partners",
+        "app"
+      ],
+      "path": [
+        [
+          "partners",
+          "dispatch"
+        ],
+        [
+          "dispatch",
+          "app"
+        ]
+      ]
+    },
+    {
+      "caption": "ETA = preparation time + travel time, recomputed whenever something happens (accepted, picked up, stuck in traffic).",
+      "highlight": [
+        "dispatch"
+      ],
+      "path": []
+    },
+    {
+      "caption": "The dinner peak: scale the stateless services out, and put order events on a queue, so slow consumers (notifications, analytics) can't hold up placing orders.",
+      "highlight": [
+        "orders",
+        "dispatch"
+      ],
+      "path": []
+    },
+    {
+      "caption": "Failure: a partner's phone loses signal. Show \"last seen 2 min ago\" instead of a frozen dot, and only reassign the order after a longer timeout.",
+      "highlight": [
+        "partners"
+      ],
+      "path": []
+    }
+  ],
+  "critique": {
+    "prompt": "A proposal: every service writes a free-text status into the orders table; dispatch scans every partner in the city for each order; placing an order calls the payment provider and waits, with no timeout.",
+    "nodes": [
+      {
+        "id": "app",
+        "label": "App",
+        "x": 55,
+        "y": 100,
+        "width": 90
+      },
+      {
+        "id": "orders",
+        "label": "Orders DB",
+        "x": 200,
+        "y": 50,
+        "width": 130
+      },
+      {
+        "id": "pay",
+        "label": "Payments",
+        "x": 350,
+        "y": 40,
+        "width": 120
+      },
+      {
+        "id": "dispatch",
+        "label": "Dispatch",
+        "x": 200,
+        "y": 155,
+        "width": 120
+      },
+      {
+        "id": "partners",
+        "label": "All partners",
+        "x": 350,
+        "y": 160,
+        "width": 130
+      }
+    ],
+    "edges": [
+      [
+        "app",
+        "orders"
+      ],
+      [
+        "orders",
+        "pay"
+      ],
+      [
+        "orders",
+        "dispatch"
+      ],
+      [
+        "dispatch",
+        "partners"
+      ]
+    ],
+    "risks": [
+      {
+        "text": "Any service can set any status, so an order can jump from placed to delivered",
+        "real": true,
+        "why": "A state machine with allowed moves stops impossible jumps.",
+        "nodes": [
+          "orders"
+        ]
+      },
+      {
+        "text": "Scanning every partner in the city for each order gets slow at dinner peak",
+        "real": true,
+        "why": "Search nearby grid cells instead; the work then depends on how many partners are close, not on the whole city.",
+        "nodes": [
+          "dispatch",
+          "partners"
+        ]
+      },
+      {
+        "text": "A slow payment provider, with no timeout, holds up every order being placed",
+        "real": true,
+        "why": "Set a timeout and handle \"payment pending\" as its own state, so one slow dependency can't freeze ordering.",
+        "nodes": [
+          "orders",
+          "pay"
+        ]
+      },
+      {
+        "text": "Restaurants and delivery partners use different apps",
+        "real": false,
+        "why": "They're different users with different jobs; separate apps are normal."
+      },
+      {
+        "text": "Old orders are kept for months",
+        "real": false,
+        "why": "Order history is needed for receipts, refunds and support, and it doesn't touch the live ordering path."
+      }
+    ],
+    "hint": "Think about the dinner peak: what slows down, what can block everything, and what can become inconsistent?",
+    "first": {
+      "prompt": "Which would you fix first?",
+      "options": [
+        {
+          "text": "The payment call with no timeout: at peak, one slow provider can stop every order",
+          "explanation": "Right. It has the biggest blast radius: everything waits behind it."
+        },
+        {
+          "text": "The free-text statuses",
+          "explanation": "They cause real bugs, but one at a time, not a full stop."
+        },
+        {
+          "text": "The city-wide partner scan",
+          "explanation": "It slows dispatch, but orders can still be placed."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Rank by blast radius: a dependency with no timeout can stop everything; inconsistent statuses and slow dispatch hurt, but less widely. The fixes are a timeout plus a pending state, a state machine, and a nearby-cells search."
+  },
+  "quiz": [
+    {
+      "prompt": "Why model the order as a state machine?",
+      "options": [
+        {
+          "text": "Only allowed moves can happen, so statuses can't contradict each other",
+          "explanation": "Right. And every waiting state can have a timeout."
+        },
+        {
+          "text": "It makes orders faster",
+          "explanation": "It makes them correct, not faster."
+        },
+        {
+          "text": "Databases require it",
+          "explanation": "It's a design choice."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Where should a partner's latest location live?",
+      "options": [
+        {
+          "text": "In a fast in-memory store, one entry per partner, overwritten on each update",
+          "explanation": "Right. Readers need the latest point, quickly."
+        },
+        {
+          "text": "As a new row in the main orders database every few seconds",
+          "explanation": "That's a huge write load on the database everything depends on."
+        },
+        {
+          "text": "Only on the partner's phone",
+          "explanation": "The customer's app needs to read it."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

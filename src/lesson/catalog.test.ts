@@ -94,6 +94,10 @@ describe('lesson catalog', () => {
       'design-lru-cache',
       'design-rate-limiter',
       'design-agent-classes',
+      'case-payment-gateway',
+      'case-food-delivery',
+      'case-ride-hailing',
+      'case-train-booking',
       'agent-loop',
     ]);
   });

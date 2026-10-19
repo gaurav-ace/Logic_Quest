@@ -4,6 +4,8 @@ import { averageFrom, runSim } from '../runner';
 import { defaults, type Model, type Params } from '../types';
 import { caching, pickKey, type CacheState } from './caching';
 import { cdn } from './cdn';
+import { fanout } from './fanout';
+import { inventory, type InventoryState } from './inventory';
 import { partition } from './partition';
 import { payments } from './payments';
 import { queues } from './queues';
@@ -248,3 +250,64 @@ describe('idempotency', () => {
     expect(averageFrom(s, 'failRate', 2)).toBe(0);
   });
 });
+
+const I = inventory as unknown as Model<unknown>;
+const F = fanout as unknown as Model<unknown>;
+
+describe('inventory (train booking, flash sale)', () => {
+  it('never sells a seat twice when taking a seat is atomic, and does when it is read-then-write', () => {
+    expect(avg(I, { atomic: true }, 'doubleSold', [], 2)).toBe(0);
+    expect(avg(I, { atomic: false }, 'doubleSold', [], 2)).toBeGreaterThan(50);
+  });
+
+  it('keeps the seat count honest: seats sold, held and free always add up when atomic', () => {
+    const p = { ...defaults(inventory.controls), abandon: 40, hold: 5 };
+    const random = seeded(7);
+    let st = inventory.init(p, random) as InventoryState;
+    for (let i = 0; i < 400; i++) {
+      st = inventory.step(st, p, random);
+      expect(st.confirmed + st.holds.length + st.available).toBe(st.seats);
+    }
+  });
+
+  it('frees seats held by people who left sooner when holds are shorter', () => {
+    const long = avg(I, { abandon: 60, hold: 60 }, 'stuck', [], 10);
+    const short = avg(I, { abandon: 60, hold: 5 }, 'stuck', [], 10);
+    expect(short).toBeLessThan(long / 3);
+  });
+
+  it('an opening spike overloads the database, and a waiting room prevents it at the cost of waiting', () => {
+    const open = [{ at: 2000, action: 'open' }];
+    expect(avg(I, { room: false }, 'errorRate', open, 2.5)).toBeGreaterThan(0.1);
+    expect(avg(I, { room: true }, 'errorRate', open, 2.5)).toBe(0);
+    expect(avg(I, { room: true }, 'waitP95', open, 6)).toBeGreaterThan(1000);
+  });
+
+  it('sells no more seats than exist, even when demand is far higher', () => {
+    const random = seeded(3);
+    const p = { ...defaults(inventory.controls), seats: 500, rate: 100, abandon: 0 };
+    let st = inventory.init(p, random) as InventoryState;
+    for (let i = 0; i < 600; i++) st = inventory.step(st, p, random);
+    expect(st.confirmed + st.holds.length).toBe(500);
+    expect(inventory.read(st).doubleSold).toBe(0);
+  });
+});
+
+describe('news feed fan-out', () => {
+  it('fan-out on write makes reads cheap; fan-out on read makes them cost one lookup per followed account', () => {
+    expect(avg(F, { write: true }, 'readMs')).toBeLessThan(15);
+    expect(avg(F, { write: false }, 'readMs')).toBeGreaterThan(150);
+    expect(avg(F, { write: false }, 'lookups')).toBeGreaterThan(100 * avg(F, { write: true }, 'lookups'));
+  });
+
+  it('a celebrity post floods fan-out on write; the hybrid pulls it at read time instead', () => {
+    const celeb = [{ at: 2000, action: 'celebrity' }];
+    expect(avg(F, { write: true, hybrid: false }, 'lag', celeb, 3, [1, 2])).toBeGreaterThan(10_000);
+    expect(avg(F, { write: true, hybrid: true }, 'lag', celeb, 3, [1, 2])).toBe(0);
+  });
+
+  it('more followers per account means more feed inserts per post', () => {
+    expect(avg(F, { followers: 1000, posts: 50 }, 'backlog', [], 5)).toBeGreaterThan(avg(F, { followers: 100, posts: 50 }, 'backlog', [], 5));
+  });
+});
+

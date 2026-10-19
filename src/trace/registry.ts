@@ -30,6 +30,8 @@ import { bfs } from './programs/bfs';
 import { stateMachine } from './programs/state-machine';
 import { lruCache } from './programs/lru-cache';
 import { limiterClass } from './programs/limiter-class';
+import { nearby } from './programs/nearby';
+import { snowflake } from './programs/snowflake';
 import { bstSearch } from './programs/bst-search';
 import { coinChange } from './programs/coin-change';
 import { consistentHashing } from './programs/consistent-hashing';
@@ -93,6 +95,9 @@ export const PROGRAMS = [
   stateMachine,
   lruCache,
   limiterClass,
+  // Phase 5c, real-world systems
+  nearby,
+  snowflake,
 ].map((p) => p as unknown as Program<unknown>);
 
 const byId = new Map(PROGRAMS.map((p) => [p.id, p]));

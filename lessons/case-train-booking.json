@@ -1,0 +1,287 @@
+{
+  "schemaVersion": 1,
+  "kind": "sim",
+  "id": "case-train-booking",
+  "title": "Case study: train booking rush",
+  "track": "real-world",
+  "level": "hard",
+  "objective": "Survive a booking rush: never sell a seat twice, release seats held by people who leave, and keep the database alive when booking opens.",
+  "model": "inventory",
+  "requires": [
+    "case-ride-hailing",
+    "rate-limiting"
+  ],
+  "company": {
+    "name": "IRCTC",
+    "domains": [
+      "irctc.co.in"
+    ]
+  },
+  "basis": "plausible",
+  "sources": [
+    {
+      "title": "Martin Kleppmann, Designing Data-Intensive Applications (O'Reilly, 2017), chapter 7: preventing lost updates"
+    },
+    {
+      "title": "Cloudflare Docs: Waiting Room (queues surges of visitors so they don't overload the origin)",
+      "url": "https://developers.cloudflare.com/waiting-room/"
+    }
+  ],
+  "simplifies": "IRCTC is named only for context; this is not its architecture, and nothing here describes its systems (its site couldn't be reached to check anything). Seat counts, database capacity, payment times and the 10× rush are illustrative. Real booking also has seat classes, quotas, waitlists and payment failures.",
+  "challenges": [
+    {
+      "id": "no-double-sale",
+      "title": "One seat, one passenger",
+      "prompt": "Booking reads the free-seat count, then writes it back minus one. Keep seats sold twice at zero the whole time for 10 seconds.",
+      "predict": {
+        "prompt": "Two buyers read \"40 seats free\" at the same moment, and both write back 39. What went wrong?",
+        "options": [
+          {
+            "text": "Two seats were sold, but the count only went down by one",
+            "explanation": "Right. That is a lost update: one buyer's write overwrote the other's."
+          },
+          {
+            "text": "Nothing: both got seats",
+            "explanation": "Both got seats, but the count now says one more seat is free than really is."
+          },
+          {
+            "text": "The database refused one write",
+            "explanation": "Nothing refuses it; each write looks fine on its own."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "atomic": false
+        },
+        "lock": [
+          "rate",
+          "seats"
+        ]
+      },
+      "goal": {
+        "metric": "doubleSold",
+        "op": "<=",
+        "value": 0,
+        "forSeconds": 10,
+        "fromStart": true
+      },
+      "hint": "What if checking for a free seat and taking it happened in one step?",
+      "explain": "An atomic \"take a seat if one is free\" (a conditional update in the database) can't interleave with another buyer's, so the count never goes wrong.",
+      "solution": {
+        "atomic": true
+      }
+    },
+    {
+      "id": "abandoned-holds",
+      "title": "People who leave",
+      "prompt": "60% of buyers leave without paying, and their seats are held for 60 seconds. Keep seats held by people who left at 180 or fewer for 10 seconds.",
+      "setup": {
+        "params": {
+          "abandon": 60,
+          "hold": 60
+        },
+        "lock": [
+          "abandon",
+          "rate",
+          "seats"
+        ]
+      },
+      "goal": {
+        "metric": "stuck",
+        "op": "<=",
+        "value": 180,
+        "forSeconds": 10
+      },
+      "hint": "Each held seat waits until its hold runs out. How long should that be?",
+      "explain": "Shorter holds return unpaid seats to sale sooner. Too short, and real buyers lose their seat mid-payment: holds are a trade-off.",
+      "solution": {
+        "hold": 5
+      }
+    },
+    {
+      "id": "opening-rush",
+      "title": "Booking opens",
+      "prompt": "At 2 seconds, booking opens and 10× the buyers arrive for 5 seconds. Keep failed bookings at 1% or less the whole time for 10 seconds.",
+      "predict": {
+        "prompt": "The database handles 200 bookings a second and 400 a second arrive. What happens to the rest?",
+        "options": [
+          {
+            "text": "They fail: requests time out at the overloaded database",
+            "explanation": "Right. Past its capacity, the database can't serve them."
+          },
+          {
+            "text": "They're served a bit slower",
+            "explanation": "Past capacity, the queue grows without limit until requests time out."
+          },
+          {
+            "text": "Nothing: databases scale instantly",
+            "explanation": "Adding capacity takes time; the rush lasts seconds."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "room": false
+        },
+        "lock": [
+          "rate",
+          "seats",
+          "admit"
+        ],
+        "actions": [
+          {
+            "at": 2000,
+            "action": "open"
+          }
+        ]
+      },
+      "goal": {
+        "metric": "errorRate",
+        "op": "<=",
+        "value": 0.01,
+        "forSeconds": 10,
+        "fromStart": true
+      },
+      "hint": "What if buyers queued before reaching the database, and were let in at a rate it can handle?",
+      "explain": "A waiting room admits buyers at a safe rate. Nobody gets an error, but look at the waiting time: the rush becomes a queue instead of a crash.",
+      "solution": {
+        "room": true
+      }
+    }
+  ],
+  "critique": {
+    "prompt": "A proposal for the booking site: no waiting room; booking reads the free count and writes it back minus one; seats are held until the buyer pays, however long that takes.",
+    "nodes": [
+      {
+        "id": "buyers",
+        "label": "Buyers",
+        "x": 60,
+        "y": 100,
+        "width": 100
+      },
+      {
+        "id": "site",
+        "label": "Booking",
+        "x": 200,
+        "y": 100,
+        "width": 120
+      },
+      {
+        "id": "db",
+        "label": "Seats DB",
+        "x": 350,
+        "y": 100,
+        "width": 120
+      }
+    ],
+    "edges": [
+      [
+        "buyers",
+        "site"
+      ],
+      [
+        "site",
+        "db"
+      ]
+    ],
+    "risks": [
+      {
+        "text": "Read-then-write can sell one seat to two passengers",
+        "real": true,
+        "why": "Two bookings that interleave both see the same count; use one atomic conditional update.",
+        "nodes": [
+          "site",
+          "db"
+        ]
+      },
+      {
+        "text": "Holds never expire, so seats of people who left are never released",
+        "real": true,
+        "why": "Give holds a short expiry, so unpaid seats go back on sale.",
+        "nodes": [
+          "db"
+        ]
+      },
+      {
+        "text": "When booking opens, the rush goes straight to the database",
+        "real": true,
+        "why": "A waiting room admits buyers at a rate the database can handle.",
+        "nodes": [
+          "buyers",
+          "site"
+        ]
+      },
+      {
+        "text": "Buyers must sign in before booking",
+        "real": false,
+        "why": "Normal for ticketing (names on tickets, limits per person); not a design flaw."
+      },
+      {
+        "text": "Buyers see a seat map",
+        "real": false,
+        "why": "A feature; it reads availability, which the fixes above keep correct."
+      }
+    ],
+    "hint": "Think about two buyers at once, buyers who leave, and the moment booking opens.",
+    "first": {
+      "prompt": "Which would you fix first?",
+      "options": [
+        {
+          "text": "Make taking a seat atomic: two passengers with one seat is the worst outcome",
+          "explanation": "Right. It breaks the system's core promise and can't be undone at the station."
+        },
+        {
+          "text": "Add the waiting room",
+          "explanation": "Crucial for the rush, but errors can be retried; a double-sold seat can't."
+        },
+        {
+          "text": "Expire holds",
+          "explanation": "It loses sales, but no one is promised a seat that doesn't exist."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Correctness first (one seat, one passenger), then availability under the rush (waiting room), then efficiency (expiring holds). Each fix trades something: atomic updates add database work, waiting rooms add waiting, short holds risk timing out slow payers."
+  },
+  "quiz": [
+    {
+      "prompt": "Why does \"read the free count, then write count − 1\" sell seats twice?",
+      "options": [
+        {
+          "text": "Two buyers can read the same count before either writes, so both take the last seat",
+          "explanation": "Right. That's a lost update; an atomic conditional update prevents it."
+        },
+        {
+          "text": "The database rounds numbers",
+          "explanation": "No rounding is involved."
+        },
+        {
+          "text": "Seat counts are stored as text",
+          "explanation": "The type isn't the problem; the two separate steps are."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "What does a waiting room trade?",
+      "options": [
+        {
+          "text": "Buyers wait longer, but the database stays within its capacity and nobody gets errors",
+          "explanation": "Right. A queue instead of a crash."
+        },
+        {
+          "text": "Nothing: it's free",
+          "explanation": "Waiting is the cost."
+        },
+        {
+          "text": "It sells more seats than exist",
+          "explanation": "It changes when buyers arrive, not how many seats there are."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

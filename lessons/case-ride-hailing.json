@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "case-ride-hailing",
+  "title": "Case study: ride-hailing",
+  "track": "real-world",
+  "level": "hard",
+  "objective": "Find nearby drivers fast: bucket drivers into map cells and search only the rider's cell and its neighbours, instead of measuring every driver.",
+  "program": "nearby",
+  "requires": [
+    "case-food-delivery",
+    "hash-maps"
+  ],
+  "company": {
+    "name": "Uber",
+    "domains": [
+      "uber.com",
+      "h3geo.org"
+    ]
+  },
+  "basis": "plausible",
+  "sources": [
+    {
+      "title": "H3 docs (Uber's open-source geospatial index, h3geo.org): Introduction",
+      "url": "https://h3geo.org/docs/"
+    },
+    {
+      "title": "H3 docs: Aggregation (squares have neighbours at two different distances; hexagons' neighbours are all equidistant)",
+      "url": "https://h3geo.org/docs/highlights/aggregation/"
+    }
+  ],
+  "simplifies": "This square-grid search is a plausible design, not Uber's actual architecture. What Uber has published is H3, its open-source index, which uses hexagonal cells; its docs explain that a square's 8 neighbours sit at two different distances, while all 6 of a hexagon's neighbours are equidistant. Real matching also weighs road distance, driver direction, ratings and surge pricing.",
+  "critique": {
+    "prompt": "A proposal: every driver's location ping is written to the main SQL database; matching runs \"sort all drivers in the city by distance, take the first\" for each ride request.",
+    "nodes": [
+      {
+        "id": "riders",
+        "label": "Riders",
+        "x": 55,
+        "y": 60,
+        "width": 100
+      },
+      {
+        "id": "match",
+        "label": "Matching",
+        "x": 200,
+        "y": 100,
+        "width": 120
+      },
+      {
+        "id": "drivers",
+        "label": "Drivers",
+        "x": 55,
+        "y": 160,
+        "width": 100
+      },
+      {
+        "id": "db",
+        "label": "Main SQL DB",
+        "x": 350,
+        "y": 100,
+        "width": 130
+      }
+    ],
+    "edges": [
+      [
+        "riders",
+        "match"
+      ],
+      [
+        "drivers",
+        "db"
+      ],
+      [
+        "match",
+        "db"
+      ]
+    ],
+    "risks": [
+      {
+        "text": "Every location ping (every few seconds from every driver) hits the main database",
+        "real": true,
+        "why": "That write rate can overload the database every other part of the app depends on; live locations belong in a fast in-memory store.",
+        "nodes": [
+          "drivers",
+          "db"
+        ]
+      },
+      {
+        "text": "Sorting the whole city's drivers for every request gets slower as the city grows",
+        "real": true,
+        "why": "Search nearby cells instead: the work depends on how many drivers are close, not how many exist.",
+        "nodes": [
+          "match"
+        ]
+      },
+      {
+        "text": "Drivers send their location every few seconds",
+        "real": false,
+        "why": "Fresh locations are needed for good matches; the problem is where they're written, not that they're sent."
+      },
+      {
+        "text": "Riders can see the driver's car moving on a map",
+        "real": false,
+        "why": "That's a feature built from the same live locations, not a risk."
+      }
+    ],
+    "hint": "Count the work: how many writes arrive, and how many drivers each match looks at.",
+    "first": {
+      "prompt": "Which would you fix first?",
+      "options": [
+        {
+          "text": "Move live locations out of the main database into an in-memory store",
+          "explanation": "Right. If the main database slows, everything slows: payments, trips, sign-ins."
+        },
+        {
+          "text": "Replace the city-wide sort with a nearby-cells search",
+          "explanation": "Important, but slow matching hurts matching; an overloaded main database hurts everything."
+        },
+        {
+          "text": "Send locations less often",
+          "explanation": "Matches get worse, and the design problem is still there."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Fix the shared bottleneck first: high-rate location writes don't belong in the main database. Then make matching local: search a few nearby cells, which is what grid indexes like H3 make easy."
+  },
+  "quiz": [
+    {
+      "prompt": "Why search grid cells instead of every driver?",
+      "options": [
+        {
+          "text": "Only drivers in a few nearby cells are measured, so the work stays small however big the city is",
+          "explanation": "Right. A million drivers, and each search still looks at a handful."
+        },
+        {
+          "text": "Grid cells give more accurate distances",
+          "explanation": "Each candidate's distance is still measured exactly; the grid just picks the candidates."
+        },
+        {
+          "text": "It needs less memory",
+          "explanation": "The grid is extra memory; the gain is speed."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why does the search include the 8 neighbouring cells, not just the rider's own?",
+      "options": [
+        {
+          "text": "A driver just across a cell edge can be closer than one in the same cell",
+          "explanation": "Right. With a radius up to one cell, every driver in range is in the rider's cell or a neighbour."
+        },
+        {
+          "text": "To find more drivers than needed",
+          "explanation": "It finds exactly those in range; neighbours are only candidates."
+        },
+        {
+          "text": "Cells are too small to hold drivers",
+          "explanation": "Cells hold drivers fine; edges are the issue."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

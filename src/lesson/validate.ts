@@ -46,7 +46,7 @@ export function validateLesson(data: unknown): Lesson {
   if (!KINDS.includes(kind as never)) bad('kind', `must be one of ${KINDS.join(', ')}`);
 
   // A misspelt optional key (e.g. "simplify") would otherwise vanish silently.
-  const common = ['schemaVersion', 'kind', 'id', 'title', 'track', 'level', 'objective', 'sources', 'simplifies', 'requires', 'quiz'];
+  const common = ['schemaVersion', 'kind', 'id', 'title', 'track', 'level', 'objective', 'sources', 'simplifies', 'requires', 'quiz', 'company', 'basis', 'critique'];
   const own = kind === 'trace' ? ['program', 'diagrams', 'exercise'] : kind === 'sim' ? ['model', 'params', 'challenges'] : kind === 'design' ? ['diagrams', 'steps', 'exercise'] : ['nodes', 'edges', 'steps'];
   const known = [...common, ...own];
   for (const key of Object.keys(data)) if (!known.includes(key)) bad(key, 'unknown field');
@@ -63,6 +63,11 @@ export function validateLesson(data: unknown): Lesson {
     bad('requires', 'must be a list of lesson ids');
   }
   checkList(data.quiz, 'quiz', bad, (q, p) => checkQuestion(q, p, bad));
+  checkCompany(data, bad);
+  if (data.critique !== undefined) {
+    if (kind === 'design') bad('critique', 'design lessons have an exercise instead');
+    else checkCritique(data.critique, bad);
+  }
   if (kind === 'trace') {
     if (!isText(data.program) || !ID.test(data.program)) bad('program', 'must be a program id (lowercase words joined by hyphens)');
     if (data.exercise !== undefined || data.diagrams !== undefined) {
@@ -103,6 +108,59 @@ export function validateLesson(data: unknown): Lesson {
 }
 
 type Bad = (path: string, msg: string) => void;
+
+const hostOf = (url: string) => {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return '';
+  }
+};
+
+// The accuracy rule for real companies (CLAUDE.md Phase 5c): a "published" lesson must cite the
+// company's own site; anything else is shown as "a plausible design", never as fact.
+function checkCompany(data: Obj, bad: Bad): void {
+  const c = data.company;
+  if (c === undefined) {
+    // Generic designs (no company named) need no basis.
+    if (data.basis !== undefined) bad('basis', 'needs a company');
+    return;
+  }
+  if (!isObj(c) || !isText(c.name) || !isTextList(c.domains) || !c.domains.length) return void bad('company', 'must be { name, domains: [...] }');
+  for (const k of Object.keys(c)) if (!['name', 'domains'].includes(k)) bad(`company.${k}`, 'unknown field');
+  if (data.basis !== 'published' && data.basis !== 'plausible') return void bad('basis', 'must be "published" or "plausible" for a lesson about a company');
+  if (data.basis === 'published') {
+    const sources = Array.isArray(data.sources) ? (data.sources as Obj[]) : [];
+    const own = sources.some((s) => isObj(s) && isText(s.url) && (c.domains as string[]).some((d) => hostOf(s.url as string) === d || hostOf(s.url as string).endsWith(`.${d}`)));
+    if (!own) bad('sources', `a "published" lesson must cite ${c.name}'s own site (${(c.domains as string[]).join(', ')})`);
+  }
+}
+
+function checkCritique(cr: unknown, bad: Bad): void {
+  const p = 'critique';
+  if (!isObj(cr)) return void bad(p, 'must be an object');
+  for (const k of Object.keys(cr)) if (!['prompt', 'nodes', 'edges', 'risks', 'hint', 'first', 'explain'].includes(k)) bad(`${p}.${k}`, 'unknown field');
+  for (const k of ['prompt', 'hint', 'explain'] as const) if (!isText(cr[k])) bad(`${p}.${k}`, 'must be non-empty text');
+  const ids = new Set<string>();
+  checkList(cr.nodes, `${p}.nodes`, bad, (n, np) => checkNode(n, np, bad, ids));
+  if (!Array.isArray(cr.edges)) bad(`${p}.edges`, 'must be a list (it may be empty)');
+  else cr.edges.forEach((e, i) => checkEdge(e, `${p}.edges[${i}]`, bad, ids));
+  checkList(cr.risks, `${p}.risks`, bad, (r, rp) => {
+    if (!isObj(r)) return void bad(rp, 'must be an object');
+    for (const k of Object.keys(r)) if (!['text', 'real', 'why', 'nodes'].includes(k)) bad(`${rp}.${k}`, 'unknown field');
+    if (!isText(r.text) || !isText(r.why) || typeof r.real !== 'boolean') bad(rp, 'needs text, real (true/false) and why');
+    if (r.nodes !== undefined) {
+      if (!isTextList(r.nodes)) bad(`${rp}.nodes`, 'must be a list of node ids');
+      else for (const id of r.nodes) if (!ids.has(id)) bad(`${rp}.nodes`, `unknown node "${id}"`);
+    }
+  });
+  const risks = Array.isArray(cr.risks) ? cr.risks.filter(isObj) : [];
+  // A real review: some risks to find, and some decoys that sound worrying but aren't.
+  if (risks.length && (risks.length < 3 || !risks.some((r) => r.real === true) || !risks.some((r) => r.real === false))) {
+    bad(`${p}.risks`, 'needs at least 3 candidates, with at least one real risk and one decoy');
+  }
+  checkQuestion(cr.first, `${p}.first`, bad);
+}
 
 const isParams = (v: unknown) => isObj(v) && Object.values(v).every((x) => typeof x === 'boolean' || (typeof x === 'number' && Number.isFinite(x)));
 
@@ -330,6 +388,7 @@ function checkStep(s: unknown, p: string, bad: Bad, nodeIds: Set<string>, edgeKe
     if (!nodeIds.has(id)) bad(`${p}.highlight[${i}]`, `unknown node "${String(id)}"`);
   });
   if (step.predict !== undefined) checkQuestion(step.predict, `${p}.predict`, bad);
+  if (step.time !== undefined && !(isText(step.time) && step.time.length <= 24)) bad(`${p}.time`, 'must be short text, e.g. "15:39 UTC"');
   if (!Array.isArray(step.path)) return void bad(`${p}.path`, 'must be a list of hops');
   step.path.forEach((hop, i) => {
     const hp = `${p}.path[${i}]`;

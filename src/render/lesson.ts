@@ -4,6 +4,7 @@ import { buildDiagram } from './diagram';
 import { el } from './dom';
 import type { QuizHooks } from './quiz';
 import { renderStepped, type LessonView, type Stage } from './stepped';
+import { critiquePart } from './critique';
 import { renderDesign } from './design';
 import { renderSim } from './sim';
 import { renderTrace } from './trace';
@@ -14,7 +15,7 @@ export function renderLesson(root: HTMLElement, lesson: Lesson, hooks: QuizHooks
   if (lesson.kind === 'trace') return renderTrace(root, lesson, hooks);
   if (lesson.kind === 'sim') return renderSim(root, lesson, hooks);
   if (lesson.kind === 'design') return renderDesign(root, lesson, hooks);
-  return renderStepped(root, lesson, diagramStage(lesson), hooks);
+  return renderStepped(root, lesson, diagramStage(lesson), hooks, lesson.critique ? { beforeQuiz: critiquePart({ title: lesson.title, critique: lesson.critique }, hooks) } : {});
 }
 
 function diagramStage(lesson: DiagramLesson): Stage {
@@ -25,7 +26,7 @@ function diagramStage(lesson: DiagramLesson): Stage {
   element.append(diagram.element);
   return {
     element,
-    steps: lesson.steps.map((s) => ({ caption: s.caption, hops: s.path.length, ...(s.predict ? { predict: s.predict } : {}) })),
+    steps: lesson.steps.map((s) => ({ caption: s.caption, hops: s.path.length, ...(s.predict ? { predict: s.predict } : {}), ...(s.time ? { time: s.time } : {}) })),
     draw(index, progress, revealed) {
       if (revealed) {
         const step = lesson.steps[index]!;

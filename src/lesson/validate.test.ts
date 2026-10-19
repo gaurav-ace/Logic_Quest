@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import hello from '../../lessons/hello.json';
 import objects from '../../lessons/objects-and-responsibilities.json';
+import food from '../../lessons/case-food-delivery.json';
+import payment from '../../lessons/case-payment-gateway.json';
 import { LessonValidationError, validateLesson } from './validate';
 
 // Fresh deep copy per test, so one test's edits never leak into another.
@@ -252,5 +254,62 @@ describe('design lessons', () => {
     l.exercise.colour = 'red';
     const p = problemsOf(l);
     for (const path of ['diagrams.god.colour', 'diagrams.god.classes[0].colour', 'steps[0].colour', 'exercise.colour']) expect(p).toContain(`${path}: unknown field`);
+  });
+});
+
+describe('real-world lessons: the accuracy rule, critiques and timelines', () => {
+  const copy = (l: unknown): Record<string, any> => structuredClone(l) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+  it('accepts a "plausible" lesson about a company, which shows the plausible-design label', () => {
+    expect(validateLesson(copy(food)).basis).toBe('plausible');
+  });
+
+  it('rejects a "published" lesson that does not cite the company’s own site', () => {
+    const l = copy(food);
+    l.basis = 'published';
+    expect(problemsOf(l)).toContain('sources: a "published" lesson must cite Swiggy\'s own site (swiggy.com)');
+    // A subdomain of the company's site counts as its own.
+    l.sources.push({ title: 'Swiggy Bytes', url: 'https://bytes.swiggy.com/some-article' });
+    expect(validateLesson(l).basis).toBe('published');
+    // A look-alike domain does not.
+    l.sources.pop();
+    l.sources.push({ title: 'Not Swiggy', url: 'https://notswiggy.com/x' });
+    expect(problemsOf(l)).toContain('sources: a "published" lesson must cite Swiggy\'s own site (swiggy.com)');
+  });
+
+  it('needs a basis for a company, and a company for a basis', () => {
+    const a = copy(food);
+    delete a.basis;
+    expect(problemsOf(a)).toContain('basis: must be "published" or "plausible" for a lesson about a company');
+    const b = copy(payment);
+    b.basis = 'plausible';
+    expect(problemsOf(b)).toContain('basis: needs a company');
+  });
+
+  it('accepts a critique, and rejects one with too few candidates, no decoy, or unknown nodes', () => {
+    expect(validateLesson(copy(payment)).critique?.risks.length).toBe(5);
+    const few = copy(payment);
+    few.critique.risks = few.critique.risks.slice(0, 2);
+    expect(problemsOf(few)).toContain('critique.risks: needs at least 3 candidates, with at least one real risk and one decoy');
+    const noDecoy = copy(payment);
+    noDecoy.critique.risks = noDecoy.critique.risks.filter((r: { real: boolean }) => r.real);
+    expect(problemsOf(noDecoy)).toContain('critique.risks: needs at least 3 candidates, with at least one real risk and one decoy');
+    const ghost = copy(payment);
+    ghost.critique.risks[0].nodes = ['ghost'];
+    expect(problemsOf(ghost)).toContain('critique.risks[0].nodes: unknown node "ghost"');
+  });
+
+  it('rejects a critique on a design lesson, which has its own exercise', () => {
+    const l = copy(objects);
+    l.critique = copy(payment).critique;
+    expect(problemsOf(l)).toContain('critique: design lessons have an exercise instead');
+  });
+
+  it('accepts a short time on a step and rejects a long one', () => {
+    const l = copy(payment);
+    l.steps[0].time = '15:39 UTC';
+    expect(() => validateLesson(l)).not.toThrow();
+    l.steps[0].time = 'x'.repeat(30);
+    expect(problemsOf(l)).toContain('steps[0].time: must be short text, e.g. "15:39 UTC"');
   });
 });

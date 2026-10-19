@@ -1,0 +1,362 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "case-payment-gateway",
+  "title": "Case study: payment gateway",
+  "track": "real-world",
+  "level": "hard",
+  "objective": "Review a payment gateway the way a senior engineer would: safe retries, authorise then capture, a ledger that always balances, and webhooks that survive outages.",
+  "requires": [
+    "idempotency",
+    "design-url-shortener"
+  ],
+  "sources": [
+    {
+      "title": "Stripe: Designing robust and predictable APIs with idempotency",
+      "url": "https://stripe.com/blog/idempotency"
+    },
+    {
+      "title": "Stripe Docs: Place a hold on a payment method (authorise and capture separately; authorisation validity windows)",
+      "url": "https://docs.stripe.com/payments/place-a-hold-on-a-payment-method"
+    },
+    {
+      "title": "Stripe Docs: Webhooks (retries for up to three days with exponential backoff; track event IDs for duplicates)",
+      "url": "https://docs.stripe.com/webhooks"
+    },
+    {
+      "title": "Stripe: Ledger, Stripe's system for tracking and validating money movement (immutable log; double-entry bookkeeping)",
+      "url": "https://stripe.com/blog/ledger-stripe-system-for-tracking-and-validating-money-movement"
+    }
+  ],
+  "simplifies": "A generic gateway, using Stripe's published docs for the specific facts. Real gateways also handle fraud checks, card security rules, 3-D Secure, refunds, disputes and many currencies. Traffic numbers are illustrative.",
+  "nodes": [
+    {
+      "id": "shop",
+      "label": "Shop",
+      "x": 60,
+      "y": 100,
+      "width": 100
+    },
+    {
+      "id": "gateway",
+      "label": "Gateway",
+      "x": 200,
+      "y": 100,
+      "width": 120
+    },
+    {
+      "id": "network",
+      "label": "Card network",
+      "x": 345,
+      "y": 40,
+      "width": 140
+    },
+    {
+      "id": "ledger",
+      "label": "Ledger",
+      "x": 345,
+      "y": 160,
+      "width": 120
+    }
+  ],
+  "edges": [
+    [
+      "shop",
+      "gateway"
+    ],
+    [
+      "gateway",
+      "network"
+    ],
+    [
+      "gateway",
+      "ledger"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "Requirements: take card payments for many shops; never lose or double-count money; tell shops when a payment finishes; survive timeouts and retries. Scale, illustrative: about 1,000 payments a second at peak.",
+      "highlight": [
+        "gateway"
+      ],
+      "path": []
+    },
+    {
+      "caption": "API: the shop sends POST /payments with an Idempotency-Key header. A retry with the same key gets the first result back instead of a second charge.",
+      "highlight": [
+        "shop",
+        "gateway"
+      ],
+      "path": [
+        [
+          "shop",
+          "gateway"
+        ]
+      ],
+      "predict": {
+        "prompt": "The shop's request times out, so it retries with the same idempotency key. What should the gateway do?",
+        "options": [
+          {
+            "text": "Return the result of the first request, without charging again",
+            "explanation": "Right. The key tells the gateway it has seen this payment before."
+          },
+          {
+            "text": "Charge again: it's a new request",
+            "explanation": "The key says it's the same payment, so a second charge would be a double charge."
+          },
+          {
+            "text": "Reject the retry",
+            "explanation": "The shop needs an answer; it just mustn't be charged twice."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Authorise, then capture: authorising holds the money on the customer's card; capturing takes it later, for example when the order ships. Stripe's docs give a limited window for capturing, 7 days for most customer-initiated card payments.",
+      "highlight": [
+        "gateway",
+        "network"
+      ],
+      "path": [
+        [
+          "gateway",
+          "network"
+        ],
+        [
+          "network",
+          "gateway"
+        ]
+      ]
+    },
+    {
+      "caption": "Every money movement goes into a ledger as balanced entries: each debit has a matching credit (double-entry bookkeeping). Stripe describes its Ledger as an immutable, auditable log.",
+      "highlight": [
+        "ledger"
+      ],
+      "path": [
+        [
+          "gateway",
+          "ledger"
+        ]
+      ],
+      "predict": {
+        "prompt": "A refund is recorded. With double-entry and an immutable log, what happens to the original charge?",
+        "options": [
+          {
+            "text": "It stays; a new pair of entries reverses it, and everything still balances",
+            "explanation": "Right. Nothing is edited or deleted, so the history can always be checked."
+          },
+          {
+            "text": "Its entries are deleted",
+            "explanation": "An immutable log never deletes; deleting would destroy the audit trail."
+          },
+          {
+            "text": "Its amount is edited to zero",
+            "explanation": "Editing in place loses the record of what happened."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Webhooks: when a payment's status changes, the gateway sends an event to the shop. Stripe retries delivery for up to three days with exponential backoff, and shops should track event IDs, because the same event can arrive twice.",
+      "highlight": [
+        "gateway",
+        "shop"
+      ],
+      "path": [
+        [
+          "gateway",
+          "shop"
+        ]
+      ],
+      "predict": {
+        "prompt": "The shop's server is down for an hour when the \"payment succeeded\" event is sent. What happens?",
+        "options": [
+          {
+            "text": "The gateway retries later, waiting longer each time, until the shop answers",
+            "explanation": "Right. Delivery is retried with backoff, so a short outage loses nothing."
+          },
+          {
+            "text": "The event is lost",
+            "explanation": "Without retries it would be, which is why gateways retry."
+          },
+          {
+            "text": "The payment is cancelled",
+            "explanation": "The payment succeeded; only the message about it is delayed."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Reconciliation: every day, match the ledger against the card network's settlement reports. Any difference is investigated before money is paid out.",
+      "highlight": [
+        "ledger",
+        "network"
+      ],
+      "path": []
+    },
+    {
+      "caption": "Failure modes: if the call to the card network times out, the gateway doesn't know whether it was authorised. It must ask for the status (or reverse the authorisation) before trying again, never blindly charge again.",
+      "highlight": [
+        "gateway",
+        "network"
+      ],
+      "path": []
+    }
+  ],
+  "critique": {
+    "prompt": "A team proposes this gateway: POST /payments has no idempotency key; each shop's balance is one number in a database, updated in place; webhooks are sent once.",
+    "nodes": [
+      {
+        "id": "shop",
+        "label": "Shop",
+        "x": 60,
+        "y": 100,
+        "width": 100
+      },
+      {
+        "id": "gateway",
+        "label": "Gateway",
+        "x": 200,
+        "y": 100,
+        "width": 120
+      },
+      {
+        "id": "network",
+        "label": "Card network",
+        "x": 345,
+        "y": 40,
+        "width": 140
+      },
+      {
+        "id": "db",
+        "label": "Balances",
+        "x": 345,
+        "y": 160,
+        "width": 120
+      },
+      {
+        "id": "hooks",
+        "label": "Webhooks",
+        "x": 80,
+        "y": 172,
+        "width": 120
+      }
+    ],
+    "edges": [
+      [
+        "shop",
+        "gateway"
+      ],
+      [
+        "gateway",
+        "network"
+      ],
+      [
+        "gateway",
+        "db"
+      ],
+      [
+        "gateway",
+        "hooks"
+      ]
+    ],
+    "risks": [
+      {
+        "text": "A retried payment request can charge the customer twice",
+        "real": true,
+        "why": "With no idempotency key, the gateway can't tell a retry from a new payment.",
+        "nodes": [
+          "gateway"
+        ]
+      },
+      {
+        "text": "Balances are overwritten in place, so there's no history to audit or reconcile",
+        "real": true,
+        "why": "An immutable, double-entry ledger keeps every movement; a single number loses how it got there.",
+        "nodes": [
+          "db"
+        ]
+      },
+      {
+        "text": "If a shop is down when a webhook is sent, it never hears about the payment",
+        "real": true,
+        "why": "Delivery must be retried (with backoff), and shops must handle duplicates.",
+        "nodes": [
+          "hooks"
+        ]
+      },
+      {
+        "text": "The gateway depends on an outside card network",
+        "real": false,
+        "why": "Every card gateway must talk to card networks; that's the job, not a design flaw. The design should handle its timeouts, which is a different point."
+      },
+      {
+        "text": "Requests use HTTPS, which adds a little latency",
+        "real": false,
+        "why": "Encryption is required for card data, and its cost is small compared with the network round trips."
+      }
+    ],
+    "hint": "Look at what happens on a retry, where money history is kept, and what happens when a shop is down.",
+    "first": {
+      "prompt": "Which would you fix first?",
+      "options": [
+        {
+          "text": "Add idempotency keys: double charges take customers' money on every retried request, today",
+          "explanation": "Right. It's the problem that causes direct, repeated harm to customers."
+        },
+        {
+          "text": "Replace the balances with a ledger",
+          "explanation": "Essential for audits and reconciliation, but it doesn't take money from customers today."
+        },
+        {
+          "text": "Add webhook retries",
+          "explanation": "Shops miss updates, but they can check the payment status through the API meanwhile."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "A strong review ranks risks by harm: double charges first, then the ledger (no trustworthy history), then webhook retries. Each fix is a known pattern: idempotency keys, double-entry entries in an immutable log, and retried, deduplicated events."
+  },
+  "quiz": [
+    {
+      "prompt": "Why authorise first and capture later?",
+      "options": [
+        {
+          "text": "The shop can hold the money when the order is placed, then take it when it ships or release it if the order is cancelled",
+          "explanation": "Right. Holding and taking money are separate steps with separate timing."
+        },
+        {
+          "text": "Capturing straight away is not allowed",
+          "explanation": "It's allowed; many payments are captured immediately."
+        },
+        {
+          "text": "Authorising skips the card network",
+          "explanation": "Authorising is a call to the card network."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "A shop receives the same webhook event twice. What should it do?",
+      "options": [
+        {
+          "text": "Record each event's ID and skip any it has already processed",
+          "explanation": "Right. Stripe's docs advise tracking event IDs to spot duplicates."
+        },
+        {
+          "text": "Process both: each delivery is a new event",
+          "explanation": "Then the order might be marked paid twice, or shipped twice."
+        },
+        {
+          "text": "Ask the gateway to stop retrying",
+          "explanation": "Retries are what make delivery reliable."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

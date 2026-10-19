@@ -286,7 +286,7 @@ if (mode === 'ui') {
   const titles = await evaluate(`[...document.querySelectorAll('.lesson-title')].map((t) => t.textContent)`);
   check('home lists every lesson', titles.length === lessonFiles.length && titles[0] === 'Hello, request' && titles.includes('AI agent loop'), titles.join(', '));
   check('no "← Lessons" button on home', !(await evaluate(`!!document.querySelector('.nav-back').offsetParent`)));
-  check('lessons are grouped by track, with the first unfinished one open', JSON.stringify(await evaluate(`[...document.querySelectorAll('details.track')].map((d) => [d.dataset.track, d.open])`)) === JSON.stringify([['web', true], ['logic', false], ['dsa', false], ['hld', false], ['lld', false], ['agentic', false]]));
+  check('lessons are grouped by track, with the first unfinished one open', JSON.stringify(await evaluate(`[...document.querySelectorAll('details.track')].map((d) => [d.dataset.track, d.open])`)) === JSON.stringify([['web', true], ['logic', false], ['dsa', false], ['hld', false], ['lld', false], ['real-world', false], ['agentic', false]]));
   check('track headers count progress', (await text('details.track[data-track="logic"] summary')) === 'Logic foundations0 of 8 done', await text('details.track[data-track="logic"] summary'));
   await tapSel('.lesson-card[data-id="estimate"]');
   check('a locked lesson explains what to finish first, and stays on the list', (await text('.lesson-card[data-id="estimate"] .lesson-lock')) === 'Finish “Spot the pattern” and “Dry-run code” first.' && (await hash()) === '#/', await text('.lesson-card[data-id="estimate"] .lesson-lock'));

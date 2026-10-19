@@ -4,7 +4,7 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 ## Current phase
 
-Phase 5b, Low-level design: **done**, pushed, and approved by the owner on 2026-10-19 ("site shows LLD now, proceed"); a phone check was not mentioned. Phase 5c plan drafted (`docs/PHASE5C_PLAN.md`), awaiting approval.
+Phase 5b, Low-level design: **done**, pushed, and approved by the owner on 2026-10-19 ("site shows LLD now, proceed"); a phone check was not mentioned. Phase 5c plan approved 2026-10-19 ("Approve, build all of it"). In progress: see the session log.
 
 Phase 5, System design (HLD): **done**, pushed and approved by the owner on 2026-10-19.
 
@@ -70,8 +70,8 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 
 ## Next step
 
-1. Owner approves the Phase 5c plan (`docs/PHASE5C_PLAN.md`).
-2. Build 5c.1–5c.4, then the owner checks and approves.
+1. Finish 5c.1: teach `scripts/browser-check.mjs` to walk the critique (it currently stops at the critique, so the 4 case-study lessons will fail the `ui` walk), then run the full browser suite and look at screenshots of the 4 case studies.
+2. 5c.3 (R5–R12) and 5c.4 (I1–I8 and C1), then the owner's review.
 
 ## Blockers and questions for the owner
 
@@ -120,4 +120,5 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 - 2026-10-19: Owner approved the Phase 5b plan and chose to start 5c only after approving 5b. Built 5b.1–5b.4 (engine plus 14 lessons), one commit per batch.
 - 2026-10-19: Owner pushed Phase 5b, but the site showed Phase 5. Cause, from the GitHub API: the push run (c1bb890) deployed at 14:26:54, then a re-run (attempt 4) of an older manual run for a0dc2aa finished at 14:32:46 and published the old commit again; the Reload banner then reloaded into that old version. Fix: the deploy job now checks that the run's commit is still the tip of main (git ls-remote) and skips deploying otherwise. Logic checked locally against the real repo (current main: deploy; old commit: skip); not yet seen running on GitHub.
 - 2026-10-19: Owner pushed the CI fix; the push run for ad1f667 deployed and the site shows LLD. Owner approved 5b and asked to continue. Uber's H3 facts can come from h3geo.org (copyright Uber Technologies), which resolves the curriculum's TODO-VERIFY on Uber's blog. Wrote the Phase 5c plan.
+- 2026-10-19: Started 5c (work in progress, committed with unit tests passing; browser checks NOT run on it). Done: accuracy rule in the validator (company + basis, own-domain check; a substring mutation of the domain match failed its test), timeline times on steps, "Critique the design" exercise (diagram, trace and sim lessons), `inventory` and `fanout` sims (challenge settings measured over 10 seeds; claim tests), `nearby` and `snowflake` traces (references and claim tests), and 4 case studies: payment gateway, food delivery, ride-hailing, train booking. Sources checked: Stripe docs and blogs, h3geo.org (Uber's H3), Cloudflare Waiting Room, Twitter's Snowflake README. Swiggy and IRCTC sites couldn't be reached, so those lessons are labelled plausible and make no claims about either company. Stopped at the usage limit.
 

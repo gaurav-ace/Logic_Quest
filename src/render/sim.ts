@@ -4,6 +4,7 @@ import { holds, type Sample } from '../sim/runner';
 import { defaults, type Metric, type Params, type SimView } from '../sim/types';
 import { seeded } from '../trace/tools';
 import { button, el, scrollTo, svg } from './dom';
+import { basisNote, critiquePart } from './critique';
 import { showQuestion, type QuizHooks } from './quiz';
 import { notes, type LessonView } from './stepped';
 
@@ -50,7 +51,11 @@ export function renderSim(root: HTMLElement, lesson: SimLesson, hooks: QuizHooks
   const quizStart = el('section', { class: 'card panel' });
   const quiz = el('section', { class: 'card quiz', 'aria-label': 'Quiz' });
   quiz.hidden = true;
-  quizStart.append(el('p', {}, 'When you have tried the challenges, check your understanding.'), button('Take the quiz', () => showQuestion(quiz, lesson.quiz, 0, () => scrollTo(stage, 'start'), hooks), { class: 'primary' }));
+  // Case studies review a flawed design first; the quiz opens when that's done.
+  const review = lesson.critique ? critiquePart({ title: lesson.title, critique: lesson.critique }, hooks) : null;
+  if (review) review.element.hidden = true;
+  const openQuiz = () => showQuestion(quiz, lesson.quiz, 0, () => scrollTo(stage, 'start'), hooks);
+  quizStart.append(el('p', {}, 'When you have tried the challenges, check your understanding.'), button('Take the quiz', () => (review ? review.start(openQuiz) : openQuiz()), { class: 'primary' }));
 
   const status = el('p', { class: 'step-label', 'aria-live': 'polite' });
   const playBtn = button('Pause', () => {
@@ -68,7 +73,8 @@ export function renderSim(root: HTMLElement, lesson: SimLesson, hooks: QuizHooks
   const player = el('div', { class: 'player' });
   player.append(status, bar);
 
-  root.replaceChildren(title, objective, stage, controlsBox, challengeBox, quizStart, quiz, player, notes(lesson));
+  const basis = basisNote(lesson);
+  root.replaceChildren(title, objective, ...(basis ? [basis] : []), stage, controlsBox, challengeBox, quizStart, ...(review ? [review.element] : []), quiz, player, notes(lesson));
 
   // ---- controls -------------------------------------------------------------------------
   function drawControls(): void {
@@ -298,7 +304,7 @@ export function renderSim(root: HTMLElement, lesson: SimLesson, hooks: QuizHooks
   wake();
 
   return {
-    inQuiz: () => !quiz.hidden && quiz.dataset.done !== 'true',
+    inQuiz: () => (!quiz.hidden && quiz.dataset.done !== 'true') || (!!review && !review.element.hidden && review.element.dataset.done !== 'true'),
     destroy() {
       cancelAnimationFrame(rafId);
       document.removeEventListener('visibilitychange', onVisibility);

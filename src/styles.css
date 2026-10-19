@@ -1360,3 +1360,27 @@ button.action {
 .exercise .compare {
   font-weight: 700;
 }
+
+/* Phase 5c: basis label, critique risks. */
+.basis {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-left: 4px solid var(--blue);
+  background: color-mix(in srgb, var(--blue) 10%, var(--card));
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+.basis.plausible {
+  border-left-color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 8%, var(--card));
+}
+
+.critique .why {
+  margin: -4px 0 12px;
+  color: var(--mute);
+}
+
+.critique-diagram {
+  margin: 8px 0 12px;
+}

@@ -47,6 +47,8 @@ export interface Step {
   path: Edge[];
   /** "What happens next?", asked before this step plays (predict, then reveal). */
   predict?: QuizQuestion;
+  /** Incident timelines: when this happened, as the company's write-up gives it (e.g. "15:39 UTC"). */
+  time?: string;
 }
 
 export interface QuizOption {
@@ -76,6 +78,36 @@ interface LessonBase {
   /** Lessons to finish first; until then this one is shown locked. */
   requires?: string[];
   quiz: QuizQuestion[];
+  /**
+   * A real company the lesson is about (Phase 5c accuracy rule). With basis "published", at least
+   * one source must be on one of the company's own domains; with "plausible", the lesson shows
+   * "A plausible design, not <name>'s actual architecture".
+   */
+  company?: { name: string; domains: string[] };
+  basis?: 'published' | 'plausible';
+  /** "Critique the design", before the quiz (case studies). */
+  critique?: Critique;
+}
+
+/** One candidate problem in a design under review: a real risk, or a plausible-sounding decoy. */
+export interface Risk {
+  text: string;
+  real: boolean;
+  /** Why it is (or isn't) a real problem in this design. */
+  why: string;
+  /** Diagram nodes it concerns, lit up after the check. */
+  nodes?: string[];
+}
+
+/** A flawed architecture to review: spot the real risks, then choose what to fix first. */
+export interface Critique {
+  prompt: string;
+  nodes: LessonNode[];
+  edges: Edge[];
+  risks: Risk[];
+  hint: string;
+  first: QuizQuestion;
+  explain: string;
 }
 
 /** A hand-written concept diagram (allowed for system concepts, CLAUDE.md section 5.6). */

@@ -1,6 +1,7 @@
 import { atEnd, initialState, readingTime, reduce, type PlayerAction, type PlayerConfig } from '../engine/player';
 import type { Lesson, QuizQuestion } from '../lesson/schema';
 import { buildControls } from './controls';
+import { basisNote } from './critique';
 import { button, el, reducedMotion, scrollTo } from './dom';
 import { showQuestion, type QuizHooks } from './quiz';
 
@@ -16,6 +17,8 @@ export interface StageStep {
   /** Packet hops (0 for stages without a packet); sets how long the step animates. */
   hops: number;
   predict?: QuizQuestion;
+  /** Shown beside the step number on incident timelines. */
+  time?: string;
 }
 
 export interface Stage {
@@ -69,7 +72,8 @@ export function renderStepped(root: HTMLElement, lesson: Lesson, stage: Stage, h
   // and what to tap next are always visible together, within thumb reach (CLAUDE.md section 8).
   const player = el('div', { class: 'player' });
   player.append(stepLabel, caption, controls.element);
-  root.replaceChildren(title, objective, stage.element, predictBox, player, tally, ...(middle ? [middle] : []), quiz, ...(options.footer ? [options.footer] : []), notes(lesson));
+  const basis = basisNote(lesson);
+  root.replaceChildren(title, objective, ...(basis ? [basis] : []), stage.element, predictBox, player, tally, ...(middle ? [middle] : []), quiz, ...(options.footer ? [options.footer] : []), notes(lesson));
 
   /** Predictions answered in this run: step index -> right on the first try. */
   const predicted = new Map<number, boolean>();
@@ -169,7 +173,7 @@ export function renderStepped(root: HTMLElement, lesson: Lesson, stage: Stage, h
       // Only on change, so the live region isn't re-announced every frame.
       shownStep = key;
       caption.textContent = revealed ? step.caption : 'Before this step plays: what do you think happens?';
-      stepLabel.textContent = `Step ${state.step + 1} of ${stage.steps.length}`;
+      stepLabel.textContent = `Step ${state.step + 1} of ${stage.steps.length}${step.time ? ` · ${step.time}` : ''}`;
     }
     stage.draw(state.step, revealed ? state.progress : 0, revealed);
     controls.update(state, atEnd(config, state), !revealed);
