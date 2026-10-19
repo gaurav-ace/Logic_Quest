@@ -50,6 +50,12 @@ import indexesLesson from '../../lessons/indexes.json';
 import replicationLesson from '../../lessons/replication.json';
 import shardingLesson from '../../lessons/sharding.json';
 import consistentHashingLesson from '../../lessons/consistent-hashing.json';
+import messageQueuesLesson from '../../lessons/message-queues.json';
+import rateLimitingLesson from '../../lessons/rate-limiting.json';
+import capConsistencyLesson from '../../lessons/cap-consistency.json';
+import idempotencyLesson from '../../lessons/idempotency.json';
+import designUrlShortenerLesson from '../../lessons/design-url-shortener.json';
+import designAiChatLesson from '../../lessons/design-ai-chat.json';
 import { getModel } from '../sim/registry';
 import { getProgram } from '../trace/registry';
 import type { Lesson, SimLesson } from './schema';
@@ -111,6 +117,12 @@ export const LESSON_DATA: unknown[] = [
   replicationLesson,
   shardingLesson,
   consistentHashingLesson,
+  messageQueuesLesson,
+  rateLimitingLesson,
+  capConsistencyLesson,
+  idempotencyLesson,
+  designUrlShortenerLesson,
+  designAiChatLesson,
   agentLoop,
 ];
 

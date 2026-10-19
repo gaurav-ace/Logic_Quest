@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "kind": "sim",
+  "id": "cap-consistency",
+  "title": "CAP and consistency",
+  "track": "hld",
+  "level": "hard",
+  "objective": "See the choice a network partition forces: keep answering and let copies drift, or stay consistent and refuse requests.",
+  "model": "partition",
+  "requires": [
+    "replication"
+  ],
+  "sources": [
+    {
+      "title": "Gilbert and Lynch (2002), Brewer's conjecture and the feasibility of consistent, available, partition-tolerant web services, ACM SIGACT News"
+    },
+    {
+      "title": "Brewer (2012), CAP Twelve Years Later: How the \"Rules\" Have Changed (InfoQ / IEEE Computer)",
+      "url": "https://www.infoq.com/articles/cap-twelve-years-later-how-the-rules-have-changed/"
+    }
+  ],
+  "simplifies": "Two copies, one on each side, and every write must be confirmed by both to count as consistent. Real systems use majorities (quorums), so the larger side can keep working; they reconcile after healing with timestamps, version vectors or merge rules. As Brewer notes, partitions are rare, so the choice only bites while one is happening.",
+  "challenges": [
+    {
+      "id": "stay-available",
+      "title": "Stay available",
+      "prompt": "The network between the sides will be cut 3 seconds in. Keep refused requests at 1% or less the whole time for 8 seconds after that.",
+      "predict": {
+        "prompt": "Consistent mode is on, and the two copies can't reach each other. What happens to writes?",
+        "options": [
+          {
+            "text": "They are refused, because they can't be confirmed by the other side",
+            "explanation": "Right. Consistency means refusing rather than risking two different answers."
+          },
+          {
+            "text": "They succeed and sync instantly",
+            "explanation": "There is no link to sync over."
+          },
+          {
+            "text": "They go to the other side",
+            "explanation": "The other side is unreachable."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "consistent": true,
+          "rate": 10
+        },
+        "lock": [
+          "rate"
+        ],
+        "actions": [
+          {
+            "at": 3000,
+            "action": "cut"
+          }
+        ]
+      },
+      "goal": {
+        "metric": "refusedRate",
+        "op": "<=",
+        "value": 0.01,
+        "forSeconds": 8,
+        "fromStart": true
+      },
+      "hint": "What if each side just answered on its own?",
+      "explain": "In available mode each side keeps accepting writes, so nobody is refused. Now look at \"Writes only one side has\": the copies are drifting apart, and someone will have to reconcile them later.",
+      "solution": {
+        "consistent": false
+      }
+    },
+    {
+      "id": "stay-consistent",
+      "title": "Stay consistent",
+      "prompt": "Same cut. Now keep the two copies identical (no writes on only one side) the whole time for 8 seconds after the cut.",
+      "predict": {
+        "prompt": "In available mode, both sides keep accepting writes during the cut. What happens to the two copies?",
+        "options": [
+          {
+            "text": "They drift apart: each has writes the other doesn't",
+            "explanation": "Right. With no link, neither side sees the other's writes."
+          },
+          {
+            "text": "They stay identical",
+            "explanation": "Only if they could talk to each other."
+          },
+          {
+            "text": "One side deletes its writes",
+            "explanation": "Nothing deletes them; they simply differ."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "consistent": false,
+          "rate": 10
+        },
+        "lock": [
+          "rate"
+        ],
+        "actions": [
+          {
+            "at": 3000,
+            "action": "cut"
+          }
+        ]
+      },
+      "goal": {
+        "metric": "diverged",
+        "op": "<=",
+        "value": 0,
+        "forSeconds": 8,
+        "fromStart": true
+      },
+      "hint": "You can keep the copies identical only by not accepting writes you can't share.",
+      "explain": "Consistent mode keeps the copies identical, but it refuses writes during the cut: the refused requests are the price. Together, the two challenges show that during a partition you can't have both.",
+      "solution": {
+        "consistent": true
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "During a network partition, a system must choose between…",
+      "options": [
+        {
+          "text": "Answering every request (availability) and every answer agreeing (consistency)",
+          "explanation": "Right. With the copies cut off from each other, it can't guarantee both."
+        },
+        {
+          "text": "Speed and cost",
+          "explanation": "That is a real trade-off, but not the CAP one."
+        },
+        {
+          "text": "SQL and NoSQL",
+          "explanation": "Both kinds face the same choice during a partition."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "A bank account balance during a partition: which choice usually makes sense?",
+      "options": [
+        {
+          "text": "Refuse risky writes (stay consistent), so money can't be spent twice",
+          "explanation": "Right. For balances, a wrong answer costs more than a refused request."
+        },
+        {
+          "text": "Accept every write and fix it later",
+          "explanation": "Two sides could both approve spending the same money."
+        },
+        {
+          "text": "Shut down the whole bank",
+          "explanation": "Only the writes that can't be confirmed need refusing."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

@@ -17,6 +17,7 @@ import { mergeSort } from './programs/merge-sort';
 import { minCapacity } from './programs/min-capacity';
 import { nextGreater } from './programs/next-greater';
 import { prefixSums } from './programs/prefix-sums';
+import { rateLimiter } from './programs/rate-limiter';
 import { quickSort } from './programs/quick-sort';
 import { reverseList } from './programs/reverse-list';
 import { slidingWindow } from './programs/sliding-window';
@@ -84,6 +85,7 @@ export const PROGRAMS = [
   // Phase 5, system design
   indexLookup,
   consistentHashing,
+  rateLimiter,
 ].map((p) => p as unknown as Program<unknown>);
 
 const byId = new Map(PROGRAMS.map((p) => [p.id, p]));

@@ -1,5 +1,5 @@
 import { copyFlow, killServer, newFlow, newServer, reviveServer, tick, trafficMetrics, type Flow, type Server } from '../requests';
-import type { Model, SimNode } from '../types';
+import { columnYs, type Model, type SimNode } from '../types';
 
 // S3 "Load balancing" sim: round robin versus least connections, with requests of uneven cost,
 // and a server that can be killed. With health checks on, the balancer notices a dead server
@@ -85,7 +85,7 @@ export const loadBalancing: Model<State> = {
   read: (st) => trafficMetrics(st.flow),
   view(st, params) {
     const servers = st.flow.servers;
-    const ys = servers.length === 2 ? [60, 140] : servers.length === 3 ? [30, 100, 170] : [22, 72, 122, 172];
+    const ys = columnYs(servers.length);
     const nodes: SimNode[] = [
       { id: 'users', label: 'Users', x: 40, y: 100 },
       { id: 'lb', label: 'Balancer', x: 148, y: 100, width: 88, note: params.leastConn ? 'least conn.' : 'round robin' },

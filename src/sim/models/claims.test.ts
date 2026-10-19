@@ -4,6 +4,9 @@ import { averageFrom, runSim } from '../runner';
 import { defaults, type Model, type Params } from '../types';
 import { caching, pickKey, type CacheState } from './caching';
 import { cdn } from './cdn';
+import { partition } from './partition';
+import { payments } from './payments';
+import { queues } from './queues';
 import { replication } from './replication';
 import { scaling } from './scaling';
 import { sharding, shardOf } from './sharding';
@@ -18,6 +21,9 @@ const C = caching as unknown as Model<unknown>;
 const D = cdn as unknown as Model<unknown>;
 const R = replication as unknown as Model<unknown>;
 const H = sharding as unknown as Model<unknown>;
+const Q = queues as unknown as Model<unknown>;
+const P = partition as unknown as Model<unknown>;
+const Y = payments as unknown as Model<unknown>;
 
 describe('scaling', () => {
   it('a bigger server serves more, until it can carry the traffic', () => {
@@ -170,5 +176,75 @@ describe('sharding', () => {
       const held = f.servers.reduce((a, s) => a + s.active.length + s.queue.length, 0);
       expect(f.totals.arrived).toBe(f.totals.done + f.totals.errors + f.totals.handled + held);
     }
+  });
+});
+
+describe('message queues', () => {
+  it('a bigger queue absorbs a burst instead of rejecting, at the price of longer waits', () => {
+    const burst = [{ at: 3000, action: 'burst' }];
+    expect(avg(Q, { rate: 15, workers: 2, capacity: 200 }, 'rejectRate', burst, 3)).toBeLessThan(avg(Q, { rate: 15, workers: 2, capacity: 20 }, 'rejectRate', burst, 3));
+    expect(avg(Q, { rate: 15, workers: 2, capacity: 200 }, 'waitP95', burst, 3)).toBeGreaterThan(avg(Q, { rate: 15, workers: 2, capacity: 20 }, 'waitP95', burst, 3));
+  });
+
+  it('too few workers for the traffic: the queue grows without end', () => {
+    expect(avg(Q, { rate: 30, workers: 2, capacity: 300 }, 'queued', [], 20)).toBeGreaterThan(100);
+    expect(avg(Q, { rate: 30, workers: 4, capacity: 300 }, 'queued', [], 20)).toBeLessThan(5);
+  });
+
+  it('poison messages: retrying forever clogs the workers; a dead-letter queue sets them aside', () => {
+    const p = { rate: 15, workers: 3, capacity: 300, poison: 8, retries: true };
+    expect(avg(Q, { ...p, dlq: false }, 'waitP95', [], 15)).toBeGreaterThan(2000);
+    expect(avg(Q, { ...p, dlq: true }, 'waitP95', [], 15)).toBeLessThan(500);
+  });
+
+  it('without retries, failed messages are lost', () => {
+    expect(avg(Q, { poison: 8, retries: false }, 'lostRate')).toBeGreaterThan(0.04);
+  });
+});
+
+describe('CAP: during a partition, choose', () => {
+  const cut = [{ at: 3000, action: 'cut' }];
+  it('available mode keeps answering but the copies drift apart', () => {
+    expect(avg(P, { consistent: false }, 'refusedRate', cut, 9)).toBe(0);
+    expect(avg(P, { consistent: false }, 'diverged', cut, 9)).toBeGreaterThan(50);
+  });
+
+  it('consistent mode keeps the copies identical but refuses writes', () => {
+    expect(avg(P, { consistent: true }, 'diverged', cut, 4)).toBe(0);
+    expect(avg(P, { consistent: true }, 'refusedRate', cut, 9)).toBeGreaterThan(0.95);
+  });
+
+  it('no setting gets both during the partition; without one, both are fine', () => {
+    for (const consistent of [true, false]) {
+      const refused = avg(P, { consistent }, 'refusedRate', cut, 9);
+      const diverged = avg(P, { consistent }, 'diverged', cut, 9);
+      expect(refused > 0.5 || diverged > 0).toBe(true);
+    }
+    expect(avg(P, { consistent: true }, 'refusedRate')).toBe(0);
+    expect(avg(P, { consistent: false }, 'diverged')).toBe(0);
+  });
+
+  it('healing brings the copies back together', () => {
+    const s = runSim(P, defaults(P.controls), 1, 15_000, [{ at: 3000, action: 'cut' }, { at: 8000, action: 'heal' }]);
+    expect(s.find((x) => x.t === 8.5)!.values.diverged).toBe(0);
+  });
+});
+
+describe('idempotency', () => {
+  it('without retries, lost replies become failed payments', () => {
+    expect(avg(Y, { lost: 20, retry: false }, 'failRate')).toBeGreaterThan(0.15);
+  });
+
+  it('retries fix the failures but charge some payments twice, unless an idempotency key is sent', () => {
+    const doubles = (p: Params) => [1, 2, 3].map((seed) => runSim(Y, { ...defaults(Y.controls), ...p }, seed, 15_000).at(-1)!.values.doubles!);
+    expect(avg(Y, { lost: 20, retry: true }, 'failRate')).toBeLessThan(0.01);
+    expect(doubles({ lost: 20, retry: true }).every((n) => n > 0)).toBe(true);
+    expect(doubles({ lost: 20, retry: true, idempotency: true }).every((n) => n === 0)).toBe(true);
+  });
+
+  it('with no lost replies, nothing is retried or doubled', () => {
+    const s = runSim(Y, { ...defaults(Y.controls), lost: 0, retry: true }, 1, 10_000);
+    expect(s.at(-1)!.values.doubles).toBe(0);
+    expect(averageFrom(s, 'failRate', 2)).toBe(0);
   });
 });

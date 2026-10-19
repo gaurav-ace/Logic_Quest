@@ -200,7 +200,15 @@ const layoutChecks = async (label) => {
     const labelPx = sizes.length ? +Math.min(...sizes).toFixed(1) : null;
     // Every node label must fit inside its box (8 units of padding).
     const overflow = [...document.querySelectorAll('svg .node, svg .snode')].filter((g) => g.querySelector('text').getBBox().width > g.querySelector('rect').getBBox().width - 8).map((g) => g.querySelector('text').textContent);
-    return { vw: document.documentElement.clientWidth, scrollW: document.documentElement.scrollWidth, targets, labelPx, overflow };
+    // Every text and box must be drawn inside its SVG, or the edge clips it (1 unit of slack).
+    const clipped = [...document.querySelectorAll('svg')].filter((s) => s.viewBox.baseVal && s.viewBox.baseVal.width).flatMap((s) => {
+      const v = s.viewBox.baseVal;
+      return [...s.querySelectorAll('text, rect')].filter((e) => {
+        const b = e.getBBox();
+        return b.x < v.x - 1 || b.y < v.y - 1 || b.x + b.width > v.x + v.width + 1 || b.y + b.height > v.y + v.height + 1;
+      }).map((e) => e.textContent || e.tagName);
+    });
+    return { vw: document.documentElement.clientWidth, scrollW: document.documentElement.scrollWidth, targets, labelPx, overflow, clipped };
   })()`);
   check(`${label}: no horizontal scroll`, m.scrollW <= m.vw, `scrollWidth ${m.scrollW}, viewport ${m.vw}`);
   const small = m.targets.filter(([w, h]) => w < 48 || h < 48);
@@ -208,6 +216,7 @@ const layoutChecks = async (label) => {
   if (m.labelPx !== null) {
     check(`${label}: diagram labels >= 14px`, m.labelPx >= 14, `smallest ~${m.labelPx}px`);
     check(`${label}: labels fit inside their boxes`, m.overflow.length === 0, m.overflow.join(', '));
+    check(`${label}: nothing drawn past the diagram's edge`, m.clipped.length === 0, m.clipped.join(', '));
   }
 };
 
@@ -252,7 +261,7 @@ if (mode === 'ui') {
   await layoutChecks('home-360');
   await shot('home-360');
   const titles = await evaluate(`[...document.querySelectorAll('.lesson-title')].map((t) => t.textContent)`);
-  check('home lists every lesson', titles.length === 52 && titles[0] === 'Hello, request' && titles.includes('AI agent loop'), titles.join(', '));
+  check('home lists every lesson', titles.length === 58 && titles[0] === 'Hello, request' && titles.includes('AI agent loop'), titles.join(', '));
   check('no "← Lessons" button on home', !(await evaluate(`!!document.querySelector('.nav-back').offsetParent`)));
   check('lessons are grouped by track, with the first unfinished one open', JSON.stringify(await evaluate(`[...document.querySelectorAll('details.track')].map((d) => [d.dataset.track, d.open])`)) === JSON.stringify([['web', true], ['logic', false], ['dsa', false], ['hld', false], ['agentic', false]]));
   check('track headers count progress', (await text('details.track[data-track="logic"] summary')) === 'Logic foundations0 of 8 done', await text('details.track[data-track="logic"] summary'));

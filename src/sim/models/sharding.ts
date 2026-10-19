@@ -1,5 +1,5 @@
 import { copyFlow, killServer, newFlow, newServer, tick, trafficMetrics, type Flow } from '../requests';
-import type { Model, SimNode } from '../types';
+import { columnYs, type Model, type SimNode } from '../types';
 
 // S9 "Sharding": data is split across shards by a hash of the key, so each shard holds and
 // serves a slice. One very popular key (a "hot key") still lands on a single shard, and adding
@@ -82,7 +82,7 @@ export const sharding: Model<State> = {
   },
   view(st) {
     const servers = st.flow.servers;
-    const ys = [[100], [60, 140], [30, 100, 170], [22, 72, 122, 172]][servers.length - 1]!;
+    const ys = columnYs(servers.length);
     const counts = new Map<string, number>();
     for (const id of st.routedTo) counts.set(id, (counts.get(id) ?? 0) + 1);
     const total = st.routedTo.length || 1;
@@ -92,7 +92,7 @@ export const sharding: Model<State> = {
       ...servers.map((s, i): SimNode => {
         const held = s.active.length + s.queue.length;
         const load = held / (s.slots + s.queueLimit);
-        return { id: s.id, label: `Shard ${i + 1}`, x: 262, y: ys[i]!, status: load >= 0.6 ? 'busy' : 'ok', load, note: `${Math.round(((counts.get(s.id) ?? 0) / total) * 100)}% of traffic` };
+        return { id: s.id, label: `Shard ${i + 1}`, x: 262, y: ys[i]!, status: load >= 0.6 ? 'busy' : 'ok', load, note: `${Math.round(((counts.get(s.id) ?? 0) / total) * 100)}%` };
       }),
     ];
     return {

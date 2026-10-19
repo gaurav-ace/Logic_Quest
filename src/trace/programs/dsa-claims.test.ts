@@ -6,6 +6,7 @@ import { height, searchPath } from './bst-search';
 import { coinChange, fewestCoinsBfs, greedyCoins } from './coin-change';
 import { consistentHashing, MIN_GAP, moves, owner } from './consistent-hashing';
 import { indexLookup, lookupCosts } from './index-lookup';
+import { fixedWindow, rateLimiter, tokenBucket } from './rate-limiter';
 import { dijkstra } from './dijkstra';
 import { factorialDepth } from './factorial';
 import { subsetsSumming } from './subset-sum';
@@ -302,5 +303,31 @@ describe('system design traces', () => {
       const all = [...input.keys, ...input.servers, input.added];
       for (const a of all) for (const b of all) if (a !== b) expect(Math.min(Math.abs(a - b), 100 - Math.abs(a - b))).toBeGreaterThanOrEqual(MIN_GAP);
     }
+  });
+});
+
+describe('rate limiting', () => {
+  // The most requests a method let through in any one-second stretch.
+  const worst = (times: number[], allowed: boolean[]) => Math.max(0, ...times.map((s) => times.filter((x, j) => allowed[j] && x >= s && x < s + 1).length));
+
+  it('a token bucket never lets more than 2 × limit through in any second (size + one second of refill), and blocks the boundary burst', () => {
+    for (let seed = 1; seed <= 300; seed++) {
+      const r = seeded(seed);
+      const limit = 2 + Math.floor(r() * 5);
+      let t = 0;
+      const times = Array.from({ length: 40 }, () => (t += r() < 0.3 ? 0.01 : r() * 0.4));
+      expect(worst(times, tokenBucket(times, limit))).toBeLessThanOrEqual(2 * limit);
+      expect(worst(times, fixedWindow(times, limit))).toBeLessThanOrEqual(2 * limit);
+    }
+    // The lesson's example: the fixed window lets 2 × limit through around the boundary; the bucket doesn't.
+    const { times, limit } = rateLimiter.defaultInput;
+    expect(worst(times, fixedWindow(times, limit))).toBe(2 * limit);
+    expect(worst(times, tokenBucket(times, limit))).toBeLessThan(2 * limit);
+  });
+
+  it('both allow everything when traffic stays under the limit', () => {
+    const times = Array.from({ length: 30 }, (_, i) => 0.3 + i * 0.3); // about 3.3 a second
+    expect(fixedWindow(times, 4).every(Boolean)).toBe(true);
+    expect(tokenBucket(times, 4).every(Boolean)).toBe(true);
   });
 });

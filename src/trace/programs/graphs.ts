@@ -4,15 +4,16 @@ import type { View } from '../types';
 // Shared graph inputs for the graph lessons: fixed node positions that fit a phone, with edges
 // chosen per example. A random spanning tree keeps every example connected.
 
-// Fits the 304 px content width of a 360 px phone (the view adds 10 px and a 17 px radius).
+// Fits the 304 px content width of a 360 px phone (the view adds 10 px and a 17 px radius),
+// with room for a note such as "waits 0" centred under the leftmost and rightmost nodes.
 export const POSITIONS: Record<string, [number, number]> = {
-  A: [8, 100],
+  A: [26, 100],
   B: [85, 30],
   C: [85, 170],
   D: [160, 100],
   E: [235, 30],
   F: [235, 170],
-  G: [276, 100],
+  G: [254, 100],
 };
 
 export const NAMES = Object.keys(POSITIONS);

@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "rate-limiting",
+  "title": "Rate limiting",
+  "track": "hld",
+  "level": "medium",
+  "objective": "Limit how fast a client can call a service, and see why a token bucket handles bursts better than a fixed window.",
+  "program": "rate-limiter",
+  "requires": [
+    "message-queues"
+  ],
+  "sources": [
+    {
+      "title": "Claude Platform docs: Rate limits (an example of a real API's limits; over-limit requests get HTTP 429)",
+      "url": "https://platform.claude.com/docs/en/api/rate-limits"
+    },
+    {
+      "title": "IETF RFC 6585: HTTP status code 429 Too Many Requests",
+      "url": "https://www.rfc-editor.org/rfc/rfc6585"
+    }
+  ],
+  "simplifies": "One client and one limiter in memory. Real limiters are shared across many servers (often in a store like Redis), limit per user or per key, and tell clients when to retry (a Retry-After header). A sliding window is a third common method.",
+  "quiz": [
+    {
+      "prompt": "Limit 100 a second, fixed window. A client sends 100 at 0.99 s and 100 at 1.01 s. How many get through?",
+      "options": [
+        {
+          "text": "200",
+          "explanation": "Right. Each burst lands in a different window, so both are allowed: 200 within 0.02 s."
+        },
+        {
+          "text": "100",
+          "explanation": "That is the intent, but the window resets at 1.00 s."
+        },
+        {
+          "text": "0",
+          "explanation": "Each window has room for 100."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "What should a well-behaved client do when it gets 429 Too Many Requests?",
+      "options": [
+        {
+          "text": "Wait (as long as Retry-After says, if given) and retry later",
+          "explanation": "Right. Retrying at once just adds to the overload."
+        },
+        {
+          "text": "Retry immediately, many times",
+          "explanation": "That makes the problem worse for everyone."
+        },
+        {
+          "text": "Treat it as success",
+          "explanation": "The request was not processed."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

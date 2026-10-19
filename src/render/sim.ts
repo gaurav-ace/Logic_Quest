@@ -344,7 +344,8 @@ const NODE_H = 34;
 
 function simDiagram(view: SimView): HTMLElement {
   const W = 304;
-  const H = 214;
+  // Tall enough for the lowest box and its note (a column of 4 needs more than the usual 214).
+  const H = Math.max(214, ...view.nodes.map((n) => n.y + NODE_H / 2 + (n.note ? 28 : n.load !== undefined ? 10 : 2)));
   const root = svg('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, class: 'svg-view sim-diagram' });
   const at = new Map(view.nodes.map((n) => [n.id, n]));
   for (const e of view.edges) {

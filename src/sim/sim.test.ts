@@ -140,15 +140,28 @@ describe('every model', () => {
     }
   });
 
-  it.each(MODELS.map((m) => [m.id, m] as const))('%s: every node fits the 304 x 214 px diagram', (_id, m) => {
-    const p = defaults(m.controls);
-    const st = m.init(p, seeded(1));
-    for (const n of m.view(st, p).nodes) {
-      const half = (n.width ?? 72) / 2;
-      expect(n.x - half, n.id).toBeGreaterThanOrEqual(0);
-      expect(n.x + half, n.id).toBeLessThanOrEqual(304);
-      expect(n.y - 17, n.id).toBeGreaterThanOrEqual(0);
-      expect(n.y + 17 + 26, n.id).toBeLessThanOrEqual(214);
+  // Checked at the defaults and with every slider at max and every toggle on (most nodes).
+  // Notes are 14 px bold text, estimated at 8.5 px a character (the browser check measures
+  // the real width). 2 px stay spare so a box border isn't clipped at the edge.
+  it.each(MODELS.map((m) => [m.id, m] as const))('%s: nodes and notes fit the diagram without overlapping', (_id, m) => {
+    const most: Params = {};
+    for (const c of m.controls) if (c.kind === 'slider') most[c.id] = c.max;
+    else if (c.kind === 'toggle') most[c.id] = true;
+    for (const p of [defaults(m.controls), { ...defaults(m.controls), ...most }]) {
+      const st = m.init(p, seeded(1));
+      const boxes = m.view(st, p).nodes.map((n) => {
+        const half = Math.max((n.width ?? 72) / 2, n.note ? (n.note.length * 8.5) / 2 : 0);
+        return { id: n.id, left: n.x - half, right: n.x + half, top: n.y - 17, bottom: n.y + 17 + (n.note ? 26 : n.load !== undefined ? 8 : 0) };
+      });
+      for (const b of boxes) {
+        expect(b.left, b.id).toBeGreaterThanOrEqual(2);
+        expect(b.right, b.id).toBeLessThanOrEqual(302);
+        expect(b.top, b.id).toBeGreaterThanOrEqual(2);
+        expect(b.bottom, b.id).toBeLessThanOrEqual(250);
+      }
+      for (const a of boxes) for (const b of boxes) {
+        if (a.id < b.id) expect(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top, `${a.id} overlaps ${b.id}`).toBe(true);
+      }
     }
   });
 });

@@ -61,6 +61,9 @@ export interface Model<S> {
   view(state: S, params: Params): SimView;
 }
 
+/** Y positions for a column of 1 to 4 boxes, spaced so each box's note fits under it. */
+export const columnYs = (n: number): number[] => [[100], [60, 140], [30, 100, 170], [22, 82, 142, 202]][n - 1]!;
+
 export function defaults(controls: Control[]): Params {
   const p: Params = {};
   for (const c of controls) if (c.kind !== 'action') p[c.id] = c.value;

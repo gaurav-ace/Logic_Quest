@@ -4,9 +4,17 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 ## Current phase
 
-Phase 5, System design (HLD): plan approved 2026-10-19 (all of 5.1–5.4). Building.
+Phase 5, System design (HLD): all of 5.1–5.4 built 2026-10-19, committed locally, not pushed. Not finished until the owner pushes, checks on the phone, and approves.
 
 Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19 without a line-by-line content review; the owner will report any content problems they find later). Live at https://gaurav-ace.github.io/Logic_Quest/.
+
+## Done (Phase 5), awaiting the owner's review
+
+- 5.1 Sim engine (`src/sim/`): seeded pure models, sliders, toggles, failure actions, live metrics, challenges with goals; every challenge proven winnable by its solution and not passable from its setup.
+- 5.2–5.4 Sixteen lessons: request journey, scaling, load balancing, caching, CDNs, SQL vs NoSQL, indexes, replication, sharding, consistent hashing, message queues, rate limiting, CAP, idempotency, URL shortener design, AI chat service design. Every one has a "what this simplifies" note and sources; no `TODO-VERIFY`.
+- Checks run: `npm run check` 513/513; browser `ui` 526/527 on the full 58 lessons (the one failure, graph notes clipped, was fixed and the 5 graph lessons rechecked 44/44), `sim` 24/24, `pwa` 7/7, `persist` 11/11.
+- Bug I shipped in 5.3 and found in 5.4: sharding notes were clipped at the right edge (visible in the screenshot I had reviewed). New unit and browser checks fail on the old code; they also caught a Phase 4 graph-note clip.
+- Sources: NGINX, MDN, RFC 9110, RFC 6585, Azure, AWS SQS, PostgreSQL docs, Stripe idempotency blog, Brewer (InfoQ 2012), Claude Platform docs; Gilbert & Lynch 2002 and Kleppmann's DDIA cited without links.
 
 ## Done (Phase 4)
 
@@ -51,7 +59,9 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 
 ## Next step
 
-Build Phase 5 tasks 5.1–5.4 (`docs/PHASE5_PLAN.md`), one commit per batch.
+1. Owner pushes (`git push origin main`) and checks the Phase 5 lessons on the phone.
+2. Owner approves Phase 5 (or reports content problems).
+3. Then the Phase 5b plan (low-level design).
 
 ## Blockers and questions for the owner
 
@@ -95,3 +105,4 @@ Build Phase 5 tasks 5.1–5.4 (`docs/PHASE5_PLAN.md`), one commit per batch.
 - 2026-10-19 (new session): the update fix (c477bde) was pushed and deployed (CI green). Owner approved Phases 3 and 4 and the Phase 5 plan.
 - 2026-10-19: Built Phase 5.1 (sim engine) and 5.2 (5 traffic lessons). Challenge goals were chosen from measured runs over 10–20 seeds; two first attempts ("uneven work" with 3 servers, and a stampede goal that allowed recovery) did not separate right from wrong settings and were redesigned.
 - 2026-10-19: Built Phase 5.3 (5 data lessons). A suite run of mine failed one export check because my launch command collapsed the leading \\ of a Windows path; it also left 112 screenshots in a stray D:\wsl.localhost folder, which I checked and removed. Runs now go through a launcher script without that quoting.
+- 2026-10-19: Built Phase 5.4 (6 lessons, 3 models, 1 trace). Found and fixed clipped diagram notes (sharding since 5.3, topological sort since Phase 4); proved the new checks fail on the old build via a temporary worktree at HEAD, then removed it.

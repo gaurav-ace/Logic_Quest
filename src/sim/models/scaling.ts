@@ -1,5 +1,5 @@
 import { copyFlow, killServer, newFlow, newServer, tick, trafficMetrics, type Flow, type Server } from '../requests';
-import type { Model, SimNode } from '../types';
+import { columnYs, type Model, type SimNode } from '../types';
 
 // S2 "Scaling up versus out": one bigger server, or more servers behind a balancer. A bigger
 // server handles more at once but is still one machine; more servers keep going when one dies.
@@ -85,7 +85,7 @@ export const scaling: Model<State> = {
   read: (st) => ({ ...trafficMetrics(st.flow), cost: st.flow.servers.length * st.flow.servers[0]!.slots / SLOTS_PER_SIZE }),
   view(st) {
     const servers = st.flow.servers;
-    const ys = [[100], [60, 140], [30, 100, 170], [22, 72, 122, 172]][servers.length - 1]!;
+    const ys = columnYs(servers.length);
     const nodes: SimNode[] = [
       { id: 'users', label: 'Users', x: 40, y: 100 },
       { id: 'lb', label: 'Balancer', x: 148, y: 100, width: 88 },

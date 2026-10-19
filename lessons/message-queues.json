@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "kind": "sim",
+  "id": "message-queues",
+  "title": "Message queues",
+  "track": "hld",
+  "level": "medium",
+  "objective": "Use a queue to absorb bursts and decouple producers from workers, and handle messages that keep failing.",
+  "model": "queues",
+  "requires": [
+    "scaling"
+  ],
+  "sources": [
+    {
+      "title": "AWS documentation: Amazon SQS dead-letter queues",
+      "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html"
+    },
+    {
+      "title": "Kleppmann, Designing Data-Intensive Applications (O'Reilly, 2017): message brokers and stream processing"
+    }
+  ],
+  "simplifies": "Each message takes 100 ms of work (illustrative); a poison message always fails; retries go to the back of the queue straight away. Real queues add visibility timeouts, delays between retries (backoff), ordering rules and delivering a message more than once, which is why workers should be idempotent.",
+  "challenges": [
+    {
+      "id": "absorb-burst",
+      "title": "Absorb a burst",
+      "prompt": "A burst triples traffic for 4 seconds, 3 seconds in. Keep rejections at 1% or less the whole time for 8 seconds.",
+      "predict": {
+        "prompt": "The queue holds only 20 messages. When the burst hits, what happens?",
+        "options": [
+          {
+            "text": "It fills up and new messages are rejected",
+            "explanation": "Right. Messages arrive faster than workers clear them, and a small queue overflows."
+          },
+          {
+            "text": "Workers speed up to match",
+            "explanation": "Workers have fixed speed; the queue is what absorbs the difference."
+          },
+          {
+            "text": "Nothing changes",
+            "explanation": "A burst three times the normal rate has to go somewhere."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "rate": 15,
+          "workers": 2,
+          "capacity": 20,
+          "poison": 0
+        },
+        "lock": [
+          "rate",
+          "workers",
+          "poison"
+        ],
+        "actions": [
+          {
+            "at": 3000,
+            "action": "burst"
+          }
+        ]
+      },
+      "goal": {
+        "metric": "rejectRate",
+        "op": "<=",
+        "value": 0.01,
+        "forSeconds": 8,
+        "fromStart": true
+      },
+      "hint": "The workers can catch up after the burst, if the messages have somewhere to wait.",
+      "explain": "A bigger queue holds the burst and lets the workers catch up afterwards. Nothing is rejected, but messages wait longer: watch the slowest 5% go up. A queue trades waiting for refusing.",
+      "solution": {
+        "capacity": 200
+      }
+    },
+    {
+      "id": "keep-up",
+      "title": "Keep up",
+      "prompt": "30 messages a second arrive steadily. Keep the slowest 5% of waits at 1 second or less for 10 seconds.",
+      "predict": {
+        "prompt": "Two workers can clear about 20 messages a second. With 30 arriving, what happens to the queue?",
+        "options": [
+          {
+            "text": "It grows and grows, and waits keep getting longer",
+            "explanation": "Right. A queue only buffers; if arrivals beat the workers for good, the backlog never shrinks."
+          },
+          {
+            "text": "It stays the same length",
+            "explanation": "Ten more arrive every second than leave."
+          },
+          {
+            "text": "It empties",
+            "explanation": "It can't empty while more arrive than leave."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "rate": 30,
+          "workers": 2,
+          "capacity": 300,
+          "poison": 0
+        },
+        "lock": [
+          "rate",
+          "capacity",
+          "poison"
+        ]
+      },
+      "goal": {
+        "metric": "waitP95",
+        "op": "<=",
+        "value": 1000,
+        "forSeconds": 10
+      },
+      "hint": "A queue can't fix too little capacity. What does?",
+      "explain": "More workers raise how fast messages leave. With four, the queue stays short and waits stay low.",
+      "solution": {
+        "workers": 4
+      }
+    },
+    {
+      "id": "poison",
+      "title": "Poison messages",
+      "prompt": "8% of messages always fail, and failures are retried. Keep the slowest 5% of waits at 1 second or less for 10 seconds.",
+      "setup": {
+        "params": {
+          "rate": 15,
+          "workers": 3,
+          "capacity": 300,
+          "poison": 8,
+          "retries": true,
+          "dlq": false
+        },
+        "lock": [
+          "rate",
+          "workers",
+          "poison",
+          "capacity"
+        ]
+      },
+      "goal": {
+        "metric": "waitP95",
+        "op": "<=",
+        "value": 1000,
+        "forSeconds": 10
+      },
+      "hint": "Retrying forever means the same broken messages keep coming back. Where could they go after a few tries?",
+      "explain": "After 3 failed tries, a dead-letter queue sets the message aside for a person to look at, so workers stop spending their time on it and the queue drains.",
+      "solution": {
+        "dlq": true
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "What does a queue between producers and workers give you?",
+      "options": [
+        {
+          "text": "Producers don't wait for workers, and bursts are smoothed out",
+          "explanation": "Right. It decouples the two sides, as long as on average the workers keep up."
+        },
+        {
+          "text": "Faster processing per message",
+          "explanation": "Each message takes just as long; the queue changes when it is processed."
+        },
+        {
+          "text": "Messages are never lost",
+          "explanation": "Queues can still reject when full, and failures need handling."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "What is a dead-letter queue for?",
+      "options": [
+        {
+          "text": "Messages that keep failing, so they stop blocking the rest",
+          "explanation": "Right. They wait aside for inspection instead of being retried forever."
+        },
+        {
+          "text": "Messages that were processed",
+          "explanation": "Successful messages are simply removed."
+        },
+        {
+          "text": "Speeding up workers",
+          "explanation": "It frees workers from hopeless retries, but doesn't make them faster."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

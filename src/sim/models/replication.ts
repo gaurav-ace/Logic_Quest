@@ -174,7 +174,7 @@ export const replication: Model<ReplState> = {
     };
   },
   view(st) {
-    const pos: Record<string, [number, number]> = { A: [230, 40], B: [150, 165], C: [262, 165] };
+    const pos: Record<string, [number, number]> = { A: [230, 40], B: [150, 165], C: [256, 165] };
     const nodes: SimNode[] = [
       { id: 'app', label: 'App', x: 40, y: 100 },
       ...st.replicas.map((r): SimNode => ({

@@ -1,6 +1,6 @@
 # Phase 5 plan: System design (HLD)
 
-Status: approved 2026-10-19 (all of 5.1–5.4).
+Status: approved 2026-10-19 (all of 5.1–5.4). All four batches built 2026-10-19; awaiting the owner's review.
 
 **Goal (CLAUDE.md section 9):** load balancing, caching, databases, queues, replication, sharding and rate limiting, with sliders and failure injection.
 

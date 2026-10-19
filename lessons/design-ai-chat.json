@@ -1,0 +1,276 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "design-ai-chat",
+  "title": "Design: AI chat service",
+  "track": "hld",
+  "level": "hard",
+  "objective": "Design a chat service that calls a language model: limits, conversation history, streaming replies, and failure handling.",
+  "requires": [
+    "design-url-shortener",
+    "idempotency"
+  ],
+  "sources": [
+    {
+      "title": "Claude Platform docs: Streaming messages (server-sent events)",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/streaming"
+    },
+    {
+      "title": "Claude Platform docs: Context windows (the history sent with each turn has a limit)",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/context-windows"
+    },
+    {
+      "title": "Claude Platform docs: Rate limits (429 responses)",
+      "url": "https://platform.claude.com/docs/en/api/rate-limits"
+    },
+    {
+      "title": "MDN: Server-sent events",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events"
+    }
+  ],
+  "simplifies": "One model provider and one region. Real services also add safety filtering, prompt caching, usage billing, monitoring of quality and cost, and fallbacks to other models.",
+  "nodes": [
+    {
+      "id": "app",
+      "label": "App",
+      "x": 46,
+      "y": 100,
+      "width": 76
+    },
+    {
+      "id": "gw",
+      "label": "Gateway",
+      "x": 150,
+      "y": 100,
+      "width": 96
+    },
+    {
+      "id": "chat",
+      "label": "Chat service",
+      "x": 300,
+      "y": 100,
+      "width": 136
+    },
+    {
+      "id": "model",
+      "label": "Model API",
+      "x": 330,
+      "y": 30,
+      "width": 120
+    },
+    {
+      "id": "store",
+      "label": "History",
+      "x": 330,
+      "y": 170,
+      "width": 100
+    }
+  ],
+  "edges": [
+    [
+      "app",
+      "gw"
+    ],
+    [
+      "gw",
+      "chat"
+    ],
+    [
+      "chat",
+      "model"
+    ],
+    [
+      "chat",
+      "store"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "A user sends a message. The gateway checks who they are and applies a per-user rate limit: every model call costs money.",
+      "highlight": [
+        "gw"
+      ],
+      "path": [
+        [
+          "app",
+          "gw"
+        ]
+      ]
+    },
+    {
+      "caption": "The chat service loads the conversation history. The model only knows what is sent with each request, and that has a size limit (the context window), so long chats are trimmed or summarised.",
+      "highlight": [
+        "chat",
+        "store"
+      ],
+      "path": [
+        [
+          "gw",
+          "chat"
+        ],
+        [
+          "chat",
+          "store"
+        ],
+        [
+          "store",
+          "chat"
+        ]
+      ],
+      "predict": {
+        "prompt": "The model remembers nothing between requests. How does it know what was said earlier?",
+        "options": [
+          {
+            "text": "The service sends the relevant history with every request",
+            "explanation": "Right. The history travels with each request, within the context window's limit."
+          },
+          {
+            "text": "The model stores every chat itself",
+            "explanation": "Each request stands alone; the service supplies the history."
+          },
+          {
+            "text": "It doesn't need to know",
+            "explanation": "Without the history, it can't follow the conversation."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "The service calls the model API with streaming on, so text arrives piece by piece (server-sent events) instead of all at the end.",
+      "highlight": [
+        "model"
+      ],
+      "path": [
+        [
+          "chat",
+          "model"
+        ]
+      ],
+      "predict": {
+        "prompt": "A full reply takes 10 seconds to generate. Why stream it?",
+        "options": [
+          {
+            "text": "The user sees words appear within moments, instead of waiting 10 seconds for nothing",
+            "explanation": "Right. The total time is similar, but the wait feels far shorter."
+          },
+          {
+            "text": "Streaming makes the model generate faster",
+            "explanation": "Generation speed is the same; only delivery changes."
+          },
+          {
+            "text": "Streaming costs less",
+            "explanation": "Cost depends on tokens, not on streaming."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "The service relays the stream to the app as it arrives.",
+      "highlight": [
+        "chat",
+        "app"
+      ],
+      "path": [
+        [
+          "model",
+          "chat"
+        ],
+        [
+          "chat",
+          "gw"
+        ],
+        [
+          "gw",
+          "app"
+        ]
+      ]
+    },
+    {
+      "caption": "When the reply is complete, it is saved to history with a message id, so a retried request can't save it twice.",
+      "highlight": [
+        "store"
+      ],
+      "path": [
+        [
+          "chat",
+          "store"
+        ]
+      ]
+    },
+    {
+      "caption": "Failures: the model API can answer 429 (rate limited) or be slow. Retry with backoff, set a timeout, and show a clear message rather than spinning forever.",
+      "highlight": [
+        "model",
+        "chat"
+      ],
+      "path": [
+        [
+          "chat",
+          "model"
+        ],
+        [
+          "model",
+          "chat"
+        ]
+      ],
+      "predict": {
+        "prompt": "The model API returns 429 Too Many Requests. What should the chat service do?",
+        "options": [
+          {
+            "text": "Wait, then retry with backoff, and tell the user if it still can't",
+            "explanation": "Right. Retrying instantly in a loop makes the overload worse."
+          },
+          {
+            "text": "Retry immediately until it works",
+            "explanation": "That hammers a service that has asked you to slow down."
+          },
+          {
+            "text": "Return an empty reply",
+            "explanation": "The user deserves a clear message instead of silence."
+          }
+        ],
+        "answer": 0
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Why is a per-user rate limit especially important for an AI chat service?",
+      "options": [
+        {
+          "text": "Each request costs real money and capacity, so one user (or a bug) could run up huge costs",
+          "explanation": "Right. Limits protect both the budget and other users."
+        },
+        {
+          "text": "Models can only answer one user at a time",
+          "explanation": "They serve many at once; the limit is about cost and fairness."
+        },
+        {
+          "text": "It makes replies more accurate",
+          "explanation": "Accuracy is unrelated."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "A conversation has grown past the model's context window. What does the service do?",
+      "options": [
+        {
+          "text": "Trim or summarise older history so the request fits",
+          "explanation": "Right. Only what fits in the window can be sent."
+        },
+        {
+          "text": "Send it all anyway",
+          "explanation": "The request would be rejected or cut off."
+        },
+        {
+          "text": "Start a new conversation without telling the user",
+          "explanation": "Silently losing context surprises users; trimming or summarising keeps the gist."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

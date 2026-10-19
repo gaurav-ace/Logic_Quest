@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "kind": "sim",
+  "id": "idempotency",
+  "title": "Idempotency and retries",
+  "track": "hld",
+  "level": "medium",
+  "objective": "Make \"try again\" safe: retry when replies get lost, without charging anyone twice.",
+  "model": "payments",
+  "requires": [
+    "message-queues"
+  ],
+  "sources": [
+    {
+      "title": "Stripe: Designing robust and predictable APIs with idempotency",
+      "url": "https://stripe.com/blog/idempotency"
+    }
+  ],
+  "simplifies": "The server always succeeds; only replies get lost (20% here, illustrative), and the client retries after 400 ms up to 4 times, with no delay growing between tries. Real clients add exponential backoff with jitter, and servers keep idempotency keys only for a limited time.",
+  "challenges": [
+    {
+      "id": "dont-give-up",
+      "title": "Don't give up",
+      "prompt": "20% of replies are lost on the way back. Keep the payments users see failing at 1% or less for 10 seconds.",
+      "predict": {
+        "prompt": "The payment went through, but its reply was lost. What does the app see?",
+        "options": [
+          {
+            "text": "A timeout: it can't tell whether the payment happened",
+            "explanation": "Right. A lost reply looks exactly like a failure from the outside."
+          },
+          {
+            "text": "A success message",
+            "explanation": "The success message is the reply that was lost."
+          },
+          {
+            "text": "A clear 'payment failed'",
+            "explanation": "Nothing says it failed; the app just hears nothing."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "lost": 20,
+          "retry": false,
+          "idempotency": false,
+          "rate": 10
+        },
+        "lock": [
+          "lost",
+          "rate"
+        ]
+      },
+      "goal": {
+        "metric": "failRate",
+        "op": "<=",
+        "value": 0.01,
+        "forSeconds": 10
+      },
+      "hint": "When the app hears nothing, what could it do instead of giving up?",
+      "explain": "Retrying on timeout fixes what users see. But look at \"Double charges\": some of those payments had already gone through, and the retry charged them again.",
+      "solution": {
+        "retry": true
+      }
+    },
+    {
+      "id": "no-double-charge",
+      "title": "Never charge twice",
+      "prompt": "Retries are on. Keep double charges at zero the whole time for 10 seconds.",
+      "predict": {
+        "prompt": "A retry reaches the server for a payment it already processed. Without an idempotency key, what happens?",
+        "options": [
+          {
+            "text": "It is charged again",
+            "explanation": "Right. The server can't tell a retry from a brand-new payment."
+          },
+          {
+            "text": "The server ignores it",
+            "explanation": "It has no way to know it is a repeat."
+          },
+          {
+            "text": "The first charge is refunded",
+            "explanation": "Nothing undoes the first one."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "lost": 20,
+          "retry": true,
+          "idempotency": false,
+          "rate": 10
+        },
+        "lock": [
+          "lost",
+          "rate",
+          "retry"
+        ]
+      },
+      "goal": {
+        "metric": "doubles",
+        "op": "<=",
+        "value": 0,
+        "forSeconds": 10,
+        "fromStart": true
+      },
+      "hint": "What if every try of the same payment carried the same unique key?",
+      "explain": "With an idempotency key, the server remembers keys it has processed and returns the first result for a repeat instead of charging again. Retries become safe.",
+      "solution": {
+        "idempotency": true
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "What makes an operation idempotent?",
+      "options": [
+        {
+          "text": "Doing it twice has the same effect as doing it once",
+          "explanation": "Right. Then a retry can't cause harm."
+        },
+        {
+          "text": "It is very fast",
+          "explanation": "Speed is unrelated."
+        },
+        {
+          "text": "It never fails",
+          "explanation": "It can fail; what matters is that repeating it is safe."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Which request is naturally idempotent?",
+      "options": [
+        {
+          "text": "Set my email address to x@example.com",
+          "explanation": "Right. Setting it twice leaves the same result."
+        },
+        {
+          "text": "Add 100 to my balance",
+          "explanation": "Doing it twice adds 200."
+        },
+        {
+          "text": "Send a new message",
+          "explanation": "Each try sends another message unless it carries a key."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

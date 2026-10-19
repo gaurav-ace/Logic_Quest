@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "design-url-shortener",
+  "title": "Design: URL shortener",
+  "track": "hld",
+  "level": "hard",
+  "objective": "Design a URL shortener end to end: requirements, a rough estimate, the API, short codes, storage, caching and redirects.",
+  "requires": [
+    "indexes",
+    "caching-sim",
+    "rate-limiting"
+  ],
+  "sources": [
+    {
+      "title": "IETF RFC 9110 (HTTP Semantics), sections 15.4.2 and 15.4.3: 301 is heuristically cacheable; 302 Found is temporary",
+      "url": "https://www.rfc-editor.org/rfc/rfc9110"
+    },
+    {
+      "title": "MDN: Redirections in HTTP",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Redirections"
+    }
+  ],
+  "simplifies": "One region and one database. All numbers are illustrative. Real services also need abuse checks on submitted URLs, custom aliases, link expiry, analytics pipelines and replication across regions.",
+  "nodes": [
+    {
+      "id": "user",
+      "label": "User",
+      "x": 50,
+      "y": 100,
+      "width": 84
+    },
+    {
+      "id": "api",
+      "label": "Service",
+      "x": 170,
+      "y": 100,
+      "width": 96
+    },
+    {
+      "id": "cache",
+      "label": "Cache",
+      "x": 330,
+      "y": 38,
+      "width": 90
+    },
+    {
+      "id": "db",
+      "label": "Database",
+      "x": 330,
+      "y": 162,
+      "width": 110
+    }
+  ],
+  "edges": [
+    [
+      "user",
+      "api"
+    ],
+    [
+      "api",
+      "cache"
+    ],
+    [
+      "api",
+      "db"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "Requirements: turn a long URL into a short code; visiting the short link redirects. Links are created rarely and visited often: reads far outnumber writes.",
+      "highlight": [
+        "user"
+      ],
+      "path": []
+    },
+    {
+      "caption": "Estimate (illustrative): 10 million new links a month × about 500 bytes each ≈ 5 GB a month. Storage is easy; the real work is fast redirects.",
+      "highlight": [
+        "db"
+      ],
+      "path": []
+    },
+    {
+      "caption": "API: POST /links with the long URL returns a code; GET /{code} answers with a redirect to the long URL.",
+      "highlight": [
+        "api"
+      ],
+      "path": [
+        [
+          "user",
+          "api"
+        ],
+        [
+          "api",
+          "user"
+        ]
+      ]
+    },
+    {
+      "caption": "Short codes: take the next number from a counter and write it in base 62 (0–9, a–z, A–Z). Seven characters give 62⁷, about 3.5 trillion codes, with no collisions to check.",
+      "highlight": [
+        "api"
+      ],
+      "path": [],
+      "predict": {
+        "prompt": "How many different 7-character codes can base 62 make?",
+        "options": [
+          {
+            "text": "About 3.5 trillion (62⁷)",
+            "explanation": "Right. 62 choices for each of 7 places: 62 × 62 × … seven times."
+          },
+          {
+            "text": "434 (62 × 7)",
+            "explanation": "That adds the places instead of multiplying the choices."
+          },
+          {
+            "text": "About 10 million",
+            "explanation": "That is far too few; it would run out within a few months at our estimate."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Storage: a lookup by code is the only hot query, so a key-value table (code → long URL, keyed on code) fits.",
+      "highlight": [
+        "db"
+      ],
+      "path": [
+        [
+          "api",
+          "db"
+        ]
+      ]
+    },
+    {
+      "caption": "Caching: popular links are visited constantly, so keep them in a cache. Most redirects never touch the database.",
+      "highlight": [
+        "cache"
+      ],
+      "path": [
+        [
+          "api",
+          "cache"
+        ],
+        [
+          "cache",
+          "api"
+        ]
+      ],
+      "predict": {
+        "prompt": "Reads far outnumber writes, and a few links are very popular. Where should most redirects be answered?",
+        "options": [
+          {
+            "text": "From a cache in front of the database",
+            "explanation": "Right. Hot links stay in the cache, so the database sees few reads."
+          },
+          {
+            "text": "Always from the database",
+            "explanation": "It works, but every visit pays for a database read."
+          },
+          {
+            "text": "From the user's browser only",
+            "explanation": "Browsers may cache some redirects, but the service still has to answer first visits."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Redirect status: 301 means moved permanently, and HTTP allows caching it, so later visits may skip your service. 302 is temporary, so visits come back through you and can be counted.",
+      "highlight": [
+        "api",
+        "user"
+      ],
+      "path": [
+        [
+          "api",
+          "user"
+        ]
+      ],
+      "predict": {
+        "prompt": "You want to count every click. Which redirect should the service send?",
+        "options": [
+          {
+            "text": "302 Found (temporary)",
+            "explanation": "Right. Visits keep coming back through the service, where they can be counted."
+          },
+          {
+            "text": "301 Moved Permanently",
+            "explanation": "A 301 can be cached, so repeat visits may never reach your service to be counted."
+          },
+          {
+            "text": "200 OK with the long URL in the page",
+            "explanation": "That shows a page instead of redirecting."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Failure modes: if the database is down, the cache still answers hot links; rate-limit link creation so spammers can't flood the service.",
+      "highlight": [
+        "cache",
+        "api"
+      ],
+      "path": []
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Why use a counter (in base 62) rather than random codes?",
+      "options": [
+        {
+          "text": "Every code is unique, so there is nothing to check for collisions",
+          "explanation": "Right. The trade-off: sequential codes are guessable, which matters if links should be private."
+        },
+        {
+          "text": "Counters make codes shorter than any other method",
+          "explanation": "Length depends on how many codes you need, not the method."
+        },
+        {
+          "text": "Random codes can't be stored",
+          "explanation": "They can; they just need a collision check."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "The service is slow, and 95% of traffic is redirects for 1% of links. Best first step?",
+      "options": [
+        {
+          "text": "Cache the popular links",
+          "explanation": "Right. That answers most traffic without touching the database."
+        },
+        {
+          "text": "Buy a bigger database",
+          "explanation": "Possible, but caching attacks the actual pattern more cheaply."
+        },
+        {
+          "text": "Make the codes longer",
+          "explanation": "Code length doesn't affect redirect speed."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

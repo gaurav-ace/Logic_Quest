@@ -74,6 +74,12 @@ describe('lesson catalog', () => {
       'replication',
       'sharding',
       'consistent-hashing',
+      'message-queues',
+      'rate-limiting',
+      'cap-consistency',
+      'idempotency',
+      'design-url-shortener',
+      'design-ai-chat',
       'agent-loop',
     ]);
   });
