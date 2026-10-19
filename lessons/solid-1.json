@@ -1,0 +1,470 @@
+{
+  "schemaVersion": 1,
+  "kind": "design",
+  "id": "solid-1",
+  "title": "SOLID, part 1",
+  "track": "lld",
+  "level": "medium",
+  "objective": "Use three design checks: one reason to change, adding features without editing working code, and subtypes that keep their parent's promises.",
+  "requires": [
+    "composition-inheritance"
+  ],
+  "sources": [
+    {
+      "title": "Robert C. Martin, Solid Relevance (Clean Coder Blog, 2020): one-line definitions of all five SOLID principles",
+      "url": "https://blog.cleancoder.com/uncle-bob/2020/10/18/Solid-Relevance.html"
+    },
+    {
+      "title": "Robert C. Martin, The Open Closed Principle (Clean Coder Blog, 2014), crediting Bertrand Meyer (1988)",
+      "url": "https://blog.cleancoder.com/uncle-bob/2014/05/12/TheOpenClosedPrinciple.html"
+    },
+    {
+      "title": "Barbara Liskov and Jeannette Wing, A behavioral notion of subtyping (ACM Transactions on Programming Languages and Systems 16(6), 1994)"
+    }
+  ],
+  "simplifies": "SOLID principles are guidelines for code that will change, not laws. A small script with one shape doesn't need an interface; apply them where change actually happens.",
+  "diagrams": {
+    "report": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "report",
+          "name": "Report",
+          "col": "both",
+          "row": 0,
+          "methods": [
+            "compute()",
+            "to_pdf()",
+            "email()"
+          ]
+        }
+      ],
+      "relations": []
+    },
+    "shapes-if": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "calc",
+          "name": "AreaCalc",
+          "col": "both",
+          "row": 0,
+          "methods": [
+            "area(shape)"
+          ]
+        }
+      ],
+      "relations": []
+    },
+    "shapes": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "calc",
+          "name": "AreaCalc",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "area(shape)"
+          ]
+        },
+        {
+          "id": "shape",
+          "name": "Shape",
+          "col": 1,
+          "row": 0,
+          "kind": "interface",
+          "methods": [
+            "area()"
+          ]
+        },
+        {
+          "id": "circle",
+          "name": "Circle",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "area()"
+          ]
+        },
+        {
+          "id": "square",
+          "name": "Square",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "area()"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "calc",
+          "to": "shape",
+          "type": "uses"
+        },
+        {
+          "from": "circle",
+          "to": "shape",
+          "type": "implements"
+        },
+        {
+          "from": "square",
+          "to": "shape",
+          "type": "implements"
+        }
+      ]
+    },
+    "rect": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "rect",
+          "name": "Rectangle",
+          "col": "both",
+          "row": 0,
+          "methods": [
+            "set_width(w)",
+            "set_height(h)",
+            "area()"
+          ]
+        },
+        {
+          "id": "sq",
+          "name": "Square",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "set_height(h)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "sq",
+          "to": "rect",
+          "type": "inherits"
+        }
+      ]
+    },
+    "birds": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "aviary",
+          "name": "Aviary",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "exercise()"
+          ]
+        },
+        {
+          "id": "tour",
+          "name": "Tour",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "show()"
+          ]
+        },
+        {
+          "id": "bird",
+          "name": "Bird",
+          "col": "both",
+          "row": 1,
+          "kind": "abstract",
+          "methods": [
+            "fly()"
+          ]
+        },
+        {
+          "id": "sparrow",
+          "name": "Sparrow",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "fly()"
+          ]
+        },
+        {
+          "id": "penguin",
+          "name": "Penguin",
+          "col": 1,
+          "row": 2,
+          "methods": [
+            "fly(): error!"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "aviary",
+          "to": "bird",
+          "type": "uses"
+        },
+        {
+          "from": "tour",
+          "to": "bird",
+          "type": "uses"
+        },
+        {
+          "from": "sparrow",
+          "to": "bird",
+          "type": "inherits"
+        },
+        {
+          "from": "penguin",
+          "to": "bird",
+          "type": "inherits"
+        }
+      ]
+    },
+    "flyers": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "aviary",
+          "name": "Aviary",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "exercise()"
+          ]
+        },
+        {
+          "id": "tour",
+          "name": "Tour",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "show()"
+          ]
+        },
+        {
+          "id": "flyer",
+          "name": "Flyer",
+          "col": 0,
+          "row": 1,
+          "kind": "interface",
+          "methods": [
+            "fly()"
+          ]
+        },
+        {
+          "id": "bird",
+          "name": "Bird",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "eat()"
+          ]
+        },
+        {
+          "id": "sparrow",
+          "name": "Sparrow",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "fly()"
+          ]
+        },
+        {
+          "id": "penguin",
+          "name": "Penguin",
+          "col": 1,
+          "row": 2,
+          "methods": [
+            "swim()"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "aviary",
+          "to": "flyer",
+          "type": "uses"
+        },
+        {
+          "from": "tour",
+          "to": "flyer",
+          "type": "uses"
+        },
+        {
+          "from": "sparrow",
+          "to": "flyer",
+          "type": "implements"
+        },
+        {
+          "from": "sparrow",
+          "to": "bird",
+          "type": "inherits"
+        },
+        {
+          "from": "penguin",
+          "to": "bird",
+          "type": "inherits"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "caption": "S, single responsibility: \"Gather together the things that change for the same reasons.\" This Report computes figures, lays out a PDF and emails it: three reasons to change.",
+      "diagram": "report",
+      "highlight": [
+        "report"
+      ]
+    },
+    {
+      "caption": "O, open/closed: \"open for extension but closed for modification\". AreaCalc breaks it: every new shape edits its if-chain.",
+      "diagram": "shapes-if",
+      "highlight": [
+        "calc"
+      ],
+      "code": [
+        "def area(shape):",
+        "    if shape.kind == 'circle':",
+        "        return 3.14 * shape.r ** 2",
+        "    if shape.kind == 'square':",
+        "        return shape.side ** 2"
+      ]
+    },
+    {
+      "caption": "Give each shape its own area() behind a Shape interface. A triangle is now a new class; AreaCalc never changes.",
+      "diagram": "shapes",
+      "highlight": [
+        "shape",
+        "circle",
+        "square"
+      ],
+      "predict": {
+        "prompt": "With the Shape interface, what does adding a triangle change?",
+        "options": [
+          {
+            "text": "Nothing that exists: you add a Triangle class",
+            "explanation": "Right. Open for extension (a new class), closed for modification (AreaCalc stays as it is)."
+          },
+          {
+            "text": "AreaCalc gets a triangle branch",
+            "explanation": "AreaCalc just calls shape.area(); it has no branches any more."
+          },
+          {
+            "text": "Every shape class",
+            "explanation": "Circle and Square don't know about triangles."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "L, Liskov substitution: \"A program that uses an interface must not be confused by an implementation of that interface.\" Square inherits Rectangle, and setting its height also sets its width.",
+      "diagram": "rect",
+      "highlight": [
+        "sq"
+      ],
+      "code": [
+        "def stretch(r):",
+        "    r.set_width(4)",
+        "    r.set_height(5)",
+        "    assert r.area() == 20"
+      ]
+    },
+    {
+      "caption": "Code written for rectangles is now confused by a Square. Square and Rectangle should both implement Shape rather than one inheriting the other.",
+      "diagram": "rect",
+      "highlight": [
+        "rect",
+        "sq"
+      ],
+      "predict": {
+        "prompt": "You pass a Square to stretch(). What happens?",
+        "options": [
+          {
+            "text": "The assert fails: the area is 25",
+            "explanation": "Right. set_height(5) also set the width to 5. Square broke Rectangle's promise that width and height change separately."
+          },
+          {
+            "text": "It passes: the area is 20",
+            "explanation": "For a Rectangle, yes. Square keeps its sides equal, so the width became 5 too."
+          },
+          {
+            "text": "Python refuses to pass a Square",
+            "explanation": "A Square is a Rectangle subclass, so Python accepts it."
+          }
+        ],
+        "answer": 0
+      }
+    }
+  ],
+  "exercise": {
+    "change": "Add an Ostrich to the bird park (it can't fly either).",
+    "flawed": "birds",
+    "fixed": "flyers",
+    "edits": {
+      "flawed": [
+        "aviary",
+        "tour"
+      ],
+      "fixed": []
+    },
+    "hint": "Penguin's fly() raises an error. What did Aviary and Tour have to add so they don't crash?",
+    "fix": {
+      "prompt": "How should the design change?",
+      "options": [
+        {
+          "text": "Split flying into a Flyer interface; only birds that fly implement it, and Aviary and Tour ask for Flyers",
+          "explanation": "Right. No bird promises something it can't do, so callers need no special cases."
+        },
+        {
+          "text": "Make Penguin.fly() quietly do nothing",
+          "explanation": "Callers then believe it flew. A silent wrong answer still breaks the promise."
+        },
+        {
+          "text": "Add an isinstance check for Ostrich too",
+          "explanation": "That's exactly the edit to avoid: every new non-flyer repeats it in every caller."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Aviary and Tour no longer check for penguins: they only receive Flyers, and every Flyer can fly. Ostrich is a Bird that isn't a Flyer, so adding it changes nothing that exists."
+  },
+  "quiz": [
+    {
+      "prompt": "Open/closed means…",
+      "options": [
+        {
+          "text": "You can add behaviour by adding code, without editing code that already works",
+          "explanation": "Right. New shapes, new payment kinds and so on arrive as new classes."
+        },
+        {
+          "text": "Classes must never change",
+          "explanation": "Bugs still get fixed; the principle is about adding features."
+        },
+        {
+          "text": "Files should be read-only",
+          "explanation": "It's about design, not file permissions."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Square inherits Rectangle, and set_height() also changes the width. Which principle breaks?",
+      "options": [
+        {
+          "text": "Liskov substitution: code written for Rectangle is surprised by a Square",
+          "explanation": "Right. A subtype must keep its parent's promises."
+        },
+        {
+          "text": "Single responsibility",
+          "explanation": "Square has one job; the trouble is the broken promise."
+        },
+        {
+          "text": "Open/closed",
+          "explanation": "Nothing here forces edits to working code; the subtype misbehaves."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

@@ -1,0 +1,536 @@
+{
+  "schemaVersion": 1,
+  "kind": "design",
+  "id": "solid-2",
+  "title": "SOLID, part 2",
+  "track": "lld",
+  "level": "medium",
+  "objective": "Keep interfaces small, and make high-level code depend on abstractions rather than on low-level details.",
+  "requires": [
+    "solid-1"
+  ],
+  "sources": [
+    {
+      "title": "Robert C. Martin, Solid Relevance (Clean Coder Blog, 2020): one-line definitions of all five SOLID principles",
+      "url": "https://blog.cleancoder.com/uncle-bob/2020/10/18/Solid-Relevance.html"
+    },
+    {
+      "title": "Python docs: abc, Abstract Base Classes",
+      "url": "https://docs.python.org/3/library/abc.html"
+    }
+  ],
+  "simplifies": "Passing dependencies in (\"dependency injection\") is shown by hand here; frameworks can do the wiring, but the idea is the same. Not every class needs an interface: add one where you need to swap or fake the dependency.",
+  "diagrams": {
+    "fat": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "machine",
+          "name": "Machine",
+          "col": "both",
+          "row": 0,
+          "kind": "interface",
+          "methods": [
+            "print(doc)",
+            "scan()",
+            "fax(number)"
+          ]
+        },
+        {
+          "id": "basic",
+          "name": "BasicPrinter",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "scan(): error!"
+          ]
+        },
+        {
+          "id": "office",
+          "name": "OfficeBox",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "print(doc)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "basic",
+          "to": "machine",
+          "type": "implements"
+        },
+        {
+          "from": "office",
+          "to": "machine",
+          "type": "implements"
+        }
+      ]
+    },
+    "split": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "printer",
+          "name": "Printer",
+          "col": 0,
+          "row": 0,
+          "kind": "interface",
+          "methods": [
+            "print(doc)"
+          ]
+        },
+        {
+          "id": "scanner",
+          "name": "Scanner",
+          "col": 1,
+          "row": 0,
+          "kind": "interface",
+          "methods": [
+            "scan()"
+          ]
+        },
+        {
+          "id": "basic",
+          "name": "BasicPrinter",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "print(doc)"
+          ]
+        },
+        {
+          "id": "office",
+          "name": "OfficeBox",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "print(doc)",
+            "scan()"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "basic",
+          "to": "printer",
+          "type": "implements"
+        },
+        {
+          "from": "office",
+          "to": "scanner",
+          "type": "implements"
+        },
+        {
+          "from": "office",
+          "to": "printer",
+          "type": "implements"
+        }
+      ]
+    },
+    "concrete": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "service",
+          "name": "OrderService",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "place(order)"
+          ]
+        },
+        {
+          "id": "mysql",
+          "name": "MySqlDb",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "insert(row)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "service",
+          "to": "mysql",
+          "type": "uses"
+        }
+      ]
+    },
+    "inverted": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "service",
+          "name": "OrderService",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "place(order)"
+          ]
+        },
+        {
+          "id": "store",
+          "name": "OrderStore",
+          "col": 1,
+          "row": 0,
+          "kind": "interface",
+          "methods": [
+            "save(order)"
+          ]
+        },
+        {
+          "id": "fake",
+          "name": "FakeStore",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "save(order)"
+          ]
+        },
+        {
+          "id": "mystore",
+          "name": "MySqlStore",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "save(order)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "service",
+          "to": "store",
+          "type": "uses"
+        },
+        {
+          "from": "fake",
+          "to": "store",
+          "type": "implements"
+        },
+        {
+          "from": "mystore",
+          "to": "store",
+          "type": "implements"
+        }
+      ]
+    },
+    "direct": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "orders",
+          "name": "OrderService",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "place(order)"
+          ]
+        },
+        {
+          "id": "refunds",
+          "name": "RefundService",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "refund(id)"
+          ]
+        },
+        {
+          "id": "mysql",
+          "name": "MySqlDb",
+          "col": "both",
+          "row": 1,
+          "methods": [
+            "insert(row)",
+            "select(sql)"
+          ]
+        },
+        {
+          "id": "report",
+          "name": "ReportJob",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "run()"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "orders",
+          "to": "mysql",
+          "type": "uses"
+        },
+        {
+          "from": "refunds",
+          "to": "mysql",
+          "type": "uses"
+        },
+        {
+          "from": "report",
+          "to": "mysql",
+          "type": "uses"
+        }
+      ]
+    },
+    "wired": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "orders",
+          "name": "OrderService",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "place(order)"
+          ]
+        },
+        {
+          "id": "refunds",
+          "name": "RefundService",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "refund(id)"
+          ]
+        },
+        {
+          "id": "store",
+          "name": "OrderStore",
+          "col": "both",
+          "row": 1,
+          "kind": "interface",
+          "methods": [
+            "save(order)",
+            "find(id)"
+          ]
+        },
+        {
+          "id": "report",
+          "name": "ReportJob",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "run()"
+          ]
+        },
+        {
+          "id": "mystore",
+          "name": "MySqlStore",
+          "col": 1,
+          "row": 2,
+          "methods": [
+            "save(order)"
+          ]
+        },
+        {
+          "id": "main",
+          "name": "Main",
+          "col": 1,
+          "row": 3,
+          "methods": [
+            "build()"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "orders",
+          "to": "store",
+          "type": "uses"
+        },
+        {
+          "from": "refunds",
+          "to": "store",
+          "type": "uses"
+        },
+        {
+          "from": "report",
+          "to": "store",
+          "type": "uses"
+        },
+        {
+          "from": "mystore",
+          "to": "store",
+          "type": "implements"
+        },
+        {
+          "from": "main",
+          "to": "mystore",
+          "type": "uses"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "caption": "I, interface segregation: \"Keep interfaces small so that users don't end up depending on things they don't need.\" This Machine interface asks every device to print, scan and fax.",
+      "diagram": "fat",
+      "highlight": [
+        "machine"
+      ]
+    },
+    {
+      "caption": "A basic printer must still provide scan() and fax(), which just raise errors.",
+      "diagram": "fat",
+      "highlight": [
+        "basic"
+      ],
+      "predict": {
+        "prompt": "The fax() method changes its arguments. Which classes must be edited?",
+        "options": [
+          {
+            "text": "Every class that implements Machine, even printers that never fax",
+            "explanation": "Right. A fat interface ties every implementer to every method."
+          },
+          {
+            "text": "Only OfficeBox, which really faxes",
+            "explanation": "BasicPrinter also has a fax() (one that raises an error), so it must change to match."
+          },
+          {
+            "text": "None",
+            "explanation": "The interface changed, so its implementers must follow."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Split it: Printer and Scanner are small interfaces. BasicPrinter implements only Printer; OfficeBox implements both.",
+      "diagram": "split",
+      "highlight": [
+        "printer",
+        "scanner"
+      ]
+    },
+    {
+      "caption": "D, dependency inversion: \"High level modules should not depend upon low level details.\" OrderService builds its own MySqlDb inside.",
+      "diagram": "concrete",
+      "highlight": [
+        "service"
+      ],
+      "code": [
+        "class OrderService:",
+        "    def __init__(self):",
+        "        self.db = MySqlDb()"
+      ],
+      "predict": {
+        "prompt": "How would you unit-test OrderService without a real MySQL server?",
+        "options": [
+          {
+            "text": "You can't easily: it builds its own MySqlDb",
+            "explanation": "Right. The detail is wired in, so tests need the real database."
+          },
+          {
+            "text": "Mock the network card",
+            "explanation": "That is far harder than it should be, and fragile."
+          },
+          {
+            "text": "Tests don't need a database",
+            "explanation": "This class creates one whenever it starts, so a test can't avoid it."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Invert it: OrderService depends on an OrderStore interface, and the store is passed in. MySqlStore is one implementation; a FakeStore for tests is another.",
+      "diagram": "inverted",
+      "highlight": [
+        "store"
+      ],
+      "code": [
+        "class OrderService:",
+        "    def __init__(self, store):",
+        "        self.store = store",
+        "",
+        "OrderService(FakeStore())"
+      ]
+    },
+    {
+      "caption": "Now the arrows from the details (MySQL, the fake) point up at the abstraction. That reversal is the \"inversion\".",
+      "diagram": "inverted",
+      "highlight": [
+        "fake",
+        "mystore"
+      ]
+    }
+  ],
+  "exercise": {
+    "change": "Move orders from MySQL to PostgreSQL.",
+    "flawed": "direct",
+    "fixed": "wired",
+    "edits": {
+      "flawed": [
+        "orders",
+        "refunds",
+        "report"
+      ],
+      "fixed": [
+        "main"
+      ]
+    },
+    "hint": "Which classes create MySqlDb or call its MySQL-specific methods themselves?",
+    "fix": {
+      "prompt": "How should the design change?",
+      "options": [
+        {
+          "text": "Define an OrderStore interface the services use, implement it with MySqlStore, and choose the store in one place (Main)",
+          "explanation": "Right. The services never name a database, so switching is a new store class plus one line in Main."
+        },
+        {
+          "text": "Wrap MySqlDb in a global that every class imports",
+          "explanation": "The MySQL details still leak into every caller, and a global makes testing harder."
+        },
+        {
+          "text": "Make the services inherit from MySqlDb",
+          "explanation": "That ties them to MySQL even more tightly."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "OrderService, RefundService and ReportJob only know OrderStore. Moving to PostgreSQL means writing a PgStore that implements it, and changing the one line in Main that picks the store."
+  },
+  "quiz": [
+    {
+      "prompt": "A class implements an interface but leaves three methods raising NotImplementedError. What does that hint at?",
+      "options": [
+        {
+          "text": "Interface segregation: the interface is too big for this class",
+          "explanation": "Right. Split it so each class implements only what it can really do."
+        },
+        {
+          "text": "Single responsibility",
+          "explanation": "The class may have one job; the trouble is the interface asking for more."
+        },
+        {
+          "text": "Open/closed",
+          "explanation": "Nothing here is about adding features without edits."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why does passing a FakeStore into OrderService make testing easy?",
+      "options": [
+        {
+          "text": "The test runs the real service logic with an in-memory store: no database, fast and repeatable",
+          "explanation": "Right. Depending on an abstraction lets you swap the detail."
+        },
+        {
+          "text": "FakeStore makes production faster",
+          "explanation": "It's only used in tests."
+        },
+        {
+          "text": "It skips the service logic",
+          "explanation": "The service logic runs as usual; only the storage is fake."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

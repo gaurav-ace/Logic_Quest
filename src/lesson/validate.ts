@@ -205,7 +205,8 @@ function checkDesign(data: Obj, bad: Bad): void {
       continue;
     }
     const list = edits[side];
-    if (!isTextList(list) || !list.length) bad(`exercise.edits.${side}`, 'must list at least one class to edit');
+    // The fixed design may need no edits at all (the change is a new class): open for extension.
+    if (!isTextList(list) || (side === 'flawed' && !list.length)) bad(`exercise.edits.${side}`, side === 'flawed' ? 'must list at least one class to edit' : 'must be a list of classes (it may be empty)');
     else for (const id of list) if (!ids.has(id)) bad(`exercise.edits.${side}`, `unknown class "${id}" in the ${side} design`);
   }
   // The whole point of the exercise: the fixed design must make the same change smaller.

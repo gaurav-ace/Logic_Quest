@@ -156,7 +156,7 @@ export interface DesignExercise {
   /** Diagram keys (both class diagrams). */
   flawed: string;
   fixed: string;
-  /** Classes that must be edited for the change, in each design. */
+  /** Classes that must be edited for the change, in each design. The fixed list may be empty: only a new class is added. */
   edits: { flawed: string[]; fixed: string[] };
   /** Shown after a wrong set of taps. */
   hint: string;

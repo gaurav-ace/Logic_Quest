@@ -1,0 +1,405 @@
+{
+  "schemaVersion": 1,
+  "kind": "design",
+  "id": "encapsulation",
+  "title": "Encapsulation",
+  "track": "lld",
+  "level": "easy",
+  "objective": "Keep an object's data behind its methods, so the object can enforce its own rules.",
+  "requires": [
+    "objects-and-responsibilities"
+  ],
+  "sources": [
+    {
+      "title": "Python tutorial, Classes: Private Variables (the underscore convention)",
+      "url": "https://docs.python.org/3/tutorial/classes.html#private-variables"
+    },
+    {
+      "title": "Python docs: property() (keep attribute syntax but run code on access)",
+      "url": "https://docs.python.org/3/library/functions.html#property"
+    },
+    {
+      "title": "David L. Parnas, On the Criteria To Be Used in Decomposing Systems into Modules (Communications of the ACM 15(12), 1972): information hiding"
+    }
+  ],
+  "simplifies": "Python has no truly private fields; a leading underscore is a convention that says \"don't touch\", and property() can add checks while keeping attribute syntax. Real accounts also need locking when two withdrawals happen at once.",
+  "diagrams": {
+    "open": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "account",
+          "name": "Account",
+          "col": "both",
+          "row": 0,
+          "fields": [
+            "balance   (anyone can change it)"
+          ]
+        },
+        {
+          "id": "atm",
+          "name": "ATM",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "withdraw(x)"
+          ]
+        },
+        {
+          "id": "transfer",
+          "name": "Transfer",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "move(x)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "atm",
+          "to": "account",
+          "type": "uses"
+        },
+        {
+          "from": "transfer",
+          "to": "account",
+          "type": "uses"
+        }
+      ]
+    },
+    "closed": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "account",
+          "name": "Account",
+          "col": "both",
+          "row": 0,
+          "fields": [
+            "_balance   (private by convention)"
+          ],
+          "methods": [
+            "withdraw(x)",
+            "deposit(x)",
+            "balance()"
+          ]
+        },
+        {
+          "id": "atm",
+          "name": "ATM",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "withdraw(x)"
+          ]
+        },
+        {
+          "id": "transfer",
+          "name": "Transfer",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "move(x)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "atm",
+          "to": "account",
+          "type": "uses"
+        },
+        {
+          "from": "transfer",
+          "to": "account",
+          "type": "uses"
+        }
+      ]
+    },
+    "callers": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "atm",
+          "name": "ATM",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "withdraw(x)"
+          ]
+        },
+        {
+          "id": "transfer",
+          "name": "Transfer",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "move(x)"
+          ]
+        },
+        {
+          "id": "account",
+          "name": "Account",
+          "col": "both",
+          "row": 1,
+          "fields": [
+            "balance   (anyone can change it)"
+          ]
+        },
+        {
+          "id": "bills",
+          "name": "BillPay",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "pay(bill)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "atm",
+          "to": "account",
+          "type": "uses"
+        },
+        {
+          "from": "transfer",
+          "to": "account",
+          "type": "uses"
+        },
+        {
+          "from": "bills",
+          "to": "account",
+          "type": "uses"
+        }
+      ]
+    },
+    "guarded": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "atm",
+          "name": "ATM",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "withdraw(x)"
+          ]
+        },
+        {
+          "id": "transfer",
+          "name": "Transfer",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "move(x)"
+          ]
+        },
+        {
+          "id": "account",
+          "name": "Account",
+          "col": "both",
+          "row": 1,
+          "fields": [
+            "_balance"
+          ],
+          "methods": [
+            "withdraw(x)  (checks the rule)"
+          ]
+        },
+        {
+          "id": "bills",
+          "name": "BillPay",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "pay(bill)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "atm",
+          "to": "account",
+          "type": "uses"
+        },
+        {
+          "from": "transfer",
+          "to": "account",
+          "type": "uses"
+        },
+        {
+          "from": "bills",
+          "to": "account",
+          "type": "uses"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "caption": "An Account with a public balance. The ATM and transfers subtract from it directly.",
+      "diagram": "open",
+      "highlight": [
+        "account"
+      ],
+      "code": [
+        "acct.balance -= 500"
+      ]
+    },
+    {
+      "caption": "Nothing in Account stops the balance going below zero. Every caller has to remember to check first.",
+      "diagram": "open",
+      "highlight": [
+        "atm",
+        "transfer"
+      ],
+      "predict": {
+        "prompt": "The balance is ₹300 and the ATM runs acct.balance -= 500. What stops it?",
+        "options": [
+          {
+            "text": "Nothing: the balance becomes −₹200",
+            "explanation": "Right. The data is open, so the account can't protect its own rule."
+          },
+          {
+            "text": "Python raises an error",
+            "explanation": "Python happily stores a negative number."
+          },
+          {
+            "text": "The Account class refuses",
+            "explanation": "Account has no code that runs when balance changes, so it can't refuse."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Encapsulate: make the balance non-public (an underscore, by Python convention) and add withdraw(), which holds the rule.",
+      "diagram": "closed",
+      "highlight": [
+        "account"
+      ],
+      "code": [
+        "def withdraw(self, x):",
+        "    if x > self._balance:",
+        "        raise ValueError(",
+        "            'not enough money')",
+        "    self._balance -= x"
+      ]
+    },
+    {
+      "caption": "Callers now ask the account to act: acct.withdraw(500). The rule lives in one place, so no caller can forget it.",
+      "diagram": "closed",
+      "highlight": [
+        "atm",
+        "transfer"
+      ]
+    },
+    {
+      "caption": "The underscore is a promise, not a lock: the Python docs say _balance \"should be treated as a non-public part of the API\".",
+      "diagram": "closed",
+      "highlight": [
+        "account"
+      ],
+      "predict": {
+        "prompt": "Can code outside the class still read acct._balance?",
+        "options": [
+          {
+            "text": "Yes; the underscore is a convention that says \"don't\"",
+            "explanation": "Right. Python trusts programmers; the underscore marks it as an implementation detail that may change."
+          },
+          {
+            "text": "No, Python raises an error",
+            "explanation": "Only names with two leading underscores get renamed (name mangling), and even those can be reached."
+          },
+          {
+            "text": "Only code in the same file",
+            "explanation": "Python has no file-level privacy for attributes."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "The payoff: every change to the data goes through methods the class controls, so its rules hold however many callers it has.",
+      "diagram": "closed",
+      "highlight": [
+        "account"
+      ]
+    }
+  ],
+  "exercise": {
+    "change": "Accounts may now go down to −₹1,000 (an overdraft).",
+    "flawed": "callers",
+    "fixed": "guarded",
+    "edits": {
+      "flawed": [
+        "atm",
+        "transfer",
+        "bills"
+      ],
+      "fixed": [
+        "account"
+      ]
+    },
+    "hint": "Where does the \"never below zero\" check live in this design?",
+    "fix": {
+      "prompt": "How should the design change?",
+      "options": [
+        {
+          "text": "Make the balance non-public and give Account a withdraw() that holds the rule",
+          "explanation": "Right. The rule moves into the class that owns the data, so changing it is one edit."
+        },
+        {
+          "text": "Write the new limit in a comment above balance",
+          "explanation": "Comments don't run. Every caller would still need its own check."
+        },
+        {
+          "text": "Add a shared constant OVERDRAFT = 1000 that every caller uses",
+          "explanation": "Better than three numbers, but each caller still has its own check, and a new rule (say, per-customer limits) means editing all three again."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "The rule now lives with the data it protects. ATM, Transfer and BillPay just call withdraw(), so the overdraft change is one edit to Account, and a new caller can't forget the rule."
+  },
+  "quiz": [
+    {
+      "prompt": "Why hide a field behind methods?",
+      "options": [
+        {
+          "text": "So the object can enforce its own rules, and every change goes through one place",
+          "explanation": "Right. That is what makes the object trustworthy, however many callers it has."
+        },
+        {
+          "text": "It makes the code run faster",
+          "explanation": "A method call is, if anything, slightly slower; the gain is correctness."
+        },
+        {
+          "text": "Python forbids public fields",
+          "explanation": "Python allows them; hiding is a design choice."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Which method best keeps Account encapsulated?",
+      "options": [
+        {
+          "text": "withdraw(amount)",
+          "explanation": "Right. It says what the caller wants and lets the account check the rule."
+        },
+        {
+          "text": "set_balance(value)",
+          "explanation": "A setter that accepts any value is a public field with extra steps."
+        },
+        {
+          "text": "get_balance_list()",
+          "explanation": "Handing out the internal data lets callers change it behind the account's back."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

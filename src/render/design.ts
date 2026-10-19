@@ -150,7 +150,7 @@ function runExercise(box: HTMLElement, lesson: DesignLesson, hooks: QuizHooks, d
     box.replaceChildren(
       el('h3', {}, 'The fixed design'),
       v.element,
-      el('p', { class: 'compare' }, `Same change: edit ${b} class${b === 1 ? '' : 'es'} (${names}) instead of ${a}.`),
+      el('p', { class: 'compare' }, b ? `Same change: edit ${b} class${b === 1 ? '' : 'es'} (${names}) instead of ${a}.` : `Same change: no existing class has to change (instead of ${a}). You only add the new one.`),
       el('p', {}, ex.explain),
       button('On to the quiz', () => {
         box.dataset.done = 'true';

@@ -216,6 +216,14 @@ describe('design lessons', () => {
     expect(problemsOf(l)).toContain('exercise.edits: the fixed design needs 3 edits and the flawed one 3; the fix must need fewer');
   });
 
+  it('accepts a fixed design that needs no edits, since the change is only a new class', () => {
+    const l = design();
+    l.exercise.edits.fixed = [];
+    expect(validateLesson(l).id).toBe('objects-and-responsibilities');
+    l.exercise.edits.flawed = [];
+    expect(problemsOf(l)).toContain('exercise.edits.flawed: must list at least one class to edit');
+  });
+
   it('rejects edits naming classes that are not in that design, and a sequence diagram as the flawed one', () => {
     const l = design();
     l.exercise.edits.flawed = ['order', 'notifier'];

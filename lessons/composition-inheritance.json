@@ -1,0 +1,398 @@
+{
+  "schemaVersion": 1,
+  "kind": "design",
+  "id": "composition-inheritance",
+  "title": "Composition versus inheritance",
+  "track": "lld",
+  "level": "medium",
+  "objective": "Build objects from parts they have (composition) instead of deep is-a trees, so features combine without a class for every mix.",
+  "requires": [
+    "interfaces-polymorphism"
+  ],
+  "sources": [
+    {
+      "title": "Gamma, Helm, Johnson and Vlissides, Design Patterns: Elements of Reusable Object-Oriented Software (Addison-Wesley, 1994), chapter 1: \"Favor object composition over class inheritance\""
+    },
+    {
+      "title": "Joshua Bloch, Effective Java, 3rd edition (Addison-Wesley, 2018): \"Favor composition over inheritance\""
+    }
+  ],
+  "simplifies": "Inheritance isn't bad: it fits when a subclass truly is a kind of its parent and can stand in for it everywhere (next lesson: Liskov). The rule of thumb is to prefer composition, not to ban inheritance.",
+  "diagrams": {
+    "tree": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "note",
+          "name": "Notification",
+          "col": "both",
+          "row": 0,
+          "kind": "abstract",
+          "methods": [
+            "send(text)"
+          ]
+        },
+        {
+          "id": "email",
+          "name": "EmailNote",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "send(text)"
+          ]
+        },
+        {
+          "id": "sms",
+          "name": "SmsNote",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "send(text)"
+          ]
+        },
+        {
+          "id": "uemail",
+          "name": "UrgentEmail",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "send(text)"
+          ]
+        },
+        {
+          "id": "usms",
+          "name": "UrgentSms",
+          "col": 1,
+          "row": 2,
+          "methods": [
+            "send(text)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "email",
+          "to": "note",
+          "type": "inherits"
+        },
+        {
+          "from": "sms",
+          "to": "note",
+          "type": "inherits"
+        },
+        {
+          "from": "uemail",
+          "to": "email",
+          "type": "inherits"
+        },
+        {
+          "from": "usms",
+          "to": "sms",
+          "type": "inherits"
+        }
+      ]
+    },
+    "stack": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "list",
+          "name": "list",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "append(x)",
+            "insert(i, x)",
+            "sort()"
+          ]
+        },
+        {
+          "id": "stack",
+          "name": "Stack",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "push(x)",
+            "pop()"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "stack",
+          "to": "list",
+          "type": "inherits"
+        }
+      ]
+    },
+    "comp": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "note",
+          "name": "Notification",
+          "col": "both",
+          "row": 0,
+          "fields": [
+            "channel",
+            "delivery"
+          ],
+          "methods": [
+            "send(text)"
+          ]
+        },
+        {
+          "id": "channel",
+          "name": "Channel",
+          "col": 0,
+          "row": 1,
+          "kind": "interface",
+          "methods": [
+            "deliver(text)"
+          ]
+        },
+        {
+          "id": "delivery",
+          "name": "Delivery",
+          "col": 1,
+          "row": 1,
+          "kind": "interface",
+          "methods": [
+            "when(job)"
+          ]
+        },
+        {
+          "id": "emailc",
+          "name": "Email",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "deliver(text)"
+          ]
+        },
+        {
+          "id": "now",
+          "name": "Now",
+          "col": 1,
+          "row": 2,
+          "methods": [
+            "when(job)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "note",
+          "to": "channel",
+          "type": "has"
+        },
+        {
+          "from": "note",
+          "to": "delivery",
+          "type": "has"
+        },
+        {
+          "from": "emailc",
+          "to": "channel",
+          "type": "implements"
+        },
+        {
+          "from": "now",
+          "to": "delivery",
+          "type": "implements"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "caption": "Notifications start with a base class, and subclasses for email and SMS. So far, so good.",
+      "diagram": "tree",
+      "highlight": [
+        "note",
+        "email",
+        "sms"
+      ]
+    },
+    {
+      "caption": "Then urgent messages (sent at once, with a sound): UrgentEmail and UrgentSms. Each option doubles the classes.",
+      "diagram": "tree",
+      "highlight": [
+        "uemail",
+        "usms"
+      ],
+      "predict": {
+        "prompt": "Push notifications arrive next. How many new classes does this tree need?",
+        "options": [
+          {
+            "text": "Two: PushNote and UrgentPush",
+            "explanation": "Right. Every channel needs every option: channels × options classes."
+          },
+          {
+            "text": "One: PushNote",
+            "explanation": "Urgent push would still need its own subclass."
+          },
+          {
+            "text": "None",
+            "explanation": "There's no class that sends push notifications yet."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Inheriting just to reuse code also leaks. A Stack that inherits from list gets insert() and sort() too.",
+      "diagram": "stack",
+      "highlight": [
+        "stack"
+      ],
+      "code": [
+        "class Stack(list):",
+        "    def push(self, x):",
+        "        self.append(x)",
+        "",
+        "s = Stack()",
+        "s.insert(0, 'oops')"
+      ],
+      "predict": {
+        "prompt": "What does s.insert(0, 'oops') do to the stack?",
+        "options": [
+          {
+            "text": "It puts an item at the bottom, breaking last in, first out",
+            "explanation": "Right. Stack inherited every list method, including ones that break its own rule."
+          },
+          {
+            "text": "Python raises an error",
+            "explanation": "insert() is inherited from list, so it works."
+          },
+          {
+            "text": "Nothing",
+            "explanation": "It changes the list underneath the stack."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Composition: a Notification has a Channel (how to deliver) and a Delivery policy (when). Each is a small interface.",
+      "diagram": "comp",
+      "highlight": [
+        "note"
+      ]
+    },
+    {
+      "caption": "Mixing is now just picking parts: any channel with any policy, no subclass per mix.",
+      "diagram": "comp",
+      "highlight": [
+        "channel",
+        "delivery"
+      ],
+      "code": [
+        "note = Notification(",
+        "    channel=Sms(),",
+        "    delivery=Now())",
+        "note.send('OTP: 4821')"
+      ]
+    },
+    {
+      "caption": "Adding push notifications is one new Channel class. Three channels and two policies give six behaviours from small parts.",
+      "diagram": "comp",
+      "highlight": [
+        "emailc",
+        "now"
+      ],
+      "predict": {
+        "prompt": "With composition, adding push notifications means…",
+        "options": [
+          {
+            "text": "One new class that implements Channel",
+            "explanation": "Right. It works with every Delivery policy straight away."
+          },
+          {
+            "text": "Two new subclasses, as before",
+            "explanation": "No subclass per mix any more."
+          },
+          {
+            "text": "Editing Notification",
+            "explanation": "Notification only knows the Channel interface, so it doesn't change."
+          }
+        ],
+        "answer": 0
+      }
+    }
+  ],
+  "exercise": {
+    "change": "Every message must be retried if sending fails.",
+    "flawed": "tree",
+    "fixed": "comp",
+    "edits": {
+      "flawed": [
+        "email",
+        "sms",
+        "uemail",
+        "usms"
+      ],
+      "fixed": [
+        "note"
+      ]
+    },
+    "hint": "Each subclass overrides send() completely. Where does sending actually happen?",
+    "fix": {
+      "prompt": "How should the design change?",
+      "options": [
+        {
+          "text": "Give Notification a Channel and a Delivery (composition), and put the retry in its one send()",
+          "explanation": "Right. Sending happens in one place, so the retry is written once."
+        },
+        {
+          "text": "Add a RetryingNote subclass under each class",
+          "explanation": "That doubles the tree again, and the next feature doubles it once more."
+        },
+        {
+          "text": "Copy the retry loop into a helper and call it from each send()",
+          "explanation": "Less copying, but all four classes still change, and the next feature repeats that."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Notification.send() is the one place a message goes out (it calls channel.deliver), so the retry is one edit. The tree needed the same change in every subclass, because each overrode send()."
+  },
+  "quiz": [
+    {
+      "prompt": "When does inheritance fit well?",
+      "options": [
+        {
+          "text": "When the subclass truly is a kind of the parent and works anywhere the parent does",
+          "explanation": "Right. That's a real is-a relationship, not just shared code."
+        },
+        {
+          "text": "Whenever two classes share some code",
+          "explanation": "That's reuse; composition shares code without tying the classes together."
+        },
+        {
+          "text": "Never",
+          "explanation": "The advice is to prefer composition, not to ban inheritance."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why does class Stack(list) cause trouble?",
+      "options": [
+        {
+          "text": "Stack inherits insert(), sort() and more, so callers can break last in, first out",
+          "explanation": "Right. Composition (a Stack that has a list) exposes only push() and pop()."
+        },
+        {
+          "text": "It's much slower",
+          "explanation": "Speed isn't the problem."
+        },
+        {
+          "text": "Python forbids subclassing list",
+          "explanation": "Python allows it; the design is the problem."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

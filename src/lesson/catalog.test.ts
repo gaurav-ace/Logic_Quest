@@ -81,6 +81,11 @@ describe('lesson catalog', () => {
       'design-url-shortener',
       'design-ai-chat',
       'objects-and-responsibilities',
+      'encapsulation',
+      'interfaces-polymorphism',
+      'composition-inheritance',
+      'solid-1',
+      'solid-2',
       'agent-loop',
     ]);
   });

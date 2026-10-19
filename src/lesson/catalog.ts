@@ -57,6 +57,11 @@ import idempotencyLesson from '../../lessons/idempotency.json';
 import designUrlShortenerLesson from '../../lessons/design-url-shortener.json';
 import designAiChatLesson from '../../lessons/design-ai-chat.json';
 import objectsAndResponsibilitiesLesson from '../../lessons/objects-and-responsibilities.json';
+import encapsulationLesson from '../../lessons/encapsulation.json';
+import interfacesPolymorphismLesson from '../../lessons/interfaces-polymorphism.json';
+import compositionInheritanceLesson from '../../lessons/composition-inheritance.json';
+import solid1Lesson from '../../lessons/solid-1.json';
+import solid2Lesson from '../../lessons/solid-2.json';
 import { getModel } from '../sim/registry';
 import { getProgram } from '../trace/registry';
 import type { Lesson, SimLesson } from './schema';
@@ -125,6 +130,11 @@ export const LESSON_DATA: unknown[] = [
   designUrlShortenerLesson,
   designAiChatLesson,
   objectsAndResponsibilitiesLesson,
+  encapsulationLesson,
+  interfacesPolymorphismLesson,
+  compositionInheritanceLesson,
+  solid1Lesson,
+  solid2Lesson,
   agentLoop,
 ];
 

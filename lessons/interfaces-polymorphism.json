@@ -1,0 +1,444 @@
+{
+  "schemaVersion": 1,
+  "kind": "design",
+  "id": "interfaces-polymorphism",
+  "title": "Interfaces and polymorphism",
+  "track": "lld",
+  "level": "medium",
+  "objective": "Write code against what an object can do (an interface), so new kinds can be added without changing the caller.",
+  "requires": [
+    "encapsulation"
+  ],
+  "sources": [
+    {
+      "title": "Gamma, Helm, Johnson and Vlissides, Design Patterns: Elements of Reusable Object-Oriented Software (Addison-Wesley, 1994), chapter 1: \"Program to an interface, not an implementation\""
+    },
+    {
+      "title": "Python docs: abc, Abstract Base Classes",
+      "url": "https://docs.python.org/3/library/abc.html"
+    },
+    {
+      "title": "Python docs: typing.Protocol (structural subtyping, or static duck typing)",
+      "url": "https://docs.python.org/3/library/typing.html#typing.Protocol"
+    }
+  ],
+  "simplifies": "Real payment methods also handle failures, refunds that partly succeed, and currencies. Python doesn't require a declared interface: any object with a pay() method works (duck typing); an ABC or a Protocol just makes the contract explicit and checkable.",
+  "diagrams": {
+    "ifs": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "checkout",
+          "name": "Checkout",
+          "col": "both",
+          "row": 0,
+          "methods": [
+            "pay(order, kind)"
+          ]
+        },
+        {
+          "id": "card",
+          "name": "CardApi",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "charge(x)"
+          ]
+        },
+        {
+          "id": "upi",
+          "name": "UpiApi",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "collect(x)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "checkout",
+          "to": "card",
+          "type": "uses"
+        },
+        {
+          "from": "checkout",
+          "to": "upi",
+          "type": "uses"
+        }
+      ]
+    },
+    "iface": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "checkout",
+          "name": "Checkout",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "pay(order, pm)"
+          ]
+        },
+        {
+          "id": "pm",
+          "name": "PaymentMethod",
+          "col": 1,
+          "row": 0,
+          "kind": "interface",
+          "methods": [
+            "pay(amount)"
+          ]
+        },
+        {
+          "id": "card",
+          "name": "Card",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "pay(amount)"
+          ]
+        },
+        {
+          "id": "upi",
+          "name": "Upi",
+          "col": 1,
+          "row": 1,
+          "methods": [
+            "pay(amount)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "checkout",
+          "to": "pm",
+          "type": "uses"
+        },
+        {
+          "from": "card",
+          "to": "pm",
+          "type": "implements"
+        },
+        {
+          "from": "upi",
+          "to": "pm",
+          "type": "implements"
+        }
+      ]
+    },
+    "run": {
+      "type": "sequence",
+      "actors": [
+        "Checkout",
+        "Upi",
+        "Bank"
+      ],
+      "calls": [
+        {
+          "from": "Checkout",
+          "to": "Upi",
+          "label": "pay(1250)"
+        },
+        {
+          "from": "Upi",
+          "to": "Bank",
+          "label": "collect(1250)"
+        },
+        {
+          "from": "Bank",
+          "to": "Upi",
+          "label": "ok",
+          "reply": true
+        },
+        {
+          "from": "Upi",
+          "to": "Checkout",
+          "label": "paid",
+          "reply": true
+        }
+      ]
+    },
+    "branches": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "checkout",
+          "name": "Checkout",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "pay(kind)"
+          ]
+        },
+        {
+          "id": "refunds",
+          "name": "Refunds",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "refund(kind)"
+          ]
+        },
+        {
+          "id": "receipts",
+          "name": "Receipts",
+          "col": 0,
+          "row": 1,
+          "methods": [
+            "label(kind)"
+          ]
+        }
+      ],
+      "relations": []
+    },
+    "poly": {
+      "type": "class",
+      "classes": [
+        {
+          "id": "checkout",
+          "name": "Checkout",
+          "col": 0,
+          "row": 0,
+          "methods": [
+            "pay(pm)"
+          ]
+        },
+        {
+          "id": "refunds",
+          "name": "Refunds",
+          "col": 1,
+          "row": 0,
+          "methods": [
+            "refund(pm)"
+          ]
+        },
+        {
+          "id": "pm",
+          "name": "PaymentMethod",
+          "col": "both",
+          "row": 1,
+          "kind": "interface",
+          "methods": [
+            "pay(amount)",
+            "refund(amount)",
+            "label()"
+          ]
+        },
+        {
+          "id": "receipts",
+          "name": "Receipts",
+          "col": 0,
+          "row": 2,
+          "methods": [
+            "label(pm)"
+          ]
+        },
+        {
+          "id": "card",
+          "name": "Card",
+          "col": 1,
+          "row": 2,
+          "methods": [
+            "pay(amount)"
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "from": "checkout",
+          "to": "pm",
+          "type": "uses"
+        },
+        {
+          "from": "refunds",
+          "to": "pm",
+          "type": "uses"
+        },
+        {
+          "from": "receipts",
+          "to": "pm",
+          "type": "uses"
+        },
+        {
+          "from": "card",
+          "to": "pm",
+          "type": "implements"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "caption": "Checkout handles each payment kind in its own branch, calling a different API for each.",
+      "diagram": "ifs",
+      "highlight": [
+        "checkout"
+      ],
+      "code": [
+        "def pay(order, kind):",
+        "    if kind == 'card':",
+        "        card.charge(order.total)",
+        "    elif kind == 'upi':",
+        "        upi.collect(order.total)"
+      ]
+    },
+    {
+      "caption": "Every new kind means another branch in Checkout, the class that already works.",
+      "diagram": "ifs",
+      "highlight": [
+        "checkout"
+      ],
+      "predict": {
+        "prompt": "The shop adds wallets. What has to change?",
+        "options": [
+          {
+            "text": "Checkout gets another elif, next to the working card and UPI code",
+            "explanation": "Right. Checkout knows every kind by name, so every new kind edits it."
+          },
+          {
+            "text": "Only a new Wallet class",
+            "explanation": "Checkout still has to learn the word 'wallet' and call it."
+          },
+          {
+            "text": "Nothing",
+            "explanation": "Checkout has no branch for wallets yet."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "An interface names what every payment method can do: pay(amount). It says nothing about how.",
+      "diagram": "iface",
+      "highlight": [
+        "pm"
+      ],
+      "code": [
+        "from abc import (",
+        "    ABC, abstractmethod)",
+        "",
+        "class PaymentMethod(ABC):",
+        "    @abstractmethod",
+        "    def pay(self, amount):",
+        "        ..."
+      ]
+    },
+    {
+      "caption": "Card and Upi each implement pay() their own way. Checkout only knows the interface.",
+      "diagram": "iface",
+      "highlight": [
+        "card",
+        "upi"
+      ],
+      "code": [
+        "def checkout(order, pm):",
+        "    pm.pay(order.total)"
+      ]
+    },
+    {
+      "caption": "At run time the call goes to whichever object was passed in. Here it's a Upi…",
+      "diagram": "run",
+      "call": 0
+    },
+    {
+      "caption": "…which talks to the bank in its own way…",
+      "diagram": "run",
+      "call": 1
+    },
+    {
+      "caption": "…and reports back.",
+      "diagram": "run",
+      "call": 3,
+      "predict": {
+        "prompt": "Next week someone passes a Wallet instead. Which pay() runs?",
+        "options": [
+          {
+            "text": "Wallet's pay()",
+            "explanation": "Right. One call, many forms: that is polymorphism. Checkout's code doesn't change."
+          },
+          {
+            "text": "PaymentMethod's pay()",
+            "explanation": "That one is abstract: it only names the method."
+          },
+          {
+            "text": "Upi's pay(), as before",
+            "explanation": "The call goes to the object actually passed in."
+          }
+        ],
+        "answer": 0
+      }
+    }
+  ],
+  "exercise": {
+    "change": "Add wallet payments.",
+    "flawed": "branches",
+    "fixed": "poly",
+    "edits": {
+      "flawed": [
+        "checkout",
+        "refunds",
+        "receipts"
+      ],
+      "fixed": []
+    },
+    "hint": "Which classes have an if/elif that names each payment kind?",
+    "fix": {
+      "prompt": "How should the design change?",
+      "options": [
+        {
+          "text": "Define a PaymentMethod interface (pay, refund, label); each kind implements it, and callers use only the interface",
+          "explanation": "Right. Callers stop naming kinds, so a new kind is a new class and nothing else."
+        },
+        {
+          "text": "Move all the if/elif chains into one big helper",
+          "explanation": "Better than three copies, but the helper still changes for every new kind and keeps growing."
+        },
+        {
+          "text": "Store the kind as a number instead of text",
+          "explanation": "The branches stay; only their labels change."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Checkout, Refunds and Receipts now talk only to PaymentMethod. A Wallet class that implements it plugs in without touching any of them: new behaviour comes from new code, not edits to working code."
+  },
+  "quiz": [
+    {
+      "prompt": "What does \"program to an interface\" mean?",
+      "options": [
+        {
+          "text": "Callers depend on what an object can do (its methods), not on which class it is",
+          "explanation": "Right. Then any class that can do those things fits."
+        },
+        {
+          "text": "Every class needs a user interface",
+          "explanation": "\"Interface\" here means the set of methods others may call."
+        },
+        {
+          "text": "Always use Python's abc module",
+          "explanation": "An ABC is one way to state it; in Python any object with the right methods works."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why is an if/elif on a type name often a design smell?",
+      "options": [
+        {
+          "text": "Each new type forces an edit to that working code, and the chain tends to be copied elsewhere",
+          "explanation": "Right. Polymorphism moves each branch into the class it's about."
+        },
+        {
+          "text": "if statements are slow",
+          "explanation": "Speed isn't the issue; change is."
+        },
+        {
+          "text": "Python doesn't allow elif chains",
+          "explanation": "It does; the problem is design, not syntax."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}
