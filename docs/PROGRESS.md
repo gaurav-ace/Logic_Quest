@@ -4,41 +4,44 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 ## Current phase
 
-Phase 0, Foundations. Plan in `docs/PHASE0_PLAN.md`, approved by the owner on 2026-10-19. Tasks 0.1 and 0.2 done.
+Phase 0, Foundations. Tasks 0.1–0.5 built and committed locally. Not finished until: (1) the owner approves the push, (2) CI runs green on GitHub, (3) Pages is live, (4) the owner installs the app on their Android phone.
 
-## Done
+## Done (Phase 0)
 
-- Prototype built and reviewed by the owner: `prototype/logic-quest.html`.
-- Project rules written: `CLAUDE.md`, including Android support.
-- Project background written: `docs/PROJECT_CONTEXT.md`.
-- Stack decided (vanilla TS + Vite + Vitest), hosting decided (GitHub Pages). Recorded in `docs/PROJECT_CONTEXT.md`.
-- Task 0.1 tooling: `npm run check` (lint, typecheck, 1 test) passes. A deliberately broken file was confirmed to fail both lint and typecheck.
-- Task 0.2 lesson schema and validator: 20 tests pass. Temporarily removing the edge check made its test fail, so the tests do catch breakage. `lessons/hello.json` source checked: the MDN page loads and says HTTP requests are initiated by the client, usually the browser.
-- Files moved into `docs/` and `prototype/`; `git init` run (no commits yet).
-
-## In progress
-
-Nothing.
+- 0.1 Tooling. `npm run check` passes. A deliberately broken file fails both lint and typecheck.
+- 0.2 Lesson schema and validator. Removing the edge check made its test fail, so the tests do catch breakage. `lessons/hello.json` is sourced from MDN, page checked.
+- 0.3 Hello lesson renders. Headless Chrome checks (22/22 pass) at 360x740 phone, 740x360 landscape and 1280x800 desktop: no horizontal scroll, all tap targets at least 48 px, diagram labels at least 14 px, touch-only taps through steps and quiz, Back/Next, wrong answer explains and offers a replay, right answer explains, reduced motion shows the packet at rest, normal motion animates it, no console errors. Light and dark screenshots reviewed.
+- 0.4 PWA. Headless Chrome checks (7/7 pass): manifest loads with no errors, service worker activates and controls the page, Chrome reports no installability errors, app loads offline, offline URL with a query string loads.
+- 0.5 CI and Pages workflow written; YAML parses. Fresh-clone `npm ci && npm run check && npm run build` passes locally. Not yet run on GitHub.
+- Remote `origin` = `git@github.com:gaurav-ace/Logic_Quest.git`. GitHub's initial README commit merged in, so a normal push works (no force).
 
 ## Next step
 
-Task 0.3: render the hello lesson (`index.html`, renderer, styles); check at 360 px and desktop widths.
+1. Owner approves `git push origin main`.
+2. Owner enables Pages: repo Settings → Pages → Source: "GitHub Actions".
+3. Check the CI run, then the owner installs from https://gaurav-ace.github.io/Logic_Quest/ on their Android phone.
+4. Owner approves Phase 0 → Phase 1 plan (animation engine).
 
 ## Blockers and questions for the owner
 
-- None. Repo: `git@github.com:gaurav-ace/Logic_Quest.git` (no remote added yet; push needs the owner's approval).
-
-## Environment notes
-
-- WSL here has no IPv6 route, but DNS returns IPv6 first, so downloads hang. Use `curl -4`. `~/.bashrc` sets `NODE_OPTIONS=--dns-result-order=ipv4first` so npm works.
+- Push approval and the Pages setting (above).
 
 ## Not tested yet
 
-- The prototype has not been checked on a real Android device.
+- Nothing has been checked on a real Android device. All phone checks so far are headless Chrome device emulation on Windows.
+- The CI workflow has not run on GitHub yet.
+- Service worker update path (new deploy replacing the old cache) is reasoned about, not tested.
+- `vite.config.ts` is not type-checked (it would need `@types/node`, not approved). See `docs/IDEAS.md`.
+- Screen reader behaviour has not been tested; captions use `aria-live`.
+
+## Environment notes
+
+- WSL here has no IPv6 route, but DNS returns IPv6 first, so downloads hang. Use `curl -4`. `~/.bashrc` sets `PATH` for `~/.local/node` and `NODE_OPTIONS=--dns-result-order=ipv4first`.
+- Browser checks: headless Windows Chrome driven over the DevTools protocol by a Windows `node.exe` (WSL can't reach Chrome's debug port in NAT mode). Script kept outside the repo; see `docs/IDEAS.md`.
+- TypeScript is pinned to 6.0.x until typescript-eslint supports 7.
 
 ## Session log
 
 - 2026-10-19: Created CLAUDE.md, PROJECT_CONTEXT.md and PROGRESS.md. No code written.
-- 2026-10-19: Reviewed the prototype (found: dark mode ignores the viewer's theme toggle, no replay button after a wrong answer, streak not saved, the moving dot ignores reduced motion, replays can farm streak bonuses). Recorded the decisions, reorganised the files, ran git init, wrote the Phase 0 plan.
-- 2026-10-19: Owner approved the Phase 0 plan. Node 24 LTS installed user-level (nvm failed because of the IPv6 issue). Task 0.1 tooling done and committed.
-- 2026-10-19: Task 0.2 lesson schema and validator done and committed.
+- 2026-10-19: Reviewed the prototype, recorded the decisions (stack, hosting, layout), ran git init, wrote the Phase 0 plan.
+- 2026-10-19: Owner approved the plan and asked for the whole phase at once. Installed Node 24 LTS user-level (nvm failed because of the IPv6 issue). Built tasks 0.1–0.5, one commit each.
