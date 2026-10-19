@@ -50,13 +50,14 @@ Treat the prototype as a reference for look and behaviour, not as code to extend
 - 2026-10-19, tech stack: vanilla TypeScript (no UI framework), Vite for dev server and build, Vitest for tests. The owner left the choice to Claude. Reasons: the core is an SVG animation engine, so a framework adds little; typed lesson schema; small bundle for mid-range phones.
 - 2026-10-19, toolchain: Node 24 LTS (v24.22.0), installed for the user only in `~/.local/node`. TypeScript is pinned to 6.0.x, not 7.x, because typescript-eslint 8.71.2 supports only `typescript >=4.8.4 <6.1.0`. Upgrade when typescript-eslint supports 7.
 - 2026-10-19, hosting: GitHub Pages (HTTPS, so the PWA can install), with GitHub Actions running the tests as CI. Owner approved.
+- 2026-10-19, lesson content: Claude drafts each lesson from cited sources and marks anything unverified `TODO-VERIFY`; the owner reviews and approves it before the phase closes.
+- 2026-10-19, UI checks: the headless-Chrome check script is committed to the repo (`scripts/`), so phone-width and touch checks can be rerun each phase.
 - 2026-10-19, layout: docs moved into `docs/`, prototype into `prototype/`, git repo initialised. Owner approved.
 
 ## Decisions still open (ask the owner, do not decide alone)
 
 Copied from `CLAUDE.md` section 12. Move each item here under "Decisions made" once answered.
 
-- Whether lesson content is hand-written, generated with Claude and reviewed, or both
 - Reward style: points only, points plus badges, or plus cosmetic unlocks
 - Target session length and daily goal defaults
 - Whether DSA challenges include real code writing in the browser
