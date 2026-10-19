@@ -4,13 +4,13 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 ## Current phase
 
-Phase 5b, Low-level design: all of 5b.1–5b.4 built 2026-10-19, committed locally, not pushed. Not finished until the owner pushes, checks on the phone, and approves. Phase 5c starts only after that (owner's choice, 2026-10-19).
+Phase 5b, Low-level design: **done**, pushed, and approved by the owner on 2026-10-19 ("site shows LLD now, proceed"); a phone check was not mentioned. Phase 5c plan drafted (`docs/PHASE5C_PLAN.md`), awaiting approval.
 
 Phase 5, System design (HLD): **done**, pushed and approved by the owner on 2026-10-19.
 
 Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19 without a line-by-line content review; the owner will report any content problems they find later). Live at https://gaurav-ace.github.io/Logic_Quest/.
 
-## Done (Phase 5b), awaiting the owner's review
+## Done (Phase 5b)
 
 - 5b.1 Design lessons: class and sequence diagrams from a pure, tested layout module; code snippets; "improve the design" exercise (tap the classes a change touches, pick the fix, see the smaller change); the validator rejects diagrams that won't fit and exercises whose fix isn't smaller.
 - 5b.2–5b.4 Fourteen LLD lessons (O1–O14). Three are computed traces (state machine, LRU cache, per-user rate limiter), each tested against a reference on 200 random inputs plus claim tests; an LRU mutation (evict the newest) failed 3 tests. Traces can show class diagrams and end with an exercise.
@@ -70,9 +70,8 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 
 ## Next step
 
-1. Owner pushes (`git push origin main`) and checks the LLD lessons on the phone.
-2. Owner approves Phase 5b (or reports content problems).
-3. Then the Phase 5c plan (real-world systems and incident studies).
+1. Owner approves the Phase 5c plan (`docs/PHASE5C_PLAN.md`).
+2. Build 5c.1–5c.4, then the owner checks and approves.
 
 ## Blockers and questions for the owner
 
@@ -120,4 +119,5 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 - 2026-10-19: Owner pushed Phase 5. A re-run of an old workflow run (commit 2b14b10, attempt 4) finished 14 s after the new deploy and put the old version back; a manual "Run workflow" on a0dc2aa restored it. README now says to use "Run workflow", not "Re-run". Owner saw no progress on the phone: progress was earned only on the laptop (saves are per browser); export/import explained. Owner approved Phase 5.
 - 2026-10-19: Owner approved the Phase 5b plan and chose to start 5c only after approving 5b. Built 5b.1–5b.4 (engine plus 14 lessons), one commit per batch.
 - 2026-10-19: Owner pushed Phase 5b, but the site showed Phase 5. Cause, from the GitHub API: the push run (c1bb890) deployed at 14:26:54, then a re-run (attempt 4) of an older manual run for a0dc2aa finished at 14:32:46 and published the old commit again; the Reload banner then reloaded into that old version. Fix: the deploy job now checks that the run's commit is still the tip of main (git ls-remote) and skips deploying otherwise. Logic checked locally against the real repo (current main: deploy; old commit: skip); not yet seen running on GitHub.
+- 2026-10-19: Owner pushed the CI fix; the push run for ad1f667 deployed and the site shows LLD. Owner approved 5b and asked to continue. Uber's H3 facts can come from h3geo.org (copyright Uber Technologies), which resolves the curriculum's TODO-VERIFY on Uber's blog. Wrote the Phase 5c plan.
 
