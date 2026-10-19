@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "indexes",
+  "title": "Indexes",
+  "track": "hld",
+  "level": "medium",
+  "objective": "See why an index speeds up finding rows, and what it costs on every write.",
+  "program": "index-lookup",
+  "requires": [
+    "sql-vs-nosql",
+    "binary-search"
+  ],
+  "sources": [
+    {
+      "title": "PostgreSQL documentation: Indexes, Introduction (indexes speed up reads and add overhead to writes)",
+      "url": "https://www.postgresql.org/docs/current/indexes-intro.html"
+    }
+  ],
+  "simplifies": "The index is shown as a sorted list searched with binary search. Real databases use B-trees (and other kinds), keep them on disk in pages, and the query planner decides whether using the index is actually cheaper than a scan.",
+  "quiz": [
+    {
+      "prompt": "A table has 1,000,000 rows and an index on email. Finding one email takes roughly…",
+      "options": [
+        {
+          "text": "About 20 index steps",
+          "explanation": "Right. A sorted index halves the search each step: about log₂ 1,000,000."
+        },
+        {
+          "text": "1,000,000 checks",
+          "explanation": "That is a full scan, which the index avoids."
+        },
+        {
+          "text": "One step, always",
+          "explanation": "It still has to narrow down the position."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why not index every column?",
+      "options": [
+        {
+          "text": "Every insert and update must also update every index, so writes get slower",
+          "explanation": "Right. Indexes speed up reads but add work (and space) to every write."
+        },
+        {
+          "text": "Indexes make reads slower",
+          "explanation": "They make the reads they are used for faster."
+        },
+        {
+          "text": "Databases allow only one index",
+          "explanation": "They allow many; the cost is the reason to choose."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

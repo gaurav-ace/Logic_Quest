@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "consistent-hashing",
+  "title": "Consistent hashing",
+  "track": "hld",
+  "level": "hard",
+  "objective": "Add a server while moving as few keys as possible, by placing keys and servers on a ring.",
+  "program": "consistent-hashing",
+  "requires": [
+    "sharding"
+  ],
+  "sources": [
+    {
+      "title": "Karger, Lehman, Leighton, Panigrahy, Levine and Lewin (1997), Consistent hashing and random trees, Symposium on Theory of Computing (STOC)"
+    },
+    {
+      "title": "Wikipedia: Consistent hashing (only about n/m keys move when resizing)",
+      "url": "https://en.wikipedia.org/wiki/Consistent_hashing"
+    }
+  ],
+  "simplifies": "Positions are given directly on a ring of 100 instead of coming from a real hash, and each server has one point. Real systems give each server many points (virtual nodes) so the load is even, and use a large hash space.",
+  "quiz": [
+    {
+      "prompt": "With 4 servers and 1,000 keys, you add a fifth server. Roughly how many keys move with consistent hashing?",
+      "options": [
+        {
+          "text": "About 200",
+          "explanation": "Right. About 1 in 5 keys: those that now land on the new server."
+        },
+        {
+          "text": "About 800",
+          "explanation": "That is what \"key % number of servers\" does: most keys change server."
+        },
+        {
+          "text": "None",
+          "explanation": "The new server has to take some keys, or it would do nothing."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why do real systems give each server many points on the ring (virtual nodes)?",
+      "options": [
+        {
+          "text": "So each server gets a fair share of keys, and a leaving server's keys spread over many others",
+          "explanation": "Right. One point per server can leave very uneven slices of the ring."
+        },
+        {
+          "text": "To use more memory",
+          "explanation": "Memory isn't the goal; evenness is."
+        },
+        {
+          "text": "Because one point is not allowed",
+          "explanation": "It works, just unevenly."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

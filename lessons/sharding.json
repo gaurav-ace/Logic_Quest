@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "kind": "sim",
+  "id": "sharding",
+  "title": "Sharding",
+  "track": "hld",
+  "level": "medium",
+  "objective": "Split data and traffic across shards with a hash of the key, and deal with the hot key that breaks the plan.",
+  "model": "sharding",
+  "requires": [
+    "scaling"
+  ],
+  "sources": [
+    {
+      "title": "AWS documentation: Best practices for designing and using partition keys effectively in DynamoDB",
+      "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html"
+    },
+    {
+      "title": "Kleppmann, Designing Data-Intensive Applications (O'Reilly, 2017): partitioning (sharding), skewed workloads and hot spots"
+    }
+  ],
+  "simplifies": "Each request touches one key; shards are equal; changing the number of shards starts fresh ones (real resharding has to move data, which is what consistent hashing helps with). \"Spreading\" the hot key stands for tricks like keeping read copies of it on every shard, or splitting it into several keys.",
+  "challenges": [
+    {
+      "id": "split-load",
+      "title": "Too much for one shard",
+      "prompt": "120 requests a second on a single shard. Keep errors at 1% or less for 10 seconds.",
+      "setup": {
+        "params": {
+          "rate": 120,
+          "shards": 1,
+          "hotShare": 0,
+          "spreadHot": false
+        },
+        "lock": [
+          "rate",
+          "hotShare",
+          "spreadHot"
+        ]
+      },
+      "goal": {
+        "metric": "errorRate",
+        "op": "<=",
+        "value": 0.01,
+        "forSeconds": 10
+      },
+      "hint": "Each shard takes only the keys that hash to it. How many would share the load evenly?",
+      "explain": "Hashing the key spreads keys, and so traffic, across shards: four shards each take about a quarter.",
+      "solution": {
+        "shards": 4
+      }
+    },
+    {
+      "id": "hot-key",
+      "title": "The hot key",
+      "prompt": "One celebrity key now gets 40% of all traffic. With 4 shards, keep errors at 1% or less for 10 seconds.",
+      "predict": {
+        "prompt": "All requests for one key go to the same shard. Will adding more shards fix an overloaded hot key?",
+        "options": [
+          {
+            "text": "No: that key still lands on just one shard",
+            "explanation": "Right. More shards share the other keys better, but one key always maps to one shard."
+          },
+          {
+            "text": "Yes: more shards always spread load",
+            "explanation": "They spread different keys; a single key isn't split by adding shards."
+          },
+          {
+            "text": "Only if the key is renamed",
+            "explanation": "Renaming just moves the problem to another shard."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "rate": 120,
+          "shards": 4,
+          "hotShare": 40,
+          "spreadHot": false
+        },
+        "lock": [
+          "rate",
+          "hotShare"
+        ]
+      },
+      "goal": {
+        "metric": "errorRate",
+        "op": "<=",
+        "value": 0.01,
+        "forSeconds": 10
+      },
+      "hint": "The hot key's requests need to stop landing on one shard.",
+      "explain": "Spreading the hot key's reads across shards (read copies, or splitting it into several keys) removes the single overloaded shard.",
+      "solution": {
+        "spreadHot": true
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Why shard by a hash of the key instead of by key ranges like A–M and N–Z?",
+      "options": [
+        {
+          "text": "A hash spreads keys evenly, while real names cluster in some ranges",
+          "explanation": "Right. Ranges can leave some shards far busier than others."
+        },
+        {
+          "text": "Hashes are shorter",
+          "explanation": "Length isn't the point; even spreading is."
+        },
+        {
+          "text": "Ranges are not allowed",
+          "explanation": "Range sharding exists; it suits range queries but risks uneven load."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "What is a hot key?",
+      "options": [
+        {
+          "text": "One key that gets a big share of all traffic",
+          "explanation": "Right. Its shard gets overloaded however many shards there are."
+        },
+        {
+          "text": "A key that is encrypted",
+          "explanation": "Hot is about traffic, not security."
+        },
+        {
+          "text": "A key that changes often",
+          "explanation": "Frequent writes can make a key hot, but hot means busy."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

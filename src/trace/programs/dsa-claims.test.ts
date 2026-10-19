@@ -4,6 +4,8 @@ import type { Frame } from '../types';
 import { groupAnagrams, sortedKey } from './anagram-groups';
 import { height, searchPath } from './bst-search';
 import { coinChange, fewestCoinsBfs, greedyCoins } from './coin-change';
+import { consistentHashing, MIN_GAP, moves, owner } from './consistent-hashing';
+import { indexLookup, lookupCosts } from './index-lookup';
 import { dijkstra } from './dijkstra';
 import { factorialDepth } from './factorial';
 import { subsetsSumming } from './subset-sum';
@@ -266,6 +268,39 @@ describe('recursion, trees, graphs and DP', () => {
     for (let seed = 1; seed <= 200; seed++) {
       const input = coinChange.randomInput(seeded(seed));
       expect(fewestCoinsBfs(input.coins, input.amount)).toBeLessThanOrEqual(greedyCoins(input.coins, input.amount));
+    }
+  });
+});
+
+describe('system design traces', () => {
+  it('an index finds the same rows as a full scan, in at most log2(n) + 1 + matches checks', () => {
+    for (let seed = 1; seed <= 300; seed++) {
+      const { ages, target } = indexLookup.randomInput(seeded(seed));
+      const c = lookupCosts(ages, target);
+      const scanned = ages.map((a, id) => (a === target ? id : -1)).filter((id) => id >= 0);
+      expect([...c.found].sort((a, b) => a - b)).toEqual(scanned);
+      expect(c.index).toBeLessThanOrEqual(Math.floor(Math.log2(ages.length)) + 1 + scanned.length);
+      expect(c.scan).toBe(ages.length);
+    }
+  });
+
+  it('on the ring, every key that moves goes to the new server; on average far fewer move than with key % N', () => {
+    let ring = 0;
+    let modulo = 0;
+    for (let seed = 1; seed <= 500; seed++) {
+      const input = consistentHashing.randomInput(seeded(seed));
+      const m = moves(input);
+      for (const k of m.ring) expect(owner(k, [...input.servers, input.added])).toBe(input.added);
+      ring += m.ring.length;
+      modulo += m.modulo.length;
+    }
+    expect(ring * 2).toBeLessThan(modulo);
+  });
+
+  it('ring positions in examples are far enough apart to draw without overlapping', () => {
+    for (const input of [consistentHashing.defaultInput, ...Array.from({ length: 100 }, (_, i) => consistentHashing.randomInput(seeded(i + 1)))]) {
+      const all = [...input.keys, ...input.servers, input.added];
+      for (const a of all) for (const b of all) if (a !== b) expect(Math.min(Math.abs(a - b), 100 - Math.abs(a - b))).toBeGreaterThanOrEqual(MIN_GAP);
     }
   });
 });

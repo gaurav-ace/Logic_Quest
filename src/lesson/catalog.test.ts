@@ -69,6 +69,11 @@ describe('lesson catalog', () => {
       'cache',
       'caching-sim',
       'cdn',
+      'sql-vs-nosql',
+      'indexes',
+      'replication',
+      'sharding',
+      'consistent-hashing',
       'agent-loop',
     ]);
   });

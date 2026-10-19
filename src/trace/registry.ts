@@ -10,6 +10,7 @@ import { fencePosts } from './programs/fence-posts';
 import { findMax } from './programs/find-max';
 import { hashMap } from './programs/hash-map';
 import { heapPush } from './programs/heap-push';
+import { indexLookup } from './programs/index-lookup';
 import { insertionSort } from './programs/insertion-sort';
 import { invariant } from './programs/invariant';
 import { mergeSort } from './programs/merge-sort';
@@ -27,6 +28,7 @@ import { workBackwards } from './programs/work-backwards';
 import { bfs } from './programs/bfs';
 import { bstSearch } from './programs/bst-search';
 import { coinChange } from './programs/coin-change';
+import { consistentHashing } from './programs/consistent-hashing';
 import { dijkstra } from './programs/dijkstra';
 import { factorial } from './programs/factorial';
 import { islands } from './programs/islands';
@@ -79,6 +81,9 @@ export const PROGRAMS = [
   dijkstra,
   unionFind,
   coinChange,
+  // Phase 5, system design
+  indexLookup,
+  consistentHashing,
 ].map((p) => p as unknown as Program<unknown>);
 
 const byId = new Map(PROGRAMS.map((p) => [p.id, p]));

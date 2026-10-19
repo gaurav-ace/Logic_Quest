@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "sql-vs-nosql",
+  "title": "SQL versus NoSQL",
+  "track": "hld",
+  "level": "medium",
+  "objective": "Choose how to store data from the way it is read and written, not from fashion.",
+  "requires": [
+    "request-journey"
+  ],
+  "sources": [
+    {
+      "title": "PostgreSQL documentation: Joins Between Tables",
+      "url": "https://www.postgresql.org/docs/current/tutorial-join.html"
+    },
+    {
+      "title": "MongoDB documentation: Data Modeling (embedding related data)",
+      "url": "https://www.mongodb.com/docs/manual/data-modeling/"
+    },
+    {
+      "title": "Kleppmann, Designing Data-Intensive Applications (O'Reilly, 2017): data models and query languages"
+    }
+  ],
+  "simplifies": "Two stores are shown as opposites. In practice SQL databases can store documents (for example JSON columns), many document stores support joins or transactions, and big systems often use several stores for different jobs.",
+  "nodes": [
+    {
+      "id": "app",
+      "label": "Shop app",
+      "x": 70,
+      "y": 100,
+      "width": 110
+    },
+    {
+      "id": "sql",
+      "label": "SQL tables",
+      "x": 300,
+      "y": 40,
+      "width": 130
+    },
+    {
+      "id": "doc",
+      "label": "Documents",
+      "x": 300,
+      "y": 160,
+      "width": 130
+    }
+  ],
+  "edges": [
+    [
+      "app",
+      "sql"
+    ],
+    [
+      "app",
+      "doc"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "A shop stores users and their orders. Two common shapes: tables with rows (SQL), or documents (NoSQL, such as MongoDB).",
+      "highlight": [
+        "app"
+      ],
+      "path": []
+    },
+    {
+      "caption": "SQL: users in one table, orders in another, linked by user_id. A user with their orders is a join across the two tables.",
+      "highlight": [
+        "sql"
+      ],
+      "path": [
+        [
+          "app",
+          "sql"
+        ],
+        [
+          "sql",
+          "app"
+        ]
+      ]
+    },
+    {
+      "caption": "Documents: one user's document can hold their recent orders inside it, so the profile page is a single read.",
+      "highlight": [
+        "doc"
+      ],
+      "path": [
+        [
+          "app",
+          "doc"
+        ],
+        [
+          "doc",
+          "app"
+        ]
+      ],
+      "predict": {
+        "prompt": "A profile page shows a user and their latest orders. In a document store, where would the orders usually live?",
+        "options": [
+          {
+            "text": "Inside that user's document",
+            "explanation": "Right. Embedding data that is read together gives it back in one read."
+          },
+          {
+            "text": "In a separate table, joined in",
+            "explanation": "That is the SQL shape. Documents often embed what is read together."
+          },
+          {
+            "text": "In the user's browser",
+            "explanation": "The server still has to store them."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "But a report such as \"every order over 500 this month, across all users\" is one query over the orders table in SQL, and awkward when orders are buried inside each user's document.",
+      "highlight": [
+        "sql"
+      ],
+      "path": [
+        [
+          "app",
+          "sql"
+        ]
+      ],
+      "predict": {
+        "prompt": "Which shape makes \"total sales across all users\" simpler?",
+        "options": [
+          {
+            "text": "SQL tables",
+            "explanation": "Right. All orders sit in one table, so one query can scan or group them."
+          },
+          {
+            "text": "Documents with embedded orders",
+            "explanation": "Each user's orders are inside their own document, so a report has to dig into every one."
+          },
+          {
+            "text": "It makes no difference",
+            "explanation": "How data is grouped changes which questions are easy."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Rule of thumb: list the reads and writes the app does most (its access patterns) and pick the shape that makes those easy. Many systems use both.",
+      "highlight": [
+        "sql",
+        "doc"
+      ],
+      "path": []
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "What should decide between SQL tables and documents?",
+      "options": [
+        {
+          "text": "How the data is read and written most often",
+          "explanation": "Right. Access patterns decide which shape keeps the common operations simple and fast."
+        },
+        {
+          "text": "Which one is newer",
+          "explanation": "Newer isn't better for every job."
+        },
+        {
+          "text": "SQL is always faster",
+          "explanation": "Speed depends on the data and the queries."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Data is mostly read as a whole unit (a profile and its recent items). Which shape fits well?",
+      "options": [
+        {
+          "text": "Documents that embed the related items",
+          "explanation": "Right. One read returns everything that is used together."
+        },
+        {
+          "text": "Many small tables joined on every read",
+          "explanation": "That works, but needs joins for the most common read."
+        },
+        {
+          "text": "A plain text file",
+          "explanation": "That gives up indexes, queries and safe concurrent writes."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

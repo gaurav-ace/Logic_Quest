@@ -45,6 +45,11 @@ import topologicalSortLesson from '../../lessons/topological-sort.json';
 import dijkstraLesson from '../../lessons/dijkstra.json';
 import unionFindLesson from '../../lessons/union-find.json';
 import dynamicProgrammingLesson from '../../lessons/dynamic-programming.json';
+import sqlVsNosqlLesson from '../../lessons/sql-vs-nosql.json';
+import indexesLesson from '../../lessons/indexes.json';
+import replicationLesson from '../../lessons/replication.json';
+import shardingLesson from '../../lessons/sharding.json';
+import consistentHashingLesson from '../../lessons/consistent-hashing.json';
 import { getModel } from '../sim/registry';
 import { getProgram } from '../trace/registry';
 import type { Lesson, SimLesson } from './schema';
@@ -101,6 +106,11 @@ export const LESSON_DATA: unknown[] = [
   cache,
   cachingSim,
   cdnLesson,
+  sqlVsNosqlLesson,
+  indexesLesson,
+  replicationLesson,
+  shardingLesson,
+  consistentHashingLesson,
   agentLoop,
 ];
 

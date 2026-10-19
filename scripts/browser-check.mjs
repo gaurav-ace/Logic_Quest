@@ -252,7 +252,7 @@ if (mode === 'ui') {
   await layoutChecks('home-360');
   await shot('home-360');
   const titles = await evaluate(`[...document.querySelectorAll('.lesson-title')].map((t) => t.textContent)`);
-  check('home lists every lesson', titles.length === 47 && titles[0] === 'Hello, request' && titles.includes('AI agent loop'), titles.join(', '));
+  check('home lists every lesson', titles.length === 52 && titles[0] === 'Hello, request' && titles.includes('AI agent loop'), titles.join(', '));
   check('no "← Lessons" button on home', !(await evaluate(`!!document.querySelector('.nav-back').offsetParent`)));
   check('lessons are grouped by track, with the first unfinished one open', JSON.stringify(await evaluate(`[...document.querySelectorAll('details.track')].map((d) => [d.dataset.track, d.open])`)) === JSON.stringify([['web', true], ['logic', false], ['dsa', false], ['hld', false], ['agentic', false]]));
   check('track headers count progress', (await text('details.track[data-track="logic"] summary')) === 'Logic foundations0 of 8 done', await text('details.track[data-track="logic"] summary'));

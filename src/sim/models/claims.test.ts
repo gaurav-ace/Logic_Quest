@@ -4,7 +4,9 @@ import { averageFrom, runSim } from '../runner';
 import { defaults, type Model, type Params } from '../types';
 import { caching, pickKey, type CacheState } from './caching';
 import { cdn } from './cdn';
+import { replication } from './replication';
 import { scaling } from './scaling';
+import { sharding, shardOf } from './sharding';
 
 // What the Phase 5 traffic sims teach, checked on fixed seeds (the models are deterministic).
 
@@ -14,6 +16,8 @@ const avg = (m: Model<unknown>, p: Params, metric: string, actions: { at: number
 const S = scaling as unknown as Model<unknown>;
 const C = caching as unknown as Model<unknown>;
 const D = cdn as unknown as Model<unknown>;
+const R = replication as unknown as Model<unknown>;
+const H = sharding as unknown as Model<unknown>;
 
 describe('scaling', () => {
   it('a bigger server serves more, until it can carry the traffic', () => {
@@ -98,5 +102,73 @@ describe('CDN', () => {
 
   it('far users wait longer than near users without a CDN (distance costs time)', () => {
     expect(avg(D, { cdn: false }, 'farP50')).toBeGreaterThan(avg(D, { cdn: false }, 'nearP50') + 200);
+  });
+});
+
+describe('replication', () => {
+  const kill = [{ at: 3000, action: 'kill-leader' }];
+
+  it('reads from lagging followers can be stale; reads from the leader never are', () => {
+    expect(avg(R, { followerReads: true }, 'staleRate')).toBeGreaterThan(0.1);
+    expect(avg(R, { followerReads: false }, 'staleRate')).toBe(0);
+  });
+
+  it('without failover, writes fail once the leader dies; with it, they resume after detection', () => {
+    expect(avg(R, { failover: false }, 'writeErrors', kill, 6)).toBeGreaterThan(0.95);
+    expect(avg(R, { failover: true }, 'writeErrors', kill, 10)).toBeLessThan(0.01);
+  });
+
+  it('asynchronous copying can lose confirmed writes on failover; synchronous copying never does, but writes wait for the lag', () => {
+    const lossy = { writes: 20, lag: 500, failover: true };
+    const lost = (p: Params) => [1, 2, 3, 4, 5].map((seed) => runSim(R, { ...defaults(R.controls), ...p }, seed, 12_000, kill).at(-1)!.values.lost!);
+    expect(lost({ ...lossy, sync: false }).every((n) => n > 0)).toBe(true);
+    expect(lost({ ...lossy, sync: true }).every((n) => n === 0)).toBe(true);
+    expect(avg(R, { ...lossy, sync: true }, 'writeP50')).toBeGreaterThan(avg(R, { ...lossy, sync: false }, 'writeP50') + 200);
+  });
+
+  it('the new leader is the follower with the most data', () => {
+    let st = replication.init({}, seeded(1));
+    const p = { ...defaults(replication.controls), writes: 20, lag: 500, failover: true };
+    const r = seeded(2);
+    for (let t = 0; t < 60; t++) st = replication.step(st, p, r);
+    const best = Math.max(...st.replicas.filter((x) => x.id !== st.leader).map((x) => x.applied));
+    st = replication.act(st, 'kill-leader', p);
+    for (let t = 0; t < 30; t++) st = replication.step(st, p, r);
+    expect(st.leader).not.toBeNull();
+    expect(st.replicas.find((x) => x.id === st.leader)!.applied).toBeGreaterThanOrEqual(best);
+  });
+});
+
+describe('sharding', () => {
+  it('the hash spreads ordinary keys evenly', () => {
+    for (const n of [2, 3, 4]) {
+      const counts = new Array(n).fill(0);
+      for (let k = 1; k < 1000; k++) counts[shardOf(k, n)]++;
+      for (const c of counts) expect(Math.abs(c - 999 / n)).toBeLessThan(999 / n / 5);
+    }
+  });
+
+  it('more shards carry more traffic', () => {
+    const errs = [1, 2, 3, 4].map((shards) => avg(H, { rate: 120, shards }, 'errorRate'));
+    for (let i = 1; i < errs.length; i++) expect(errs[i]!).toBeLessThan(errs[i - 1]!);
+    expect(errs[3]!).toBeLessThan(0.01);
+  });
+
+  it('a hot key overloads its shard however many shards there are; spreading it fixes that', () => {
+    const hot = { rate: 120, hotShare: 40 };
+    expect(avg(H, { ...hot, shards: 4 }, 'errorRate')).toBeGreaterThan(0.1);
+    expect(avg(H, { ...hot, shards: 4 }, 'busiest')).toBeGreaterThan(0.45);
+    expect(avg(H, { ...hot, shards: 4, spreadHot: true }, 'errorRate')).toBeLessThan(0.01);
+  });
+
+  it('changing the shard count never loses a request silently', () => {
+    const r = seeded(3);
+    let st = sharding.init({ shards: 2 }, r);
+    for (let t = 0; t < 200; t++) {
+      st = sharding.step(st, { ...defaults(sharding.controls), rate: 100, shards: t < 100 ? 2 : 3 }, r);
+      const f = st.flow;
+      const held = f.servers.reduce((a, s) => a + s.active.length + s.queue.length, 0);
+      expect(f.totals.arrived).toBe(f.totals.done + f.totals.errors + f.totals.handled + held);
+    }
   });
 });

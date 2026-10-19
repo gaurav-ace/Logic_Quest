@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "kind": "sim",
+  "id": "replication",
+  "title": "Replication",
+  "track": "hld",
+  "level": "medium",
+  "objective": "Keep copies of the data on several machines, and handle the catches: stale reads, failover, and lost writes.",
+  "model": "replication",
+  "requires": [
+    "caching-sim"
+  ],
+  "sources": [
+    {
+      "title": "PostgreSQL documentation: Log-Shipping Standby Servers (asynchronous shipping can lose recent transactions; synchronous replication)",
+      "url": "https://www.postgresql.org/docs/current/warm-standby.html"
+    },
+    {
+      "title": "Kleppmann, Designing Data-Intensive Applications (O'Reilly, 2017): replication: leaders and followers, replication lag, failover"
+    }
+  ],
+  "simplifies": "One leader and two followers; each copy arrives after the lag slider's delay (give or take 30%); a failure is noticed after 1 second and the most up-to-date follower is promoted. Real systems also deal with split brain (two leaders at once), network partitions and picking which writes to keep. Numbers are illustrative.",
+  "challenges": [
+    {
+      "id": "stale-reads",
+      "title": "Stale reads",
+      "prompt": "Reads go to followers that are 300 ms behind. Keep stale reads at 1% or less for 10 seconds.",
+      "predict": {
+        "prompt": "Someone saves a change and reloads at once. The read goes to a follower 300 ms behind. What do they see?",
+        "options": [
+          {
+            "text": "Possibly their old data",
+            "explanation": "Right. The follower hasn't received the change yet, so it can return the old version."
+          },
+          {
+            "text": "Always the new data",
+            "explanation": "Only copies that have received the write can show it."
+          },
+          {
+            "text": "An error",
+            "explanation": "Followers still answer; they may just be behind."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "followerReads": true,
+          "lag": 300,
+          "writes": 10
+        },
+        "lock": [
+          "lag",
+          "writes"
+        ]
+      },
+      "goal": {
+        "metric": "staleRate",
+        "op": "<=",
+        "value": 0.01,
+        "forSeconds": 10
+      },
+      "hint": "Which copy always has the latest confirmed write?",
+      "explain": "The leader has every confirmed write, so reading from it is never stale. The trade-off: the leader now does all the reading too. Real systems often read from the leader only when it matters (for example, right after your own write).",
+      "solution": {
+        "followerReads": false
+      }
+    },
+    {
+      "id": "leader-crash",
+      "title": "Leader crash",
+      "prompt": "The leader will crash 3 seconds in. Keep failed writes at 1% or less for 8 seconds after that.",
+      "predict": {
+        "prompt": "Only the leader accepts writes. When it crashes, what happens to writes?",
+        "options": [
+          {
+            "text": "They fail until another copy becomes leader",
+            "explanation": "Right. Followers don't take writes until one of them is promoted."
+          },
+          {
+            "text": "A follower takes them straight away",
+            "explanation": "Only after it has been promoted to leader."
+          },
+          {
+            "text": "Nothing changes",
+            "explanation": "Without a leader, there is nowhere to write."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "failover": false
+        },
+        "actions": [
+          {
+            "at": 3000,
+            "action": "kill-leader"
+          }
+        ]
+      },
+      "goal": {
+        "metric": "writeErrors",
+        "op": "<=",
+        "value": 0.01,
+        "forSeconds": 8
+      },
+      "hint": "Something has to notice the leader is gone and promote a follower.",
+      "explain": "With automatic failover, the failure is noticed and the most up-to-date follower is promoted, so writes resume after a short gap.",
+      "solution": {
+        "failover": true
+      }
+    },
+    {
+      "id": "lost-writes",
+      "title": "Don't lose writes",
+      "prompt": "Writes are confirmed before they are copied (asynchronous), with 500 ms of lag. The leader crashes 3 seconds in. Lose no confirmed writes for 10 seconds.",
+      "predict": {
+        "prompt": "The leader confirmed some writes but hadn't copied them yet when it crashed. After failover, what happens to them?",
+        "options": [
+          {
+            "text": "They are lost: the new leader never got them",
+            "explanation": "Right. Confirmed but not copied means only the dead machine had them."
+          },
+          {
+            "text": "The new leader recovers them",
+            "explanation": "It can't recover what it never received."
+          },
+          {
+            "text": "They are copied later",
+            "explanation": "The only machine that had them is gone."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "writes": 20,
+          "lag": 500,
+          "failover": true,
+          "sync": false
+        },
+        "lock": [
+          "writes",
+          "lag",
+          "failover"
+        ],
+        "actions": [
+          {
+            "at": 3000,
+            "action": "kill-leader"
+          }
+        ]
+      },
+      "goal": {
+        "metric": "lost",
+        "op": "<=",
+        "value": 0,
+        "forSeconds": 10,
+        "fromStart": true
+      },
+      "hint": "What if a write were only confirmed once at least one follower had a copy?",
+      "explain": "With synchronous copying, a write is confirmed only after a follower has it, so promoting the most up-to-date follower keeps every confirmed write. The cost shows in \"Write wait\": every write now waits for the lag.",
+      "solution": {
+        "sync": true
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "What is replication lag?",
+      "options": [
+        {
+          "text": "How far behind the leader a follower is",
+          "explanation": "Right. Changes take time to reach each copy, so followers can be behind."
+        },
+        {
+          "text": "How slow the leader is",
+          "explanation": "Lag is about the copies falling behind, not the leader's speed."
+        },
+        {
+          "text": "The time to restart a server",
+          "explanation": "That is recovery time, a different thing."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Synchronous replication avoids losing confirmed writes. What does it cost?",
+      "options": [
+        {
+          "text": "Every write waits for a follower to confirm, so writes are slower",
+          "explanation": "Right. Safety for speed: the write isn't done until a copy has it."
+        },
+        {
+          "text": "It costs nothing",
+          "explanation": "The write has to wait for the network round trip to a follower."
+        },
+        {
+          "text": "Reads become stale",
+          "explanation": "It makes data safer; stale reads come from reading lagging followers."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}
