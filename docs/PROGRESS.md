@@ -4,7 +4,9 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 ## Current phase
 
-Phase 1, Animation engine. Tasks 1.1–1.4 built and committed locally (not pushed). Not finished until: (1) the owner reviews the three lessons' content (agreed: Claude drafts, owner reviews), (2) push and green CI, (3) the owner's check on phone and desktop, (4) the owner approves the phase.
+Phase 2, Rewards and progress: not started. Waiting on the owner's answer about adding low-level design (LLD) to the phase list, then the Phase 2 plan.
+
+Phase 1, Animation engine: **done**, approved 2026-10-19 after the owner checked the site and their phone and reviewed the lessons ("all good").
 
 Phase 0, Foundations: **done**, approved 2026-10-19 after the owner tested on web and Android. Live at https://gaurav-ace.github.io/Logic_Quest/.
 
@@ -27,13 +29,13 @@ Phase 0, Foundations: **done**, approved 2026-10-19 after the owner tested on we
 
 ## Next step
 
-1. Owner reviews the lesson text in `lessons/load-balancer.json`, `cache.json`, `agent-loop.json` (or in the app).
-2. Done: owner pushed Phase 1; run 39217743772 (f7e1a44) passed check and deploy on its own. Live site serves that build (sw version 0b466140).
-3. Owner checks on phone and desktop, then approves Phase 1 → Phase 2 plan (rewards and progress).
+1. Owner decides whether to add a low-level design (LLD) block (classes, OOP principles, design patterns, "design a parking lot" style problems). CLAUDE.md section 9 has no LLD today.
+2. Write the Phase 2 plan (rewards and progress) and wait for approval.
 
 ## Blockers and questions for the owner
 
-- Lesson content review, push approval and the phone check (above).
+- LLD in the phase list (above).
+- Phase 2 open decisions (CLAUDE.md section 12): reward style, session length and daily goal defaults.
 
 ## Not tested yet
 
@@ -41,7 +43,7 @@ Phase 0, Foundations: **done**, approved 2026-10-19 after the owner tested on we
 - Service worker update path (new deploy replacing the old cache) is reasoned about, not tested.
 - `vite.config.ts` is not type-checked (it would need `@types/node`, not approved). See `docs/IDEAS.md`.
 - Screen reader behaviour has not been tested; captions use `aria-live`.
-- Phase 1 has only been checked in headless Chrome emulation, not yet on the owner's Android phone.
+- Owner checked Phase 1 on the site and their Android phone (2026-10-19): all good.
 - The Android back button is simulated in tests by stepping back one browser history entry; the installed PWA's back gesture has not been checked.
 
 ## Environment notes
@@ -59,3 +61,4 @@ Phase 0, Foundations: **done**, approved 2026-10-19 after the owner tested on we
 - 2026-10-19: CI green and Pages live. Owner tested on web and Android: works. Phase 0 closed. Phase 1 plan written.
 - 2026-10-19: Owner approved the Phase 1 plan, chose "Claude drafts, owner reviews" for lessons, and asked for the check script in the repo. Built 1.1–1.4, one commit each. Not pushed.
 - 2026-10-19: A manual 3rd re-run of the old Phase 0 run failed with "Multiple artifacts named github-pages" (attempts 2 and 3 both uploaded one). Fixed by naming the artifact per attempt. Not pushed yet.
+- 2026-10-19: Owner approved Phase 1. Asked whether the curriculum is fixed or generated on request: explained the phased curriculum (Phases 3–6) plus lessons on request drafted by Claude and reviewed; no in-app generation (needs live model calls). Raised that LLD is missing from the phase list.

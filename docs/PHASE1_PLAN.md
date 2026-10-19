@@ -1,6 +1,6 @@
 # Phase 1 plan: Animation engine
 
-Status: 1.1–1.4 built 2026-10-19. Waiting for the owner's content review, push, phone check and approval.
+Status: done 2026-10-19. Owner reviewed the lessons and checked the site and their phone.
 
 **Goal (CLAUDE.md section 9):** a generic engine for nodes, edges, moving packets, highlights, captions, step back/forward, play/pause and speed control.
 
