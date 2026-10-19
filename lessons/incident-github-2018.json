@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "incident-github-2018",
+  "title": "Incident: GitHub, October 2018",
+  "track": "real-world",
+  "level": "hard",
+  "objective": "Follow GitHub's analysis of 21 October 2018: how a 43-second network cut led to a cross-country database failover, why the two sides couldn't simply be merged, and why GitHub chose data integrity over speed.",
+  "requires": [
+    "incident-s3-2017",
+    "replication"
+  ],
+  "company": {
+    "name": "GitHub",
+    "domains": [
+      "github.blog",
+      "github.com"
+    ]
+  },
+  "basis": "published",
+  "sources": [
+    {
+      "title": "The GitHub Blog: October 21 post-incident analysis (30 Oct 2018): \"our strategy was to prioritize data integrity over site usability and time to recovery\"",
+      "url": "https://github.blog/news-insights/company-news/oct21-post-incident-analysis/"
+    }
+  ],
+  "simplifies": "Simplified to its key moments from GitHub's own analysis (times UTC). Orchestrator, the tool that manages GitHub's MySQL failovers, is shown as one box; the analysis describes it in more detail.",
+  "nodes": [
+    {
+      "id": "east",
+      "label": "US East",
+      "x": 70,
+      "y": 60,
+      "width": 110
+    },
+    {
+      "id": "link",
+      "label": "Link",
+      "x": 210,
+      "y": 60,
+      "width": 80
+    },
+    {
+      "id": "west",
+      "label": "US West",
+      "x": 350,
+      "y": 60,
+      "width": 110
+    },
+    {
+      "id": "orch",
+      "label": "Orchestrator",
+      "x": 210,
+      "y": 160,
+      "width": 160
+    }
+  ],
+  "edges": [
+    [
+      "east",
+      "link"
+    ],
+    [
+      "link",
+      "west"
+    ],
+    [
+      "orch",
+      "east"
+    ],
+    [
+      "orch",
+      "west"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "Routine maintenance to replace failing 100G optical equipment cut the link between GitHub's US East Coast network hub and its primary East Coast data center. It was restored after 43 seconds.",
+      "highlight": [
+        "link"
+      ],
+      "path": [
+        [
+          "east",
+          "link"
+        ]
+      ],
+      "time": "22:52 UTC, 21 Oct"
+    },
+    {
+      "caption": "Orchestrator began \"failing over clusters to direct writes to the US West Coast data center.\"",
+      "highlight": [
+        "orch",
+        "west"
+      ],
+      "path": [
+        [
+          "orch",
+          "west"
+        ]
+      ],
+      "time": "22:52 UTC, 21 Oct",
+      "predict": {
+        "prompt": "In those 43 seconds, what does the automatic database failover tool do?",
+        "options": [
+          {
+            "text": "Decides the East Coast primaries are gone and promotes West Coast databases to take writes",
+            "explanation": "Right. Orchestrator started \"failing over clusters to direct writes to the US West Coast data center\"."
+          },
+          {
+            "text": "Waits for the link to come back",
+            "explanation": "43 seconds was long enough for it to act."
+          },
+          {
+            "text": "Shuts GitHub down",
+            "explanation": "It tried to keep GitHub running by moving writes."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "The East Coast databases \"contained a brief period of writes that had not been replicated\" to the West Coast, and the West Coast had now taken new writes too. The two sides had diverged, and users saw out-of-date and inconsistent information.",
+      "highlight": [
+        "east",
+        "west"
+      ],
+      "path": [
+        [
+          "east",
+          "link"
+        ],
+        [
+          "link",
+          "west"
+        ]
+      ],
+      "predict": {
+        "prompt": "Why not just switch writes back to the East Coast?",
+        "options": [
+          {
+            "text": "The East Coast data center was destroyed",
+            "explanation": "It was fine; only the link had been cut."
+          },
+          {
+            "text": "Switching takes too long",
+            "explanation": "Speed wasn't the issue; losing data was."
+          },
+          {
+            "text": "Each side now has writes the other lacks; switching back would lose the West Coast's new writes",
+            "explanation": "Right. Neither side was complete, so there was no simple way back."
+          }
+        ],
+        "answer": 2
+      }
+    },
+    {
+      "caption": "GitHub decided to degrade the site on purpose, pausing webhook delivery and Pages builds: \"our strategy was to prioritize data integrity over site usability and time to recovery.\"",
+      "highlight": [
+        "orch"
+      ],
+      "path": [],
+      "time": "23:19 UTC, 21 Oct"
+    },
+    {
+      "caption": "Restoring from backups began. \"The time required to restore multiple terabytes of backup data caused the process to take hours\", and replicas then caught up more slowly than estimated.",
+      "highlight": [
+        "east",
+        "west"
+      ],
+      "path": [],
+      "time": "00:05 UTC, 22 Oct"
+    },
+    {
+      "caption": "The status returned to green. In all, the incident \"resulted in degraded service for 24 hours and 11 minutes.\"",
+      "highlight": [
+        "east",
+        "west"
+      ],
+      "path": [],
+      "time": "23:03 UTC, 22 Oct"
+    },
+    {
+      "caption": "Changes GitHub listed include adjusting Orchestrator \"to prevent the promotion of database primaries across regional boundaries\", work towards running from several data centers at once, and more fault injection and chaos engineering.",
+      "highlight": [
+        "orch"
+      ],
+      "path": []
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Why did a 43-second network cut cause about 24 hours of degraded service?",
+      "options": [
+        {
+          "text": "The link took 24 hours to repair",
+          "explanation": "It was restored after 43 seconds."
+        },
+        {
+          "text": "Automatic failover moved writes across the country, and the two sides diverged, so they had to be carefully repaired from backups",
+          "explanation": "Right. The cut was short; the repair of diverged data was long."
+        },
+        {
+          "text": "GitHub's servers were overloaded by users",
+          "explanation": "The problem was data that differed between two sites."
+        }
+      ],
+      "answer": 1
+    },
+    {
+      "prompt": "GitHub chose data integrity over a fast recovery. What did that mean in practice?",
+      "options": [
+        {
+          "text": "Deleting the diverged data",
+          "explanation": "That would lose users' work."
+        },
+        {
+          "text": "Keeping everything running as normal",
+          "explanation": "They degraded the site on purpose to protect the data."
+        },
+        {
+          "text": "Pausing some features and taking longer, rather than risking lost or mixed-up data",
+          "explanation": "Right. A slower, safe repair beat a fast one that could corrupt repositories."
+        }
+      ],
+      "answer": 2
+    }
+  ]
+}

@@ -1,0 +1,323 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "capstone-design-review",
+  "title": "Capstone: senior design review",
+  "track": "real-world",
+  "level": "hard",
+  "objective": "Review a new design the way a senior engineer would, with no hints: find the risks, rank them by harm, and choose what to fix first.",
+  "requires": [
+    "article-uber-h3"
+  ],
+  "sources": [
+    {
+      "title": "Stripe: Designing robust and predictable APIs with idempotency",
+      "url": "https://stripe.com/blog/idempotency"
+    },
+    {
+      "title": "Anthropic: Building effective agents",
+      "url": "https://www.anthropic.com/engineering/building-effective-agents"
+    },
+    {
+      "title": "IETF RFC 6585: HTTP status code 429 Too Many Requests",
+      "url": "https://www.rfc-editor.org/rfc/rfc6585"
+    }
+  ],
+  "simplifies": "A made-up system for practice, not any company's. Request rates, costs and timings are illustrative. A real review would also cover security, privacy and cost in more depth.",
+  "nodes": [
+    {
+      "id": "cust",
+      "label": "Customers",
+      "x": 70,
+      "y": 50,
+      "width": 120
+    },
+    {
+      "id": "bot",
+      "label": "Assistant",
+      "x": 210,
+      "y": 50,
+      "width": 120
+    },
+    {
+      "id": "model",
+      "label": "Model API",
+      "x": 350,
+      "y": 50,
+      "width": 120
+    },
+    {
+      "id": "orders",
+      "label": "Orders DB",
+      "x": 210,
+      "y": 155,
+      "width": 130
+    },
+    {
+      "id": "refund",
+      "label": "Refunds",
+      "x": 350,
+      "y": 155,
+      "width": 110
+    }
+  ],
+  "edges": [
+    [
+      "cust",
+      "bot"
+    ],
+    [
+      "bot",
+      "model"
+    ],
+    [
+      "bot",
+      "orders"
+    ],
+    [
+      "bot",
+      "refund"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "The brief: an AI support assistant for an online shop. Customers ask about orders; the assistant answers, and can issue refunds. Expected load (illustrative): a few thousand chats an hour, with spikes after big sales.",
+      "highlight": [
+        "cust",
+        "bot"
+      ],
+      "path": []
+    },
+    {
+      "caption": "The proposal, part 1: every customer message calls the model API and waits for the answer, with no timeout. The full chat history is sent on every call.",
+      "highlight": [
+        "bot",
+        "model"
+      ],
+      "path": [
+        [
+          "cust",
+          "bot"
+        ],
+        [
+          "bot",
+          "model"
+        ]
+      ]
+    },
+    {
+      "caption": "Part 2: to answer \"where's my order?\", the assistant runs a query over the orders database, built from the customer's text by the model.",
+      "highlight": [
+        "bot",
+        "orders"
+      ],
+      "path": [
+        [
+          "bot",
+          "orders"
+        ]
+      ]
+    },
+    {
+      "caption": "Part 3: when the model decides a refund is fair, the assistant calls the refund service directly, with no limit on the amount and no human check. If the call times out, it calls again.",
+      "highlight": [
+        "bot",
+        "refund"
+      ],
+      "path": [
+        [
+          "bot",
+          "refund"
+        ]
+      ]
+    },
+    {
+      "caption": "Part 4: if the model API returns 429 (too many requests), the assistant retries straight away until it works. All chats share one API key.",
+      "highlight": [
+        "bot",
+        "model"
+      ],
+      "path": []
+    },
+    {
+      "caption": "Your turn. Some of these choices are fine; several are not. There are no hints in this review: weigh each part against what you've learned about failure, retries, load and safety.",
+      "highlight": [
+        "bot"
+      ],
+      "path": []
+    }
+  ],
+  "critique": {
+    "prompt": "Review the proposal you just stepped through. Tap every real risk.",
+    "nodes": [
+      {
+        "id": "cust",
+        "label": "Customers",
+        "x": 70,
+        "y": 50,
+        "width": 120
+      },
+      {
+        "id": "bot",
+        "label": "Assistant",
+        "x": 210,
+        "y": 50,
+        "width": 120
+      },
+      {
+        "id": "model",
+        "label": "Model API",
+        "x": 350,
+        "y": 50,
+        "width": 120
+      },
+      {
+        "id": "orders",
+        "label": "Orders DB",
+        "x": 210,
+        "y": 155,
+        "width": 130
+      },
+      {
+        "id": "refund",
+        "label": "Refunds",
+        "x": 350,
+        "y": 155,
+        "width": 110
+      }
+    ],
+    "edges": [
+      [
+        "cust",
+        "bot"
+      ],
+      [
+        "bot",
+        "model"
+      ],
+      [
+        "bot",
+        "orders"
+      ],
+      [
+        "bot",
+        "refund"
+      ]
+    ],
+    "risks": [
+      {
+        "text": "Refunds have no limit and no human check, so a wrong or manipulated model decision pays out real money",
+        "real": true,
+        "why": "Cap automatic refunds and send larger ones to a person for approval.",
+        "nodes": [
+          "refund"
+        ]
+      },
+      {
+        "text": "Retrying a refund that timed out can pay it twice",
+        "real": true,
+        "why": "Send an idempotency key with each refund, so a retry returns the first result.",
+        "nodes": [
+          "refund"
+        ]
+      },
+      {
+        "text": "Running a database query built by the model from customer text lets a customer steer the query",
+        "real": true,
+        "why": "Give the assistant a fixed lookup (orders for this signed-in customer), not free-form queries.",
+        "nodes": [
+          "orders"
+        ]
+      },
+      {
+        "text": "Retrying straight away on 429, with one shared key, keeps the limit exhausted for every chat",
+        "real": true,
+        "why": "Back off with jitter, and queue or shed load when the limit is reached.",
+        "nodes": [
+          "model"
+        ]
+      },
+      {
+        "text": "No timeout on the model call lets one slow response tie up the chat, and many slow ones tie up the service",
+        "real": true,
+        "why": "Set a timeout and show a friendly fallback.",
+        "nodes": [
+          "bot",
+          "model"
+        ]
+      },
+      {
+        "text": "The assistant answers order questions automatically",
+        "real": false,
+        "why": "That's the point of the product."
+      },
+      {
+        "text": "Customers can ask in their own words",
+        "real": false,
+        "why": "Free-text questions are fine; the risk is turning that text into database queries."
+      }
+    ],
+    "hint": "No hints in the capstone. Look again at anything that moves money, touches data, or retries.",
+    "first": {
+      "prompt": "Which would you fix first?",
+      "options": [
+        {
+          "text": "The retry on 429",
+          "explanation": "It can take the assistant down, but nothing is lost permanently."
+        },
+        {
+          "text": "The unlimited refunds with no human check",
+          "explanation": "Right. It loses real money, can be triggered on purpose by a manipulative customer, and can't be undone."
+        },
+        {
+          "text": "The missing timeout",
+          "explanation": "Real, but it causes slowness, not lost money."
+        },
+        {
+          "text": "The model-built database query",
+          "explanation": "Serious, but capping the money that can leave comes first."
+        }
+      ],
+      "answer": 1
+    },
+    "explain": "Rank by harm and reversibility: money paid out wrongly is lost for good. Next, make refunds idempotent and replace free-form queries with fixed lookups, then add timeouts and backoff so overload degrades gracefully."
+  },
+  "quiz": [
+    {
+      "prompt": "In a design review, how should risks be ranked?",
+      "options": [
+        {
+          "text": "By harm: what's lost or broken, how many people it affects, and whether it can be undone",
+          "explanation": "Right. Money lost or data broken beats inconvenience."
+        },
+        {
+          "text": "By how easy they are to fix",
+          "explanation": "Easy fixes are nice, but the worst risks come first."
+        },
+        {
+          "text": "In the order they appear in the design",
+          "explanation": "Order of appearance says nothing about harm."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why is \"no timeout\" on a call to another service a risk?",
+      "options": [
+        {
+          "text": "Timeouts make calls slower",
+          "explanation": "A timeout only stops a call that's already too slow."
+        },
+        {
+          "text": "It isn't: waiting longer is always safer",
+          "explanation": "Waiting forever ties up resources and users."
+        },
+        {
+          "text": "If that service hangs, every request waiting on it hangs too, and they pile up",
+          "explanation": "Right. A timeout turns a hang into a quick failure you can handle."
+        }
+      ],
+      "answer": 2
+    }
+  ]
+}

@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "article-stripe-retries",
+  "title": "Article: safe retries for payments",
+  "track": "real-world",
+  "level": "medium",
+  "objective": "Follow Stripe's article on idempotency: the three ways a request can fail, how an idempotency key makes retrying safe, and why retries need backoff and jitter.",
+  "requires": [
+    "article-discord-messages",
+    "idempotency"
+  ],
+  "company": {
+    "name": "Stripe",
+    "domains": [
+      "stripe.com"
+    ]
+  },
+  "basis": "published",
+  "sources": [
+    {
+      "title": "Stripe Blog: Designing robust and predictable APIs with idempotency (Brandur Leach, 22 Feb 2017)",
+      "url": "https://stripe.com/blog/idempotency"
+    }
+  ],
+  "simplifies": "Simplified from Stripe's own article. How long Stripe keeps keys, and its exact retry timings, aren't covered here.",
+  "nodes": [
+    {
+      "id": "client",
+      "label": "Client",
+      "x": 60,
+      "y": 100,
+      "width": 100
+    },
+    {
+      "id": "api",
+      "label": "Stripe API",
+      "x": 210,
+      "y": 100,
+      "width": 140
+    },
+    {
+      "id": "store",
+      "label": "Results",
+      "x": 355,
+      "y": 100,
+      "width": 110
+    }
+  ],
+  "edges": [
+    [
+      "client",
+      "api"
+    ],
+    [
+      "api",
+      "store"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "Stripe lists three ways a call can fail. One: \"The initial connection could fail as the client tries to connect to a server.\"",
+      "highlight": [
+        "client"
+      ],
+      "path": [
+        [
+          "client",
+          "api"
+        ]
+      ]
+    },
+    {
+      "caption": "Two: \"The call could fail midway while the server is fulfilling the operation, leaving the work in limbo.\"",
+      "highlight": [
+        "api"
+      ],
+      "path": [
+        [
+          "client",
+          "api"
+        ]
+      ],
+      "predict": {
+        "prompt": "Case one: the connection failed before reaching the server. Is it safe to just send the request again?",
+        "options": [
+          {
+            "text": "No: the payment may have gone through",
+            "explanation": "The request never reached the server."
+          },
+          {
+            "text": "Only after a day",
+            "explanation": "There's nothing to wait for; nothing happened."
+          },
+          {
+            "text": "Yes: the server never saw it, so nothing happened",
+            "explanation": "Right. This is the easy case."
+          }
+        ],
+        "answer": 2
+      }
+    },
+    {
+      "caption": "Three: \"The call could succeed, but the connection break before the server can tell its client about it.\"",
+      "highlight": [
+        "api",
+        "client"
+      ],
+      "path": [
+        [
+          "client",
+          "api"
+        ],
+        [
+          "api",
+          "store"
+        ]
+      ]
+    },
+    {
+      "caption": "The fix: the client sends a unique value in an `Idempotency-Key` header. If a retry arrives with a key the server has already completed, it \"simply replies with a cached result of the successful operation.\"",
+      "highlight": [
+        "store",
+        "api"
+      ],
+      "path": [
+        [
+          "api",
+          "store"
+        ]
+      ],
+      "predict": {
+        "prompt": "Case three: the charge succeeded, but the reply was lost. The client can't tell this apart from a failure. What happens if it simply retries?",
+        "options": [
+          {
+            "text": "The server notices and ignores it",
+            "explanation": "Only if the request carries something that identifies it as a repeat."
+          },
+          {
+            "text": "Nothing: retries are always safe",
+            "explanation": "Retrying is safe only for operations that are idempotent."
+          },
+          {
+            "text": "The customer may be charged twice",
+            "explanation": "Right. Without a way to recognise the retry, the server sees a brand-new charge."
+          }
+        ],
+        "answer": 2
+      }
+    },
+    {
+      "caption": "Retry politely: \"By backing off exponentially, we can ensure that clients aren't hammering on a downed server.\"",
+      "highlight": [
+        "client"
+      ],
+      "path": []
+    },
+    {
+      "caption": "Add jitter: \"We can address thundering herd by adding some amount of random \"jitter\" to each client's wait time.\" Retries then spread out instead of arriving in waves.",
+      "highlight": [
+        "client",
+        "api"
+      ],
+      "path": [
+        [
+          "client",
+          "api"
+        ]
+      ],
+      "predict": {
+        "prompt": "Thousands of clients lost the same server at the same moment, and all back off by exactly the same amounts. What goes wrong?",
+        "options": [
+          {
+            "text": "Nothing: backing off solves it",
+            "explanation": "Identical waits keep everyone in lockstep."
+          },
+          {
+            "text": "They retry too slowly to ever finish",
+            "explanation": "The waits grow, but they do retry."
+          },
+          {
+            "text": "They all retry at the same moments, in waves that hit the recovering server together",
+            "explanation": "Right. That's the thundering herd problem."
+          }
+        ],
+        "answer": 2
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Which failure case makes an idempotency key necessary?",
+      "options": [
+        {
+          "text": "The connection failed before reaching the server",
+          "explanation": "Then nothing happened, so a plain retry is already safe."
+        },
+        {
+          "text": "The request had a typo",
+          "explanation": "That's a client error, not a retry problem."
+        },
+        {
+          "text": "The server did the work but the reply never arrived",
+          "explanation": "Right. Only a key lets the server recognise the retry and return the earlier result."
+        }
+      ],
+      "answer": 2
+    },
+    {
+      "prompt": "Why add random jitter to exponential backoff?",
+      "options": [
+        {
+          "text": "To make retries faster",
+          "explanation": "Jitter is about spreading retries, not speed."
+        },
+        {
+          "text": "So clients that failed together don't all retry at exactly the same moments",
+          "explanation": "Right. Jitter breaks up the thundering herd."
+        },
+        {
+          "text": "To make each retry use a new idempotency key",
+          "explanation": "The key stays the same on every retry; that's the point."
+        }
+      ],
+      "answer": 1
+    }
+  ]
+}

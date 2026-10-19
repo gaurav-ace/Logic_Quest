@@ -1,0 +1,236 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "article-uber-h3",
+  "title": "Article: H3, Uber's hexagonal grid",
+  "track": "real-world",
+  "level": "hard",
+  "objective": "Learn from H3's own documentation why Uber's open-source geospatial index uses hexagons in a hierarchy of resolutions, and what that makes easy.",
+  "requires": [
+    "article-stripe-retries",
+    "case-ride-hailing"
+  ],
+  "company": {
+    "name": "Uber",
+    "domains": [
+      "uber.com",
+      "h3geo.org"
+    ]
+  },
+  "basis": "published",
+  "sources": [
+    {
+      "title": "H3 docs (h3geo.org, copyright Uber Technologies): Introduction (\"H3 was developed to address the challenges of Uber's data science needs\")",
+      "url": "https://h3geo.org/docs/"
+    },
+    {
+      "title": "H3 docs: Aggregation (\"For hexagons, all neighbors are equidistant\"; squares have neighbours at two different distances)",
+      "url": "https://h3geo.org/docs/highlights/aggregation/"
+    },
+    {
+      "title": "H3 docs: Indexing (aperture 7: each hexagon has seven children; nearby locations tend to have numerically close indexes)",
+      "url": "https://h3geo.org/docs/highlights/indexing/"
+    },
+    {
+      "title": "H3 docs: Tables of cell statistics across resolutions (resolutions 0 to 15; average hexagon areas)",
+      "url": "https://h3geo.org/docs/core-library/restable/"
+    }
+  ],
+  "simplifies": "Built from H3's own documentation, which Uber publishes; it says what H3 is and why, not how Uber's services use it internally. The few pentagons H3 needs to cover the globe are left out of the steps. Areas are H3's published averages.",
+  "nodes": [
+    {
+      "id": "gps",
+      "label": "GPS point",
+      "x": 70,
+      "y": 50,
+      "width": 120
+    },
+    {
+      "id": "cell",
+      "label": "Cell",
+      "x": 205,
+      "y": 50,
+      "width": 90
+    },
+    {
+      "id": "ring",
+      "label": "6 neighbours",
+      "x": 335,
+      "y": 50,
+      "width": 150
+    },
+    {
+      "id": "parent",
+      "label": "Parent cell",
+      "x": 205,
+      "y": 155,
+      "width": 140
+    },
+    {
+      "id": "counts",
+      "label": "Counts",
+      "x": 350,
+      "y": 155,
+      "width": 110
+    }
+  ],
+  "edges": [
+    [
+      "gps",
+      "cell"
+    ],
+    [
+      "cell",
+      "ring"
+    ],
+    [
+      "cell",
+      "parent"
+    ],
+    [
+      "parent",
+      "counts"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "H3 \"is a geospatial indexing system that partitions the world into hexagonal cells\". Its docs say it \"was developed to address the challenges of Uber's data science needs\", and it's open source.",
+      "highlight": [
+        "cell"
+      ],
+      "path": []
+    },
+    {
+      "caption": "Every location falls in exactly one cell at a chosen resolution, so a GPS point becomes a cell ID, and things in the same cell can be grouped by that ID.",
+      "highlight": [
+        "gps",
+        "cell"
+      ],
+      "path": [
+        [
+          "gps",
+          "cell"
+        ]
+      ]
+    },
+    {
+      "caption": "Why hexagons? A square has 8 neighbours at two different distances (sides and corners). \"For hexagons, all neighbors are equidistant\": each has 6, all the same distance away.",
+      "highlight": [
+        "ring"
+      ],
+      "path": [
+        [
+          "cell",
+          "ring"
+        ]
+      ],
+      "predict": {
+        "prompt": "You want everything within about one cell of a rider. With squares, the corner neighbours are farther than the side ones. What do hexagons change?",
+        "options": [
+          {
+            "text": "All 6 neighbours are the same distance away, so a ring of cells is closer to a circle",
+            "explanation": "Right. H3's docs note that expanding rings of hexagons approximate circles."
+          },
+          {
+            "text": "Hexagons have more neighbours than squares",
+            "explanation": "Fewer: 6 against 8."
+          },
+          {
+            "text": "Hexagons are faster to draw",
+            "explanation": "The reason is distance, not drawing."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Cells come in 16 resolutions, 0 to 15. At resolution 0 an average hexagon covers about 4.36 million km²; at resolution 9, about 0.1 km²; at 15, under 1 m².",
+      "highlight": [
+        "cell",
+        "parent"
+      ],
+      "path": [
+        [
+          "cell",
+          "parent"
+        ]
+      ],
+      "predict": {
+        "prompt": "H3 uses \"aperture 7\". Going one resolution finer, how many children does each hexagon have?",
+        "options": [
+          {
+            "text": "7",
+            "explanation": "Right. \"Every hexagonal cell … has seven child cells below it.\""
+          },
+          {
+            "text": "4",
+            "explanation": "That's how squares split (2 by 2); H3's hexagons split into 7."
+          },
+          {
+            "text": "6",
+            "explanation": "Close: that's how many neighbours a hexagon has, and pentagons have 6 children; hexagons have 7."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Hexagons don't split perfectly into 7 smaller hexagons, so H3's docs say \"geographic containment is approximate\", while \"logical containment in the index is exact\": every cell knows its parent and children.",
+      "highlight": [
+        "parent"
+      ],
+      "path": []
+    },
+    {
+      "caption": "Coarse counts come from fine ones: group cells by their parent to see demand over a whole neighbourhood, or zoom in for detail. And \"geographically close locations will tend to have numerically close indexes.\"",
+      "highlight": [
+        "parent",
+        "counts"
+      ],
+      "path": [
+        [
+          "parent",
+          "counts"
+        ]
+      ]
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Why does H3 use hexagons rather than squares?",
+      "options": [
+        {
+          "text": "All of a hexagon's neighbours are the same distance away, which makes rings and distances simpler",
+          "explanation": "Right. Squares have neighbours at two different distances."
+        },
+        {
+          "text": "Hexagons fit perfectly inside each other at every resolution",
+          "explanation": "They don't; H3's docs say geographic containment is only approximate."
+        },
+        {
+          "text": "Maps are hexagonal",
+          "explanation": "It's about neighbour distances, not map shape."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "What does a hierarchy of resolutions let you do?",
+      "options": [
+        {
+          "text": "Count things in fine cells, then roll them up into parent cells for a bigger area",
+          "explanation": "Right. Every cell knows its parent exactly in the index."
+        },
+        {
+          "text": "Store each point many times",
+          "explanation": "Each point maps to one cell per resolution you choose."
+        },
+        {
+          "text": "Avoid using IDs",
+          "explanation": "It's built entirely on cell IDs."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

@@ -82,6 +82,15 @@ import caseNotificationsLesson from '../../lessons/case-notifications.json';
 import caseAutocompleteLesson from '../../lessons/case-autocomplete.json';
 import caseUniqueIdsLesson from '../../lessons/case-unique-ids.json';
 import caseCollabEditingLesson from '../../lessons/case-collab-editing.json';
+import incidentMetaLesson from '../../lessons/incident-meta-2021.json';
+import incidentCloudflareLesson from '../../lessons/incident-cloudflare-2019.json';
+import incidentS3Lesson from '../../lessons/incident-s3-2017.json';
+import incidentGithubLesson from '../../lessons/incident-github-2018.json';
+import incidentSlackLesson from '../../lessons/incident-slack-2021.json';
+import articleDiscordMessagesLesson from '../../lessons/article-discord-messages.json';
+import articleStripeRetriesLesson from '../../lessons/article-stripe-retries.json';
+import articleUberH3Lesson from '../../lessons/article-uber-h3.json';
+import capstoneDesignReviewLesson from '../../lessons/capstone-design-review.json';
 import { getModel } from '../sim/registry';
 import { getProgram } from '../trace/registry';
 import type { Lesson, SimLesson } from './schema';
@@ -175,6 +184,15 @@ export const LESSON_DATA: unknown[] = [
   caseAutocompleteLesson,
   caseUniqueIdsLesson,
   caseCollabEditingLesson,
+  incidentMetaLesson,
+  incidentCloudflareLesson,
+  incidentS3Lesson,
+  incidentGithubLesson,
+  incidentSlackLesson,
+  articleDiscordMessagesLesson,
+  articleStripeRetriesLesson,
+  articleUberH3Lesson,
+  capstoneDesignReviewLesson,
   agentLoop,
 ];
 

@@ -4,11 +4,20 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 ## Current phase
 
-Phase 5b, Low-level design: **done**, pushed, and approved by the owner on 2026-10-19 ("site shows LLD now, proceed"); a phone check was not mentioned. Phase 5c plan approved 2026-10-19 ("Approve, build all of it"). In progress: see the session log.
+Phase 5b, Low-level design: **done**, pushed, and approved by the owner on 2026-10-19 ("site shows LLD now, proceed"); a phone check was not mentioned. Phase 5c plan approved 2026-10-19 ("Approve, build all of it"). **Phase 5c: all 21 lessons built and checked, awaiting the owner's review.**
 
 Phase 5, System design (HLD): **done**, pushed and approved by the owner on 2026-10-19.
 
 Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19 without a line-by-line content review; the owner will report any content problems they find later). Live at https://gaurav-ace.github.io/Logic_Quest/.
+
+## Done (Phase 5c, awaiting review)
+
+- 5c.1 Engine (previous session): accuracy rule in the validator, timeline times on steps, "critique the design" exercise, `inventory` and `fanout` sims, `nearby` and `snowflake` traces.
+- 5c.2 Case studies R1–R4. 5c.3 R5–R12, with a new `autocomplete` trace (top 2 per trie node; tested against a full search of every prefix on 500 random logs; two mutations each failed tests). 5c.4 I1–I8 (Meta, Cloudflare, AWS S3, GitHub, Slack, Discord, Stripe, H3) and the C1 capstone. 93 lessons in all.
+- Every company claim is quoted or paraphrased from that company's own page, fetched on 2026-10-19; Swiggy, Uber (ride-hailing) and IRCTC lessons are labelled plausible. No `TODO-VERIFY` left in 5c.
+- Checks run on the final build: `npm run check` 609/609; browser `ui` 1246/1246 (every lesson walked through its critique to the quiz at 360 px), `design` 29/29, `sim` 24/24, `pwa` 7/7, `persist` 11/11.
+- Found and fixed: a label too wide for its box (found by the new critique walk); boxes touching each other or the frame (seen in screenshots; the validator now requires 6 units between boxes and 4 from the frame, and both margins were mutation-checked); predictions placed one step before the step that answers them (moved); one video quiz answer that claimed more than RFC 8216 says (reworded).
+- Differences from the plan: R9 (notifications) is a diagram, not a queues sim, which would have repeated S11; R8 (flash sale) reuses the train model, so stock is labelled "seats" (said in its note).
 
 ## Done (Phase 5b)
 
@@ -70,10 +79,13 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 
 ## Next step
 
-1. Finish 5c.1: teach `scripts/browser-check.mjs` to walk the critique (it currently stops at the critique, so the 4 case-study lessons will fail the `ui` walk), then run the full browser suite and look at screenshots of the 4 case studies.
-2. 5c.3 (R5–R12) and 5c.4 (I1–I8 and C1), then the owner's review.
+1. Owner reviews Phase 5c (21 lessons), on the site after a push.
+2. Owner decides on the answer-order fix below; then Phase 6 (agentic AI) needs a plan.
 
 ## Blockers and questions for the owner
+
+- **Answer order (an earlier mistake, found 2026-10-19):** in 149 of 168 quiz questions written before 5c.4 the right answer is first, and options are shown in file order, so tapping the first option scores well. Proposed fix: shuffle options deterministically when shown (quiz, predictions, critique), with a test. Needs approval because it changes the shared renderer.
+- The main script is now 575 kB (181 kB gzipped), past Vite's 500 kB warning, because lesson data is bundled. Parked in `docs/IDEAS.md` (load lessons per track).
 
 - Wikipedia is cited for a few facts (square numbers, off-by-one, prefix sums, cycle detection, Big O, space–time tradeoff, topological sorting); the owner may veto it.
 
@@ -121,4 +133,4 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 - 2026-10-19: Owner pushed Phase 5b, but the site showed Phase 5. Cause, from the GitHub API: the push run (c1bb890) deployed at 14:26:54, then a re-run (attempt 4) of an older manual run for a0dc2aa finished at 14:32:46 and published the old commit again; the Reload banner then reloaded into that old version. Fix: the deploy job now checks that the run's commit is still the tip of main (git ls-remote) and skips deploying otherwise. Logic checked locally against the real repo (current main: deploy; old commit: skip); not yet seen running on GitHub.
 - 2026-10-19: Owner pushed the CI fix; the push run for ad1f667 deployed and the site shows LLD. Owner approved 5b and asked to continue. Uber's H3 facts can come from h3geo.org (copyright Uber Technologies), which resolves the curriculum's TODO-VERIFY on Uber's blog. Wrote the Phase 5c plan.
 - 2026-10-19: Started 5c (work in progress, committed with unit tests passing; browser checks NOT run on it). Done: accuracy rule in the validator (company + basis, own-domain check; a substring mutation of the domain match failed its test), timeline times on steps, "Critique the design" exercise (diagram, trace and sim lessons), `inventory` and `fanout` sims (challenge settings measured over 10 seeds; claim tests), `nearby` and `snowflake` traces (references and claim tests), and 4 case studies: payment gateway, food delivery, ride-hailing, train booking. Sources checked: Stripe docs and blogs, h3geo.org (Uber's H3), Cloudflare Waiting Room, Twitter's Snowflake README. Swiggy and IRCTC sites couldn't be reached, so those lessons are labelled plausible and make no claims about either company. Stopped at the usage limit.
-
+- 2026-10-19 (new session): Browser checks now walk the critique; full suite green on 5c.2. Built 5c.3 (8 case studies and the autocomplete trace) and 5c.4 (8 incident/article lessons and the capstone), from sources fetched this session. Added the box-spacing rule. Found the answer-order problem across earlier lessons and raised it. Not pushed.

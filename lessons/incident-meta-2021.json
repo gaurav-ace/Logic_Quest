@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "incident-meta-2021",
+  "title": "Incident: Meta outage, October 2021",
+  "track": "real-world",
+  "level": "hard",
+  "objective": "Follow Meta's write-up of its 4 October 2021 outage: how one maintenance command made Meta's apps unreachable, and why recovery was slow.",
+  "requires": [
+    "case-collab-editing",
+    "request-journey"
+  ],
+  "company": {
+    "name": "Meta",
+    "domains": [
+      "engineering.fb.com",
+      "fb.com",
+      "meta.com"
+    ]
+  },
+  "basis": "published",
+  "sources": [
+    {
+      "title": "Engineering at Meta: More details about the October 4 outage (Santosh Janardhan, 5 Oct 2021): \"a command was issued … unintentionally took down all the connections in our backbone network\"",
+      "url": "https://engineering.fb.com/2021/10/05/networking-traffic/outage-details/"
+    }
+  ],
+  "simplifies": "Simplified to its key moments from Meta's own write-up, which gives no clock times, so this timeline has none. The write-up's explanation of BGP and DNS is shortened to one sentence each.",
+  "nodes": [
+    {
+      "id": "cmd",
+      "label": "Command",
+      "x": 60,
+      "y": 40,
+      "width": 110
+    },
+    {
+      "id": "bb",
+      "label": "Backbone",
+      "x": 205,
+      "y": 40,
+      "width": 120
+    },
+    {
+      "id": "dc",
+      "label": "Data center",
+      "x": 345,
+      "y": 100,
+      "width": 140
+    },
+    {
+      "id": "dns",
+      "label": "DNS",
+      "x": 205,
+      "y": 160,
+      "width": 90
+    },
+    {
+      "id": "net",
+      "label": "Internet",
+      "x": 60,
+      "y": 160,
+      "width": 110
+    }
+  ],
+  "edges": [
+    [
+      "cmd",
+      "bb"
+    ],
+    [
+      "bb",
+      "dc"
+    ],
+    [
+      "dc",
+      "dns"
+    ],
+    [
+      "dns",
+      "net"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "Background: Meta's backbone network links its data centers. Its DNS servers tell the rest of the internet how to reach Meta, and announce their own routes using BGP.",
+      "highlight": [
+        "bb",
+        "dns"
+      ],
+      "path": []
+    },
+    {
+      "caption": "During routine maintenance, a command meant to assess the backbone's capacity \"unintentionally took down all the connections in our backbone network\", Meta writes.",
+      "highlight": [
+        "cmd",
+        "bb"
+      ],
+      "path": [
+        [
+          "cmd",
+          "bb"
+        ]
+      ]
+    },
+    {
+      "caption": "The audit tool was meant to catch exactly this, but \"a bug in that audit tool prevented it from properly stopping the command.\" The data centers were now cut off from each other and from the internet.",
+      "highlight": [
+        "bb",
+        "dc"
+      ],
+      "path": [
+        [
+          "bb",
+          "dc"
+        ]
+      ],
+      "predict": {
+        "prompt": "Commands like this are supposed to be checked before they run. Why wasn't this one stopped?",
+        "options": [
+          {
+            "text": "There was no check for commands at all",
+            "explanation": "There was one; Meta says its systems are designed to audit commands like this."
+          },
+          {
+            "text": "An attacker bypassed the check",
+            "explanation": "Meta's write-up describes a maintenance mistake, not an attack."
+          },
+          {
+            "text": "The audit tool that checks such commands had a bug, so it didn't stop it",
+            "explanation": "Right. Meta writes that \"a bug in that audit tool prevented it from properly stopping the command\"."
+          }
+        ],
+        "answer": 2
+      }
+    },
+    {
+      "caption": "The DNS servers were healthy but could no longer reach any data center. By design, they treat that as a sign they themselves are unhealthy.",
+      "highlight": [
+        "dc",
+        "dns"
+      ],
+      "path": [
+        [
+          "dc",
+          "dns"
+        ]
+      ]
+    },
+    {
+      "caption": "All the DNS servers withdrew their routes at once, so \"our DNS servers became unreachable even though they were still operational.\" The rest of the internet could no longer find Meta's servers, so its apps went down.",
+      "highlight": [
+        "dns",
+        "net"
+      ],
+      "path": [
+        [
+          "dns",
+          "net"
+        ]
+      ],
+      "predict": {
+        "prompt": "A DNS server is running fine but can't reach any data center. By design, what does it do?",
+        "options": [
+          {
+            "text": "Withdraws its BGP route announcements, so the internet stops sending it traffic",
+            "explanation": "Right. Normally that sends users to a healthier site; here no site was healthy."
+          },
+          {
+            "text": "Keeps answering as usual",
+            "explanation": "Meta's DNS servers are designed to step back when they can't reach the data centers."
+          },
+          {
+            "text": "Restarts itself",
+            "explanation": "Restarting wouldn't fix the missing backbone."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Engineers couldn't fix it remotely: \"our primary and out-of-band network access was down.\" They had to go to the data centers in person, and those are built with high physical security, which took time to get through.",
+      "highlight": [
+        "cmd",
+        "dc"
+      ],
+      "path": []
+    },
+    {
+      "caption": "Recovery was gradual: data centers were \"reporting dips in power usage in the range of tens of megawatts\", and \"suddenly reversing such a dip in power consumption could put everything from electrical systems to caches at risk.\"",
+      "highlight": [
+        "dc"
+      ],
+      "path": [],
+      "predict": {
+        "prompt": "The backbone is back. Why not switch every service back on at once?",
+        "options": [
+          {
+            "text": "Nothing stops them: it's just a switch",
+            "explanation": "Meta's write-up says a sudden return of load was itself a risk."
+          },
+          {
+            "text": "Users had to log in again first",
+            "explanation": "Logins weren't the limiting factor; power and load were."
+          },
+          {
+            "text": "Power use had dropped by tens of megawatts; reversing that suddenly could risk electrical systems and caches",
+            "explanation": "Right. Meta brought services back gradually for that reason."
+          }
+        ],
+        "answer": 2
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Why did Meta's DNS servers become unreachable even though they were running?",
+      "options": [
+        {
+          "text": "They withdrew their own BGP routes because they couldn't reach the data centers",
+          "explanation": "Right. A safety rule built for one broken site removed every site from the internet at once."
+        },
+        {
+          "text": "They crashed when the backbone went down",
+          "explanation": "Meta says they were still operational."
+        },
+        {
+          "text": "The internet's root DNS servers failed",
+          "explanation": "The problem was inside Meta's network."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "What would you change so engineers can still get in during an outage like this?",
+      "options": [
+        {
+          "text": "Keep emergency access on a path that doesn't depend on the network that just failed",
+          "explanation": "Right. Meta's primary and out-of-band access were both down, so recovery had to happen on site."
+        },
+        {
+          "text": "Give engineers more passwords",
+          "explanation": "Credentials weren't the problem; there was no working network to use them on."
+        },
+        {
+          "text": "Make the data centers less secure",
+          "explanation": "Security slowed things down, but weakening it isn't the fix."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "incident-cloudflare-2019",
+  "title": "Incident: Cloudflare outage, July 2019",
+  "track": "real-world",
+  "level": "hard",
+  "objective": "Follow Cloudflare's write-up of 2 July 2019: how one firewall rule with a bad regular expression used up CPU worldwide in minutes, and what changed so it can't happen that way again.",
+  "requires": [
+    "incident-meta-2021",
+    "cdn"
+  ],
+  "company": {
+    "name": "Cloudflare",
+    "domains": [
+      "cloudflare.com"
+    ]
+  },
+  "basis": "published",
+  "sources": [
+    {
+      "title": "Cloudflare Blog: Details of the Cloudflare outage on July 2, 2019 (John Graham-Cumming): \"a regular expression that backtracked enormously and exhausted CPU used for HTTP/HTTPS serving\"",
+      "url": "https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/"
+    }
+  ],
+  "simplifies": "Simplified to its key moments from Cloudflare's own write-up (all times UTC). The write-up's long appendix on how regular expressions backtrack is reduced to one step.",
+  "nodes": [
+    {
+      "id": "rule",
+      "label": "New rule",
+      "x": 60,
+      "y": 50,
+      "width": 110
+    },
+    {
+      "id": "tests",
+      "label": "Tests",
+      "x": 190,
+      "y": 50,
+      "width": 90
+    },
+    {
+      "id": "push",
+      "label": "Global push",
+      "x": 335,
+      "y": 50,
+      "width": 150
+    },
+    {
+      "id": "edge",
+      "label": "Edge CPUs",
+      "x": 335,
+      "y": 150,
+      "width": 130
+    },
+    {
+      "id": "sites",
+      "label": "Websites",
+      "x": 175,
+      "y": 150,
+      "width": 120
+    }
+  ],
+  "edges": [
+    [
+      "rule",
+      "tests"
+    ],
+    [
+      "tests",
+      "push"
+    ],
+    [
+      "push",
+      "edge"
+    ],
+    [
+      "edge",
+      "sites"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "Cloudflare's firewall (WAF) has managed rules that block attacks. A new rule was written, merged and tested: \"With the tests passing, TeamCity automatically began deploying the change at 13:42.\"",
+      "highlight": [
+        "rule",
+        "tests"
+      ],
+      "path": [
+        [
+          "rule",
+          "tests"
+        ],
+        [
+          "tests",
+          "push"
+        ]
+      ],
+      "time": "13:42 UTC"
+    },
+    {
+      "caption": "WAF rules don't go through the usual staged rollout (dogfood, then pilot, then canary sites): \"by design, the WAF doesn't use this process because of the need to respond rapidly to threats.\" Rules reach every server within seconds.",
+      "highlight": [
+        "push"
+      ],
+      "path": [
+        [
+          "push",
+          "edge"
+        ]
+      ],
+      "time": "13:42 UTC"
+    },
+    {
+      "caption": "The rule's regular expression \"backtracked enormously and exhausted CPU used for HTTP/HTTPS serving\": CPU spiked to nearly 100% across Cloudflare's servers, and websites behind Cloudflare failed to load.",
+      "highlight": [
+        "edge",
+        "sites"
+      ],
+      "path": [
+        [
+          "edge",
+          "sites"
+        ]
+      ],
+      "time": "13:42 UTC",
+      "predict": {
+        "prompt": "The rule contains a regular expression that backtracks enormously. It reaches every server within seconds. What happens next?",
+        "options": [
+          {
+            "text": "Only a few servers slow down",
+            "explanation": "There was no staged rollout, so every server got the rule together."
+          },
+          {
+            "text": "CPU on servers across the network jumps to nearly 100%, and sites stop loading",
+            "explanation": "Right. Every server ran the same slow pattern on its traffic at once."
+          },
+          {
+            "text": "The tests would already have caught it",
+            "explanation": "The tests had passed; checking each rule's CPU use (performance profiling) was one of the changes added afterwards."
+          }
+        ],
+        "answer": 1
+      }
+    },
+    {
+      "caption": "Engineers proposed a \"global terminate\": a mechanism built in to disable one component worldwide, here the whole WAF.",
+      "highlight": [
+        "push"
+      ],
+      "path": [],
+      "time": "14:02 UTC"
+    },
+    {
+      "caption": "They \"executed the global WAF termination at 14:07\", and \"by 14:09 traffic levels and CPU were back to expected levels worldwide.\"",
+      "highlight": [
+        "edge",
+        "sites"
+      ],
+      "path": [],
+      "time": "14:07 UTC"
+    },
+    {
+      "caption": "\"At 14:52 we were 100% satisfied that we understood the cause and had a fix in place\", and the WAF was turned back on.",
+      "highlight": [
+        "rule",
+        "push"
+      ],
+      "path": [],
+      "time": "14:52 UTC"
+    },
+    {
+      "caption": "Changes Cloudflare listed: bring back the CPU protection that had been removed; inspect all 3,868 rules; add performance profiling to the tests; move to a regex engine with run-time guarantees; and roll out rules in stages, keeping an emergency global option for active attacks.",
+      "highlight": [
+        "tests",
+        "push"
+      ],
+      "path": []
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Why did one rule take down sites worldwide within minutes?",
+      "options": [
+        {
+          "text": "The rule blocked all traffic on purpose",
+          "explanation": "It used up CPU; it wasn't meant to block everything."
+        },
+        {
+          "text": "A server room lost power",
+          "explanation": "The cause was software: one regular expression."
+        },
+        {
+          "text": "WAF rules were pushed to every server at once, and the rule used up CPU on all of them",
+          "explanation": "Right. Speed of rollout, normally a strength against attacks, spread the failure everywhere."
+        }
+      ],
+      "answer": 2
+    },
+    {
+      "prompt": "Which change most directly stops the next bad rule from reaching every server at once?",
+      "options": [
+        {
+          "text": "Writing more careful regular expressions",
+          "explanation": "Helpful, but people will still make mistakes; staging limits the damage when they do."
+        },
+        {
+          "text": "Buying faster CPUs",
+          "explanation": "Catastrophic backtracking can use up any amount of CPU."
+        },
+        {
+          "text": "Rolling rules out in stages, with an emergency global option kept for attacks",
+          "explanation": "Right. A bad rule then hurts a small part of the network first, where it's noticed."
+        }
+      ],
+      "answer": 2
+    }
+  ]
+}

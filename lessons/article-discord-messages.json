@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "article-discord-messages",
+  "title": "Article: storing trillions of messages",
+  "track": "real-world",
+  "level": "hard",
+  "objective": "Follow Discord's write-up of how it stores trillions of messages: hot partitions, request coalescing, and moving its biggest cluster to a new database.",
+  "requires": [
+    "incident-slack-2021",
+    "sharding"
+  ],
+  "company": {
+    "name": "Discord",
+    "domains": [
+      "discord.com"
+    ]
+  },
+  "basis": "published",
+  "sources": [
+    {
+      "title": "Discord Blog: How Discord Stores Trillions of Messages (Bo Ingram, 6 Mar 2023): \"We partition our messages by the channel they're sent in, along with a bucket, which is a static time window.\"",
+      "url": "https://discord.com/blog/how-discord-stores-trillions-of-messages"
+    }
+  ],
+  "simplifies": "Simplified from Discord's own article; the dates are the ones it gives. Discord's database schema, compaction details and the full migration story are shortened.",
+  "nodes": [
+    {
+      "id": "users",
+      "label": "Users",
+      "x": 55,
+      "y": 50,
+      "width": 90
+    },
+    {
+      "id": "api",
+      "label": "API",
+      "x": 185,
+      "y": 50,
+      "width": 80
+    },
+    {
+      "id": "ds",
+      "label": "Data services",
+      "x": 325,
+      "y": 50,
+      "width": 160
+    },
+    {
+      "id": "db",
+      "label": "Database",
+      "x": 325,
+      "y": 150,
+      "width": 120
+    }
+  ],
+  "edges": [
+    [
+      "users",
+      "api"
+    ],
+    [
+      "api",
+      "ds"
+    ],
+    [
+      "ds",
+      "db"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "Discord stored messages in a Cassandra cluster that grew from 12 nodes in 2017 to 177 nodes holding trillions of messages by early 2022. Its on-call team was \"frequently paged for issues with the database.\"",
+      "highlight": [
+        "db"
+      ],
+      "path": [],
+      "time": "2017–2022"
+    },
+    {
+      "caption": "Messages are partitioned by channel plus a bucket, \"a static time window\", so a channel's recent messages sit together.",
+      "highlight": [
+        "db"
+      ],
+      "path": [
+        [
+          "ds",
+          "db"
+        ]
+      ]
+    },
+    {
+      "caption": "Hot partitions: \"Lots of concurrent reads as users interact with servers can hotspot a partition.\" Because reads and writes use quorum, latency on those nodes spread to other queries they served.",
+      "highlight": [
+        "db"
+      ],
+      "path": [],
+      "predict": {
+        "prompt": "A huge server's busiest channel gets a flood of reads. All of that channel's recent messages are in one partition. What happens?",
+        "options": [
+          {
+            "text": "The load spreads evenly over all nodes",
+            "explanation": "Partitioning by channel puts one channel's load on the same few nodes."
+          },
+          {
+            "text": "That partition's nodes get overloaded, and every query touching those nodes slows down",
+            "explanation": "Right. Discord calls it a \"hot partition\"; with quorum reads, the slowdown spread."
+          },
+          {
+            "text": "Nothing: databases handle any load",
+            "explanation": "One partition lives on a few nodes, and those have limits."
+          }
+        ],
+        "answer": 1
+      }
+    },
+    {
+      "caption": "Discord added data services between the API and the database, with \"roughly one gRPC endpoint per database query\". They coalesce requests: \"If multiple users are requesting the same row at the same time, we'll only query the database once.\"",
+      "highlight": [
+        "ds"
+      ],
+      "path": [
+        [
+          "api",
+          "ds"
+        ],
+        [
+          "ds",
+          "db"
+        ]
+      ]
+    },
+    {
+      "caption": "Requests are routed by \"consistent hash-based routing\" on the channel ID, so all requests for one channel meet at the same instance and can be merged.",
+      "highlight": [
+        "ds"
+      ],
+      "path": [
+        [
+          "api",
+          "ds"
+        ]
+      ],
+      "predict": {
+        "prompt": "Coalescing only works if requests for the same channel reach the same data-service instance. How can that be arranged?",
+        "options": [
+          {
+            "text": "Route each request by a hash of its channel ID, so one channel always goes to the same instance",
+            "explanation": "Right. Discord uses consistent hash-based routing on the channel ID."
+          },
+          {
+            "text": "Send requests to a random instance",
+            "explanation": "Then identical requests land on different instances and can't be merged."
+          },
+          {
+            "text": "Use a single instance for everything",
+            "explanation": "That would be a bottleneck and a single point of failure."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Discord moved the messages cluster to ScyllaDB, which is Cassandra-compatible and written in C++, so it has no garbage-collection pauses. A rewritten migrator ran at up to 3.2 million messages a second, cutting the estimate from three months to nine days. The switch happened in May 2022.",
+      "highlight": [
+        "db"
+      ],
+      "path": [],
+      "time": "May 2022"
+    },
+    {
+      "caption": "Results Discord reports: 177 Cassandra nodes became 72 ScyllaDB nodes, and the slowest 1% of historical message fetches went from 40–125 ms to 15 ms.",
+      "highlight": [
+        "db"
+      ],
+      "path": []
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "What problem does partitioning by channel plus a time bucket create, and how did Discord soften it?",
+      "options": [
+        {
+          "text": "Messages get lost; Discord added backups",
+          "explanation": "Partitioning doesn't lose messages; it concentrates load."
+        },
+        {
+          "text": "A very busy channel concentrates load on a few nodes; data services merge identical requests so the database sees fewer",
+          "explanation": "Right. Coalescing turns many identical reads into one."
+        },
+        {
+          "text": "It makes writes impossible; Discord switched to files",
+          "explanation": "Writes work; hot reads were the issue."
+        }
+      ],
+      "answer": 1
+    },
+    {
+      "prompt": "Why does request coalescing need routing by channel ID?",
+      "options": [
+        {
+          "text": "Identical requests must arrive at the same instance to be merged",
+          "explanation": "Right. Consistent hashing on the channel sends them there."
+        },
+        {
+          "text": "Channel IDs are secret",
+          "explanation": "They're used for routing, not secrecy."
+        },
+        {
+          "text": "It makes requests smaller",
+          "explanation": "Routing doesn't change request size."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

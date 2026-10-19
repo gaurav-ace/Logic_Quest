@@ -88,6 +88,7 @@ export function validateLesson(data: unknown): Lesson {
   function checkDiagram(data: Obj): void {
     const nodeIds = new Set<string>();
     checkList(data.nodes, 'nodes', bad, (n, p) => checkNode(n, p, bad, nodeIds));
+    checkSpacing(data.nodes, 'nodes', bad);
     const edgeKeys = new Set<string>();
     checkList(data.edges, 'edges', bad, (e, p) => {
       if (checkEdge(e, p, bad, nodeIds)) {
@@ -143,6 +144,7 @@ function checkCritique(cr: unknown, bad: Bad): void {
   for (const k of ['prompt', 'hint', 'explain'] as const) if (!isText(cr[k])) bad(`${p}.${k}`, 'must be non-empty text');
   const ids = new Set<string>();
   checkList(cr.nodes, `${p}.nodes`, bad, (n, np) => checkNode(n, np, bad, ids));
+  checkSpacing(cr.nodes, `${p}.nodes`, bad);
   if (!Array.isArray(cr.edges)) bad(`${p}.edges`, 'must be a list (it may be empty)');
   else cr.edges.forEach((e, i) => checkEdge(e, `${p}.edges[${i}]`, bad, ids));
   checkList(cr.risks, `${p}.risks`, bad, (r, rp) => {
@@ -353,9 +355,27 @@ function checkNode(n: unknown, p: string, bad: Bad, ids: Set<string>): void {
   for (const key of Object.keys(n)) if (!['id', 'label', 'x', 'y', 'width'].includes(key)) bad(`${p}.${key}`, 'unknown field');
   const w = typeof node.width === 'number' ? node.width : DEFAULT_NODE_W;
   if (typeof node.x === 'number' && typeof node.y === 'number') {
-    const fits = node.x - w / 2 >= 0 && node.x + w / 2 <= DIAGRAM_W && node.y - NODE_H / 2 >= 0 && node.y + NODE_H / 2 <= DIAGRAM_H;
-    if (!fits) bad(p, `box does not fit inside the ${DIAGRAM_W}x${DIAGRAM_H} diagram`);
+    const m = EDGE_MARGIN;
+    const fits = node.x - w / 2 >= m && node.x + w / 2 <= DIAGRAM_W - m && node.y - NODE_H / 2 >= m && node.y + NODE_H / 2 <= DIAGRAM_H - m;
+    if (!fits) bad(p, `box must sit at least ${m} units inside the ${DIAGRAM_W}x${DIAGRAM_H} diagram`);
   }
+}
+
+// Boxes that touch each other or the frame pass every "fits" check but read as one blob on a
+// phone, and hide the edge between them. These margins are the smallest that look clearly apart.
+const EDGE_MARGIN = 4;
+const BOX_GAP = 6;
+
+function checkSpacing(nodes: unknown, p: string, bad: Bad): void {
+  if (!Array.isArray(nodes)) return;
+  const boxes = nodes.filter((n): n is LessonNode => isObj(n) && typeof n.x === 'number' && typeof n.y === 'number');
+  boxes.forEach((a, i) => {
+    for (const b of boxes.slice(i + 1)) {
+      const dx = Math.abs(a.x - b.x) - ((a.width ?? DEFAULT_NODE_W) + (b.width ?? DEFAULT_NODE_W)) / 2;
+      const dy = Math.abs(a.y - b.y) - NODE_H;
+      if (Math.max(dx, dy) < BOX_GAP) bad(p, `boxes "${a.id}" and "${b.id}" must be at least ${BOX_GAP} units apart`);
+    }
+  });
 }
 
 function checkEdge(e: unknown, p: string, bad: Bad, nodeIds: Set<string>): e is Edge {

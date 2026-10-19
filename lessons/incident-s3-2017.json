@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "incident-s3-2017",
+  "title": "Incident: Amazon S3 disruption, February 2017",
+  "track": "real-world",
+  "level": "medium",
+  "objective": "Follow AWS's summary of the February 2017 S3 disruption: how one mistyped input removed too many servers, why restarting took hours, and what AWS changed.",
+  "requires": [
+    "incident-cloudflare-2019"
+  ],
+  "company": {
+    "name": "AWS",
+    "domains": [
+      "amazon.com"
+    ]
+  },
+  "basis": "published",
+  "sources": [
+    {
+      "title": "AWS: Summary of the Amazon S3 Service Disruption in the Northern Virginia (US-EAST-1) Region: \"one of the inputs to the command was entered incorrectly and a larger set of servers was removed than intended\"",
+      "url": "https://aws.amazon.com/message/41926/"
+    }
+  ],
+  "simplifies": "Simplified to its key moments from AWS's own summary (times are PST, as AWS gives them). The summary's detail about which request types recovered when is shortened.",
+  "nodes": [
+    {
+      "id": "op",
+      "label": "Operator",
+      "x": 60,
+      "y": 50,
+      "width": 110
+    },
+    {
+      "id": "tool",
+      "label": "Tool",
+      "x": 190,
+      "y": 50,
+      "width": 80
+    },
+    {
+      "id": "index",
+      "label": "Index",
+      "x": 335,
+      "y": 40,
+      "width": 100
+    },
+    {
+      "id": "place",
+      "label": "Placement",
+      "x": 330,
+      "y": 115,
+      "width": 130
+    },
+    {
+      "id": "s3",
+      "label": "S3 API",
+      "x": 200,
+      "y": 160,
+      "width": 100
+    },
+    {
+      "id": "shd",
+      "label": "Dashboard",
+      "x": 65,
+      "y": 160,
+      "width": 120
+    }
+  ],
+  "edges": [
+    [
+      "op",
+      "tool"
+    ],
+    [
+      "tool",
+      "index"
+    ],
+    [
+      "tool",
+      "place"
+    ],
+    [
+      "place",
+      "s3"
+    ],
+    [
+      "s3",
+      "shd"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "An authorised S3 engineer, following an established playbook, ran a command to remove a small number of servers. \"One of the inputs to the command was entered incorrectly and a larger set of servers was removed than intended.\"",
+      "highlight": [
+        "op",
+        "tool"
+      ],
+      "path": [
+        [
+          "op",
+          "tool"
+        ]
+      ],
+      "time": "9:37 AM PST"
+    },
+    {
+      "caption": "The removed servers supported the index subsystem, which \"manages the metadata and location information of all S3 objects in the region\", and the placement subsystem. Both needed a full restart, and while they restarted, S3 was unable to service requests.",
+      "highlight": [
+        "index",
+        "place",
+        "s3"
+      ],
+      "path": [
+        [
+          "tool",
+          "index"
+        ],
+        [
+          "tool",
+          "place"
+        ]
+      ],
+      "time": "9:37 AM PST",
+      "predict": {
+        "prompt": "Those servers supported two other S3 subsystems. Too much of their capacity is suddenly gone. What happens?",
+        "options": [
+          {
+            "text": "They slow down a little",
+            "explanation": "Too much capacity went at once to just slow down."
+          },
+          {
+            "text": "Nothing: S3 keeps spare servers for this",
+            "explanation": "AWS's summary says each needed a full restart."
+          },
+          {
+            "text": "Both subsystems need a full restart, and S3 can't serve requests while they restart",
+            "explanation": "Right. Removing that much capacity at once meant restarting them from scratch."
+          }
+        ],
+        "answer": 2
+      }
+    },
+    {
+      "caption": "The restarts were slow: \"we have not completely restarted the index subsystem or the placement subsystem in our larger regions for many years\", and S3 had grown massively since then.",
+      "highlight": [
+        "index",
+        "place"
+      ],
+      "path": [],
+      "predict": {
+        "prompt": "Why would a restart that once took minutes now take hours?",
+        "options": [
+          {
+            "text": "The system had grown enormously since anyone last did a full restart, so the restart had never been tried at this size",
+            "explanation": "Right. A recovery path you never exercise can quietly get slower as you grow."
+          },
+          {
+            "text": "The engineers had forgotten how",
+            "explanation": "The steps were known; the scale was new."
+          },
+          {
+            "text": "Restarts are always slow",
+            "explanation": "It's about size: the same restart on a much bigger system."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "AWS's status dashboard couldn't show the problem: AWS \"were unable to update the individual services' status on the AWS Service Health Dashboard\", so it posted updates on its Twitter account and as banner text instead.",
+      "highlight": [
+        "shd"
+      ],
+      "path": [
+        [
+          "s3",
+          "shd"
+        ]
+      ]
+    },
+    {
+      "caption": "\"By 12:26PM PST, the index subsystem had activated enough capacity to begin servicing S3 GET, LIST, and DELETE requests.\"",
+      "highlight": [
+        "index",
+        "s3"
+      ],
+      "path": [],
+      "time": "12:26 PM PST"
+    },
+    {
+      "caption": "\"By 1:18PM PST, the index subsystem was fully recovered\", and S3 \"finished recovery at 1:54PM PST.\"",
+      "highlight": [
+        "s3"
+      ],
+      "path": [],
+      "time": "1:54 PM PST"
+    },
+    {
+      "caption": "What AWS changed: the tool \"allowed too much capacity to be removed too quickly\", so it now removes capacity more slowly, with safeguards against going below a minimum; and S3 is being split into smaller partitions called cells, so a restart is smaller.",
+      "highlight": [
+        "tool",
+        "place"
+      ],
+      "path": []
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "What was the root problem with the tool, according to AWS?",
+      "options": [
+        {
+          "text": "It was used by the wrong person",
+          "explanation": "AWS says the engineer was authorised and following a playbook."
+        },
+        {
+          "text": "It let too much capacity be removed too quickly, so one typo could do huge damage",
+          "explanation": "Right. The fix limits how much and how fast it can remove."
+        },
+        {
+          "text": "It had no undo button",
+          "explanation": "AWS's fix was about limits, not undo."
+        }
+      ],
+      "answer": 1
+    },
+    {
+      "prompt": "Why does splitting a service into cells help?",
+      "options": [
+        {
+          "text": "Cells make every request faster",
+          "explanation": "The goal is limiting damage, not speed."
+        },
+        {
+          "text": "Each cell is smaller, so a mistake or a restart affects less and finishes sooner",
+          "explanation": "Right. Smaller pieces mean a smaller blast radius."
+        },
+        {
+          "text": "Cells stop people from making typos",
+          "explanation": "Typos still happen; cells limit how far they reach."
+        }
+      ],
+      "answer": 1
+    }
+  ]
+}

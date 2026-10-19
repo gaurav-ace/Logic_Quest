@@ -1,6 +1,6 @@
 # Curriculum
 
-Status: **approved by the owner** (2026-10-19), with Phase 5c (real-world systems) added at the owner's request. **Built so far:** Phase 3 (all 8 logic lessons) and Phase 4 (all 30 DSA lessons), plus the 4 original lessons: 42 in the app.
+Status: **approved by the owner** (2026-10-19), with Phase 5c (real-world systems) added at the owner's request. **Built so far:** Phases 3, 4, 5 and 5b, and Phase 5c awaiting review: 93 lessons in the app.
 
 **Goal of the whole curriculum:** after finishing it, the learner is confident working as a senior SDE: they can break down unfamiliar problems, choose and justify data structures and algorithms, and lead a design discussion for a large real-world system. Edit freely: reorder, cut, add. Once approved, each phase builds the lessons in its section.
 
@@ -151,18 +151,18 @@ Taught like a senior design review: clarify requirements, estimate scale, design
 ### Case studies
 | # | Lesson | Hard parts covered | Level | Animates |
 |---|---|---|---|---|
-| R1 | Payment gateway | Authorise and capture, idempotency keys, double-entry ledger, webhooks with retries, reconciliation | H | Sim |
-| R2 | Food delivery (Swiggy-style) | Order state machine, restaurant and delivery-partner matching, ETAs, dinner-time peaks | H | Sim |
-| R3 | Ride-hailing (Uber-style) | Live driver locations, geospatial indexing, matching, surge pricing | H | Sim |
+| R1 | Payment gateway | Authorise and capture, idempotency keys, double-entry ledger, webhooks with retries, reconciliation | H | Diagram |
+| R2 | Food delivery (Swiggy-style) | Order state machine, restaurant and delivery-partner matching, ETAs, dinner-time peaks | H | Diagram |
+| R3 | Ride-hailing (Uber-style) | Live driver locations, geospatial indexing, matching, surge pricing | H | Computed |
 | R4 | Train ticket booking (IRCTC Tatkal-style) | Traffic spike at opening time, waiting rooms and queues, seat inventory without double booking, seat holds during payment | H | Sim |
-| R5 | Chat at scale | Delivery receipts, ordering, presence, storing huge message histories | H | Sim |
+| R5 | Chat at scale | Delivery receipts, ordering, presence, storing huge message histories | H | Diagram |
 | R6 | Video streaming | CDNs, adaptive bitrate, encoding pipeline | M | Diagram |
 | R7 | News feed | Fan-out on write versus on read, the celebrity problem | H | Sim |
 | R8 | E-commerce flash sale | Inventory reservation, overselling, cart expiry | H | Sim |
-| R9 | Notification system | Fan-out, user preferences, retries, rate limits per channel | M | Sim |
+| R9 | Notification system | Fan-out, user preferences, retries, rate limits per channel | M | Diagram (a queues sim would have repeated S11) |
 | R10 | Search autocomplete | Tries versus precomputed top-k, freshness | M | Computed |
 | R11 | Unique ID generator | Time-ordered IDs without a central counter | M | Computed |
-| R12 | Collaborative editing | Concurrent edits, conflict resolution, presence | H | Sim |
+| R12 | Collaborative editing | Concurrent edits, conflict resolution, presence | H | Diagram |
 
 ### Incident and engineering-article studies
 
@@ -177,7 +177,7 @@ Built from the company's own write-up. Format: a timeline the learner steps thro
 | I5 | Slack outage, 4 Jan 2021 | Engineering at Slack, "Slack's Outage on January 4th 2021" | M |
 | I6 | Storing trillions of messages | Discord Blog, "How Discord Stores Trillions of Messages" | H |
 | I7 | Safe retries for payments | Stripe Blog, "Designing robust and predictable APIs with idempotency" | M |
-| I8 | Geospatial indexing at Uber | Uber engineering blog on H3 (`TODO-VERIFY`: page refused automated access) | H |
+| I8 | Geospatial indexing at Uber | H3's own docs at h3geo.org (copyright Uber Technologies); Uber's blog still refuses automated access | H |
 
 More articles can be added on request. Netflix and Swiggy engineering blogs are candidates (`TODO-VERIFY`: they could not be reached automatically on 2026-10-19).
 

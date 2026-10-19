@@ -1,0 +1,243 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "incident-slack-2021",
+  "title": "Incident: Slack outage, January 2021",
+  "track": "real-world",
+  "level": "medium",
+  "objective": "Follow Slack's write-up of 4 January 2021: how a network problem, cold caches and autoscaling fed each other, and why the tools for fixing it were hit too.",
+  "requires": [
+    "incident-github-2018",
+    "scaling"
+  ],
+  "company": {
+    "name": "Slack",
+    "domains": [
+      "slack.engineering",
+      "slack.com"
+    ]
+  },
+  "basis": "published",
+  "sources": [
+    {
+      "title": "Slack Engineering: Slack's Outage on January 4th 2021 (Laura Nolan, 1 Feb 2021)",
+      "url": "https://slack.engineering/slacks-outage-on-january-4th-2021/"
+    }
+  ],
+  "simplifies": "Simplified to its key moments from Slack's own write-up (times PST). Some times are approximate in the write-up itself (\"around 7:00am\"). AWS's Transit Gateways, the network links between Slack's networks, are shown as one box.",
+  "nodes": [
+    {
+      "id": "clients",
+      "label": "Clients",
+      "x": 55,
+      "y": 50,
+      "width": 100
+    },
+    {
+      "id": "web",
+      "label": "Web tier",
+      "x": 195,
+      "y": 50,
+      "width": 110
+    },
+    {
+      "id": "back",
+      "label": "Backends",
+      "x": 340,
+      "y": 50,
+      "width": 120
+    },
+    {
+      "id": "net",
+      "label": "Network",
+      "x": 195,
+      "y": 150,
+      "width": 110
+    },
+    {
+      "id": "prov",
+      "label": "Provision",
+      "x": 340,
+      "y": 150,
+      "width": 130
+    }
+  ],
+  "edges": [
+    [
+      "clients",
+      "web"
+    ],
+    [
+      "web",
+      "net"
+    ],
+    [
+      "net",
+      "back"
+    ],
+    [
+      "prov",
+      "net"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "4 January 2021 was the first working day after the holidays. Clients' caches had gone cold, so each client downloaded more data than usual when it first connected.",
+      "highlight": [
+        "clients"
+      ],
+      "path": [
+        [
+          "clients",
+          "web"
+        ]
+      ]
+    },
+    {
+      "caption": "Error rates rose: only 99% of messages were being sent successfully, against Slack's usual 99.999%. The network between Slack's systems was dropping packets.",
+      "highlight": [
+        "net"
+      ],
+      "path": [
+        [
+          "web",
+          "net"
+        ],
+        [
+          "net",
+          "back"
+        ]
+      ],
+      "time": "6:57 AM PST"
+    },
+    {
+      "caption": "A regular morning traffic peak met the packet loss. The web tier saturated and Slack became unavailable.",
+      "highlight": [
+        "web",
+        "clients"
+      ],
+      "path": [],
+      "time": "~7:00 AM PST"
+    },
+    {
+      "caption": "Autoscaling downscaled the web tier, and instances that couldn't reach their backends were marked unhealthy and replaced. Engineers turned downscaling off. Then saturated worker threads triggered a huge upscale: between 7:01 and 7:15, Slack tried to add 1,200 servers.",
+      "highlight": [
+        "web"
+      ],
+      "path": [],
+      "time": "7:01 AM PST",
+      "predict": {
+        "prompt": "Web servers are stuck waiting on a slow network, so their CPU use is low. Autoscaling uses CPU. What does it do?",
+        "options": [
+          {
+            "text": "Removes servers, because low CPU looks like too much capacity",
+            "explanation": "Right. Slack's write-up says autoscaling downscaled the web tier while it was struggling."
+          },
+          {
+            "text": "Adds servers",
+            "explanation": "Low CPU doesn't look like overload to a CPU-based rule."
+          },
+          {
+            "text": "Nothing",
+            "explanation": "Autoscaling reacts to what it measures, and it measured low CPU."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Provision-service hit two limits: the Linux open-files limit (the most significant) and an AWS quota. The dashboards were down too, because they reached their databases over the same network links, so engineers fell back to command-line tools and logs.",
+      "highlight": [
+        "prov",
+        "net"
+      ],
+      "path": [
+        [
+          "prov",
+          "net"
+        ]
+      ],
+      "predict": {
+        "prompt": "1,200 new servers all need setting up at once, over the same struggling network. What happens to the service that sets them up?",
+        "options": [
+          {
+            "text": "It sets them all up in seconds",
+            "explanation": "It ran over the same degraded network and was never built for this spike."
+          },
+          {
+            "text": "It isn't needed: servers set themselves up",
+            "explanation": "Each new instance is configured and tested by provision-service."
+          },
+          {
+            "text": "It's overloaded and hits limits, so many new servers come up broken",
+            "explanation": "Right. Provision-service hit the Linux open-files limit and an AWS quota."
+          }
+        ],
+        "answer": 2
+      }
+    },
+    {
+      "caption": "Provision-service recovered around 8:15, and by about 9:15 enough servers were working that Slack was degraded rather than down.",
+      "highlight": [
+        "prov",
+        "web"
+      ],
+      "path": [],
+      "time": "~9:15 AM PST"
+    },
+    {
+      "caption": "AWS had manually increased the network links' capacity; \"by 10:40am PST\" the change was rolled out everywhere, and errors and latency returned to normal.",
+      "highlight": [
+        "net"
+      ],
+      "path": [],
+      "time": "10:40 AM PST"
+    },
+    {
+      "caption": "Changes Slack listed: ask for the links to be scaled up before future holidays, move the dashboards next to their databases, load-test provision-service regularly, and review health checks and autoscaling.",
+      "highlight": [
+        "prov",
+        "web"
+      ],
+      "path": []
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Why did autoscaling make things worse at first?",
+      "options": [
+        {
+          "text": "Autoscaling was turned off",
+          "explanation": "It was on, and it acted on misleading signals."
+        },
+        {
+          "text": "It scaled on CPU, and servers waiting on a slow network use little CPU, so it removed servers when they were most needed",
+          "explanation": "Right. A metric that's fine normally can point the wrong way in a strange failure."
+        },
+        {
+          "text": "It added servers too slowly",
+          "explanation": "Its first move was to remove them."
+        }
+      ],
+      "answer": 1
+    },
+    {
+      "prompt": "Why were Slack's dashboards unavailable during the outage?",
+      "options": [
+        {
+          "text": "Nobody had built dashboards",
+          "explanation": "They existed; they were in a different network from their databases."
+        },
+        {
+          "text": "Too many people were looking at them",
+          "explanation": "The cause was the network path, not viewers."
+        },
+        {
+          "text": "They depended on the same network links that were failing",
+          "explanation": "Right. Tools for fixing an outage shouldn't depend on the thing that's broken."
+        }
+      ],
+      "answer": 2
+    }
+  ]
+}

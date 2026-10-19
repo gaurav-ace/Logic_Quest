@@ -116,7 +116,20 @@ describe('validateLesson', () => {
   it('rejects a node box that sticks out of the diagram', () => {
     const l = lesson();
     (l.nodes as { x: number }[])[1]!.x = 400; // 400 + 104/2 > 420
-    expect(problemsOf(l)).toContain('nodes[1]: box does not fit inside the 420x200 diagram');
+    expect(problemsOf(l)).toContain('nodes[1]: box must sit at least 4 units inside the 420x200 diagram');
+  });
+
+  it('rejects a box touching the frame, and boxes touching each other', () => {
+    const l = lesson();
+    const nodes = l.nodes as { id: string; x: number; y: number; width?: number }[];
+    nodes[0]!.x = 52; // 52 - 104/2 = 0: inside, but touching the frame
+    expect(problemsOf(l)).toContain('nodes[0]: box must sit at least 4 units inside the 420x200 diagram');
+    nodes[0]!.x = 56;
+    nodes[1]!.x = nodes[0]!.x + 104 + 5;
+    nodes[1]!.y = nodes[0]!.y;
+    expect(problemsOf(l)).toContain(`nodes: boxes "${nodes[0]!.id}" and "${nodes[1]!.id}" must be at least 6 units apart`);
+    nodes[1]!.x = nodes[0]!.x + 104 + 6;
+    expect(() => validateLesson(l)).not.toThrow();
   });
 
   it('rejects a misspelt node field', () => {

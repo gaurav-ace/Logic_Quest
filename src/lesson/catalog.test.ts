@@ -106,6 +106,15 @@ describe('lesson catalog', () => {
       'case-autocomplete',
       'case-unique-ids',
       'case-collab-editing',
+      'incident-meta-2021',
+      'incident-cloudflare-2019',
+      'incident-s3-2017',
+      'incident-github-2018',
+      'incident-slack-2021',
+      'article-discord-messages',
+      'article-stripe-retries',
+      'article-uber-h3',
+      'capstone-design-review',
       'agent-loop',
     ]);
   });
