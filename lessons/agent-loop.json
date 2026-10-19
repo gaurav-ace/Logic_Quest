@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "agent-loop",
   "title": "AI agent loop",
+  "track": "agentic",
+  "level": "easy",
   "objective": "See the loop that makes an AI agent: decide, act with a tool, look at the result, and repeat until done.",
   "sources": [
     {

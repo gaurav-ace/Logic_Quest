@@ -126,6 +126,11 @@ describe('validateLesson', () => {
     expect(problemsOf({ ...lesson(), simplify: 'typo' })).toContain('simplify: unknown field');
   });
 
+  it('rejects an unknown track or level', () => {
+    expect(problemsOf({ ...lesson(), track: 'cooking' })).toContain('track: must be one of web, logic, dsa, hld, lld, real-world, agentic');
+    expect(problemsOf({ ...lesson(), level: 'expert' })).toContain('level: must be one of easy, medium, hard');
+  });
+
   it('rejects a wrong schema version', () => {
     expect(problemsOf({ ...lesson(), schemaVersion: 2 })).toContain('schemaVersion: must be 1');
   });

@@ -77,9 +77,9 @@ These matter most, because wrong teaching content is worse than none.
 ## 7. Rewards and motivation rules
 
 - Points, streaks, levels and badges exist to reward **effort and understanding**, not speed or guessing.
-- First-try correct earns the most. Correct after a retry earns less but still counts. Wrong answers never subtract points.
+- Two separate scores (owner's decision, 2026-10-19). **XP** comes only from understanding: first-try correct earns the most, correct after a retry earns less but still counts, and wrong answers never subtract. XP never goes down, and it alone sets the level. **Streak coins** are earned on each day the daily goal is met, and they are the only thing that missing days can cost.
 - Prevent farming: points per item are awarded once. Replays are allowed but give no extra points.
-- Streaks must be forgiving (for example one "freeze" per week). Never guilt or shame the learner.
+- Streaks have real stakes but stay fair: one missed day in a row is covered by a buffer that costs coins; a second missed day breaks the streak and costs more coins. Coins never go below zero. Messages about streaks state the facts and the way back ("Finish one lesson today to keep your 10-day streak"), and never guilt or shame the learner.
 - Badges are tied to real milestones (finishing a module, fixing a past mistake, completing a hard challenge), not to time spent.
 - All reward rules live in one config file (`rewards.config`), so tuning does not need code changes.
 - Respect `prefers-reduced-motion`. Provide a calm mode with fewer popups and sounds.

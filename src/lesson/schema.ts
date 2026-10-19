@@ -9,6 +9,13 @@ export const DIAGRAM_H = 200;
 export const DEFAULT_NODE_W = 104;
 export const NODE_H = 46;
 
+/** Curriculum tracks (docs/CURRICULUM.md). Badges can be tied to finishing a whole track. */
+export const TRACKS = ['web', 'logic', 'dsa', 'hld', 'lld', 'real-world', 'agentic'] as const;
+export type Track = (typeof TRACKS)[number];
+
+export const LEVELS = ['easy', 'medium', 'hard'] as const;
+export type Level = (typeof LEVELS)[number];
+
 export interface Source {
   title: string;
   /** https only. Omit for books; put edition and chapter in the title instead. */
@@ -53,6 +60,8 @@ export interface Lesson {
   schemaVersion: typeof SCHEMA_VERSION;
   id: string;
   title: string;
+  track: Track;
+  level: Level;
   /** One learning objective in plain words, shown at the top of the lesson. */
   objective: string;
   sources: Source[];

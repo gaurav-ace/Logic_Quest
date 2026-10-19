@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "xp": {
+    "firstTry": 10,
+    "afterRetry": 5,
+    "lessonComplete": 10
+  },
+  "levels": [0, 30, 80, 150, 250, 400, 600, 850, 1150, 1500, 1900, 2350, 2850, 3400, 4000, 4700, 5500],
+  "dailyGoal": { "default": 1, "min": 1, "max": 3 },
+  "coins": {
+    "perGoalDay": 5,
+    "bufferCost": 15,
+    "breakCost": 25
+  },
+  "badges": [
+    { "id": "first-lesson", "title": "First steps", "description": "Finish your first lesson.", "rule": { "type": "lessons", "count": 1 } },
+    { "id": "five-lessons", "title": "Warming up", "description": "Finish 5 different lessons.", "rule": { "type": "lessons", "count": 5 } },
+    { "id": "ten-lessons", "title": "On a roll", "description": "Finish 10 different lessons.", "rule": { "type": "lessons", "count": 10 } },
+    { "id": "twenty-five-lessons", "title": "Quarter century", "description": "Finish 25 different lessons.", "rule": { "type": "lessons", "count": 25 } },
+    { "id": "fifty-lessons", "title": "Halfway hero", "description": "Finish 50 different lessons.", "rule": { "type": "lessons", "count": 50 } },
+    { "id": "fix-mistake", "title": "Second look", "description": "Get a question right that you got wrong on an earlier day.", "rule": { "type": "mistakesFixed", "count": 1 } },
+    { "id": "fix-ten-mistakes", "title": "Learns from mistakes", "description": "Fix 10 past mistakes.", "rule": { "type": "mistakesFixed", "count": 10 } },
+    { "id": "hard-lesson", "title": "Deep end", "description": "Finish a hard lesson.", "rule": { "type": "hardLessons", "count": 1 } },
+    { "id": "streak-3", "title": "Habit forming", "description": "Reach a 3-day streak.", "rule": { "type": "streak", "days": 3 } },
+    { "id": "streak-7", "title": "One week strong", "description": "Reach a 7-day streak.", "rule": { "type": "streak", "days": 7 } },
+    { "id": "streak-30", "title": "Monthly regular", "description": "Reach a 30-day streak.", "rule": { "type": "streak", "days": 30 } },
+    { "id": "track-web", "title": "Web basics done", "description": "Finish every web basics lesson.", "rule": { "type": "track", "track": "web" } },
+    { "id": "track-logic", "title": "Logical thinker", "description": "Finish every logic foundations lesson.", "rule": { "type": "track", "track": "logic" } },
+    { "id": "track-dsa", "title": "Algorithm adept", "description": "Finish every DSA lesson.", "rule": { "type": "track", "track": "dsa" } },
+    { "id": "track-hld", "title": "System designer", "description": "Finish every high-level design lesson.", "rule": { "type": "track", "track": "hld" } },
+    { "id": "track-lld", "title": "Clean designer", "description": "Finish every low-level design lesson.", "rule": { "type": "track", "track": "lld" } },
+    { "id": "track-real-world", "title": "Production ready", "description": "Finish every real-world systems lesson.", "rule": { "type": "track", "track": "real-world" } },
+    { "id": "track-agentic", "title": "Agent architect", "description": "Finish every agentic AI lesson.", "rule": { "type": "track", "track": "agentic" } }
+  ]
+}

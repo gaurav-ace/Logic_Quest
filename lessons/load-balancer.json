@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "load-balancer",
   "title": "Load balancer",
+  "track": "hld",
+  "level": "easy",
   "objective": "See how a load balancer spreads requests across servers, and what it does when one of them fails.",
   "sources": [
     {

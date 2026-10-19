@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "hello-request-response",
   "title": "Hello, request",
+  "track": "web",
+  "level": "easy",
   "objective": "See that a web page arrives because your browser asks for it, and the server answers.",
   "sources": [
     {

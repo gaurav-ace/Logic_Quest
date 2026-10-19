@@ -1,5 +1,7 @@
 import {
   DEFAULT_NODE_W,
+  LEVELS,
+  TRACKS,
   DIAGRAM_H,
   DIAGRAM_W,
   NODE_H,
@@ -39,12 +41,14 @@ export function validateLesson(data: unknown): Lesson {
   const lessonId = isText(data.id) ? data.id : '(unknown)';
 
   // A misspelt optional key (e.g. "simplify") would otherwise vanish silently.
-  const known = ['schemaVersion', 'id', 'title', 'objective', 'sources', 'simplifies', 'nodes', 'edges', 'steps', 'quiz'];
+  const known = ['schemaVersion', 'id', 'title', 'track', 'level', 'objective', 'sources', 'simplifies', 'nodes', 'edges', 'steps', 'quiz'];
   for (const key of Object.keys(data)) if (!known.includes(key)) bad(key, 'unknown field');
 
   if (data.schemaVersion !== SCHEMA_VERSION) bad('schemaVersion', `must be ${SCHEMA_VERSION}`);
   if (!isText(data.id) || !ID.test(data.id)) bad('id', 'must be lowercase words joined by hyphens');
   for (const key of ['title', 'objective'] as const) if (!isText(data[key])) bad(key, 'must be non-empty text');
+  if (!TRACKS.includes(data.track as never)) bad('track', `must be one of ${TRACKS.join(', ')}`);
+  if (!LEVELS.includes(data.level as never)) bad('level', `must be one of ${LEVELS.join(', ')}`);
   if (data.simplifies !== undefined && !isText(data.simplifies)) bad('simplifies', 'must be non-empty text when present');
 
   checkList(data.sources, 'sources', bad, checkSource);

@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "cache",
   "title": "Cache",
+  "track": "hld",
+  "level": "easy",
   "objective": "Follow a cache miss and a cache hit, and see why cached data can go out of date.",
   "sources": [
     {
