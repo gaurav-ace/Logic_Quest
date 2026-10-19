@@ -4,7 +4,9 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 ## Current phase
 
-Phase 2, Rewards and progress. Tasks 2.1–2.4 built and committed locally (not pushed). Not finished until: (1) push and green CI, (2) the owner's check on phone and desktop, including export and import on Android, (3) the owner approves the phase.
+Phase 3, Logic foundations, then Phase 4, DSA: the owner asked for both in one go (2026-10-19). Built in order, Phase 3 first.
+
+Phase 2, Rewards and progress: **done**, approved 2026-10-19 ("all good" on site and phone). Afterwards, persistence across launches was strengthened: persistent-storage request, plus a relaunch check across simulated days (`browser-check.mjs persist`, 11/11).
 
 Phase 1, Animation engine: **done**, approved 2026-10-19. Phase 0, Foundations: **done**, approved 2026-10-19. Live at https://gaurav-ace.github.io/Logic_Quest/.
 
@@ -50,8 +52,8 @@ Phase 1, Animation engine: **done**, approved 2026-10-19. Phase 0, Foundations: 
 - `vite.config.ts` is not type-checked (it would need `@types/node`, not approved). See `docs/IDEAS.md`.
 - Screen reader behaviour has not been tested; captions use `aria-live`.
 - Owner checked Phase 1 on the site and their Android phone (2026-10-19): all good.
-- Phase 2 checked only in headless Chrome emulation. Export/import has not been tried on Android (file picker and Downloads flow).
-- Multi-day streak behaviour is tested with unit tests only (simulated dates); no real multi-day use yet.
+- Owner checked Phase 2 on site and phone (2026-10-19): all good.
+- Multi-day behaviour is tested with unit tests and a Chrome relaunch check on simulated dates; not yet over real days on a phone.
 - The Android back button is simulated in tests by stepping back one browser history entry; the installed PWA's back gesture has not been checked.
 
 ## Environment notes
@@ -74,3 +76,4 @@ Phase 1, Animation engine: **done**, approved 2026-10-19. Phase 0, Foundations: 
 - 2026-10-19: Owner approved the curriculum and asked for real-world case studies and published incident articles, with the goal of senior-SDE confidence. Added Phase 5c to CLAUDE.md and the curriculum. Checked that 7 articles load; Uber/Netflix/Swiggy blogs marked TODO-VERIFY.
 - 2026-10-19: Owner chose points + streak + badges and a 1-lesson daily goal. Wrote the Phase 2 plan.
 - 2026-10-19: Owner asked for streak penalties; chose XP + streak coins (CLAUDE.md section 7 updated). Built Phase 2 tasks 2.1–2.4, one commit each. Not pushed.
+- 2026-10-19: Owner approved Phase 2 and asked to make sure progress resumes across launches and days, then to build Phases 3 and 4. Added the persistent-storage request and the relaunch check. Owner chose tap-based DSA exercises (no code editor for now).

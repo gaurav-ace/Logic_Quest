@@ -1,6 +1,6 @@
 # Phase 2 plan: Rewards and progress
 
-Status: 2.1–2.4 built 2026-10-19. Waiting for push, the owner's phone check and approval.
+Status: done 2026-10-19. Owner checked site and phone.
 
 **Goal (CLAUDE.md section 9):** points, streaks (with freeze), levels, badges, persistence, export and import.
 
