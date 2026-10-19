@@ -1,6 +1,6 @@
 # Phase 2 plan: Rewards and progress
 
-Status: approved 2026-10-19, with streak penalties added at the owner's request (XP plus streak coins).
+Status: 2.1–2.4 built 2026-10-19. Waiting for push, the owner's phone check and approval.
 
 **Goal (CLAUDE.md section 9):** points, streaks (with freeze), levels, badges, persistence, export and import.
 

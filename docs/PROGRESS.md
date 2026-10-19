@@ -4,11 +4,17 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 ## Current phase
 
-Phase 2, Rewards and progress: not started. Plan in `docs/PHASE2_PLAN.md`, waiting for the owner's approval. Curriculum approved (103 planned lessons).
+Phase 2, Rewards and progress. Tasks 2.1–2.4 built and committed locally (not pushed). Not finished until: (1) push and green CI, (2) the owner's check on phone and desktop, including export and import on Android, (3) the owner approves the phase.
 
-Phase 1, Animation engine: **done**, approved 2026-10-19 after the owner checked the site and their phone and reviewed the lessons ("all good").
+Phase 1, Animation engine: **done**, approved 2026-10-19. Phase 0, Foundations: **done**, approved 2026-10-19. Live at https://gaurav-ace.github.io/Logic_Quest/.
 
-Phase 0, Foundations: **done**, approved 2026-10-19 after the owner tested on web and Android. Live at https://gaurav-ace.github.io/Logic_Quest/.
+## Done (Phase 2)
+
+- 2.1 Reward engine (`src/rewards/`): event log, XP, levels, streak with coin buffer and break, 18 badges, all numbers in `rewards.config.json` (validated). Mutation checks: removing anti-farming, the coin floor, or "today is never a miss" each made tests fail. The first coin-floor mutation survived and exposed a missing test, which was added.
+- 2.2 Storage (`src/progress/store.ts`): merge on every write, backup of unreadable saves, works with storage full or blocked, export/import. Mutation checks: removing the merge, or the backup copy, made tests fail.
+- 2.3 Rewards in lessons, HUD on home, ✓ Done on cards, pop-up (none in calm mode).
+- 2.4 Progress screen with 7-day view, badges, settings, export and import.
+- Checks run: `npm run check` 159/159 tests (12 files); fresh clone `npm ci && npm run check && npm run build` passes; headless Chrome `browser-check.mjs ui` 105/105 (now including rewards from zero, reload persistence, replay "Already scored", retry XP, calm mode, a real file download for export, importing the same file twice adding nothing, a bad file rejected, back button from progress) and `pwa` 7/7.
 
 ## Done (Phase 1)
 
@@ -29,12 +35,13 @@ Phase 0, Foundations: **done**, approved 2026-10-19 after the owner tested on we
 
 ## Next step
 
-1. Owner approves `docs/PHASE2_PLAN.md`.
-2. Build tasks 2.1–2.4, one commit each, and report at the end of the phase.
+1. Owner pushes Phase 2 (`git push origin main`).
+2. Owner checks on phone: rewards after a quiz, home stats, progress screen, export (file lands in Downloads) and import of that file.
+3. Owner approves Phase 2 → Phase 3 plan (logic foundations, 8 lessons).
 
 ## Blockers and questions for the owner
 
-- Phase 2 plan approval.
+- Push, phone check and Phase 2 approval (above).
 
 ## Not tested yet
 
@@ -43,6 +50,8 @@ Phase 0, Foundations: **done**, approved 2026-10-19 after the owner tested on we
 - `vite.config.ts` is not type-checked (it would need `@types/node`, not approved). See `docs/IDEAS.md`.
 - Screen reader behaviour has not been tested; captions use `aria-live`.
 - Owner checked Phase 1 on the site and their Android phone (2026-10-19): all good.
+- Phase 2 checked only in headless Chrome emulation. Export/import has not been tried on Android (file picker and Downloads flow).
+- Multi-day streak behaviour is tested with unit tests only (simulated dates); no real multi-day use yet.
 - The Android back button is simulated in tests by stepping back one browser history entry; the installed PWA's back gesture has not been checked.
 
 ## Environment notes
@@ -64,3 +73,4 @@ Phase 0, Foundations: **done**, approved 2026-10-19 after the owner tested on we
 - 2026-10-19: Owner chose to add LLD as Phase 5b (CLAUDE.md section 9 updated) and asked for a full syllabus first. Drafted `docs/CURRICULUM.md`.
 - 2026-10-19: Owner approved the curriculum and asked for real-world case studies and published incident articles, with the goal of senior-SDE confidence. Added Phase 5c to CLAUDE.md and the curriculum. Checked that 7 articles load; Uber/Netflix/Swiggy blogs marked TODO-VERIFY.
 - 2026-10-19: Owner chose points + streak + badges and a 1-lesson daily goal. Wrote the Phase 2 plan.
+- 2026-10-19: Owner asked for streak penalties; chose XP + streak coins (CLAUDE.md section 7 updated). Built Phase 2 tasks 2.1–2.4, one commit each. Not pushed.

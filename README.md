@@ -35,6 +35,8 @@ Set `CHROME_PATH` if Chrome is not in the default place. Screenshots go to your 
 | `lessons/` | Lesson data (JSON), checked by `src/lesson/validate.ts` at load time |
 | `src/lesson/` | Lesson schema and validator |
 | `src/engine/` | Animation logic (pure, unit-tested) |
+| `src/rewards/` | Reward rules (`rewards.config.json`) and the engine that computes XP, streak, coins and badges from the event log |
+| `src/progress/` | Saving the event log, export and import |
 | `src/render/` | DOM and SVG rendering |
 | `src/pwa/` | Service worker template, precache helpers, registration |
 | `public/` | Manifest and icons (regenerate PNGs with `python3 scripts/make_icons.py`) |
