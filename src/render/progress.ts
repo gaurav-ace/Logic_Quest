@@ -1,3 +1,4 @@
+import { persistMessage, type PersistState } from '../progress/persist';
 import type { ProgressStore } from '../progress/store';
 import type { Tracker } from '../progress/tracker';
 import type { RewardsConfig } from '../rewards/config';
@@ -15,8 +16,8 @@ const DAY_LABEL: Record<DayStatus | 'none', [mark: string, text: string]> = {
   none: ['·', 'before you started'],
 };
 
-export function renderProgress(root: HTMLElement, tracker: Tracker, store: ProgressStore, config: RewardsConfig): void {
-  const redraw = () => renderProgress(root, tracker, store, config);
+export function renderProgress(root: HTMLElement, tracker: Tracker, store: ProgressStore, config: RewardsConfig, persist: PersistState): void {
+  const redraw = () => renderProgress(root, tracker, store, config, persist);
   const p = tracker.progress();
   const today = localDay(new Date());
 
@@ -112,7 +113,9 @@ export function renderProgress(root: HTMLElement, tracker: Tracker, store: Progr
     actions.append(button('Export backup', () => download(store.exportText(), `logic-quest-progress-${today}.json`)), button('Import backup', () => file.click()));
     card.append(
       el('h3', {}, 'Backup'),
-      el('p', {}, 'Your progress is saved only in this browser. Clearing site data, or uninstalling the app, deletes it. Export a backup now and then, and import it on any device.'),
+      el('p', {}, 'Your progress is saved on this device after every answer, so it is still here when you come back tomorrow. It lives only in this browser: clearing site data, or uninstalling the app, deletes it.'),
+      el('p', { class: 'persist-state' }, persistMessage(persist)),
+      el('p', {}, 'Export a backup now and then, and import it on any device.'),
       actions,
       file,
       status,

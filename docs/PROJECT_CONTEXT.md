@@ -56,13 +56,14 @@ Treat the prototype as a reference for look and behaviour, not as code to extend
 - 2026-10-19, goal raised: the owner wants to be confident as a senior SDE after finishing. Added Phase 5c, real-world systems: case studies (payment gateway, Swiggy-style food delivery, Uber-style ride-hailing, IRCTC-style train booking, and more) and incident studies from companies' published postmortems and engineering articles (Meta, Stripe, and others). Curriculum approved.
 - 2026-10-19, rewards: XP and levels, a daily streak with stakes, and milestone badges. No cosmetic unlocks for now. The owner asked for missed days to cost something, and chose two scores: XP (from correct answers, never drops, sets the level) and streak coins (+5 per goal day; one missed day uses a buffer costing 15 coins; a second missed day breaks the streak and costs 25; never below 0). CLAUDE.md section 7 updated to match.
 - 2026-10-19, daily goal: 1 lesson a day by default (about 5–10 minutes), changeable in settings.
+- 2026-10-19, DSA exercises: tap-based (predict the next state, order the lines, fill the blank, pick the bug), so they work on a phone. A real code editor with a sandbox may become a later phase if the owner still wants it.
 - 2026-10-19, layout: docs moved into `docs/`, prototype into `prototype/`, git repo initialised. Owner approved.
 
 ## Decisions still open (ask the owner, do not decide alone)
 
 Copied from `CLAUDE.md` section 12. Move each item here under "Decisions made" once answered.
 
-- Whether DSA challenges include real code writing in the browser
+- None at the moment.
 
 ## Glossary
 

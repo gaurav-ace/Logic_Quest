@@ -2,7 +2,7 @@
 // No dependencies: talks to Chrome over the DevTools protocol with Node's built-in WebSocket.
 //
 //   npm run build && npm run preview          (in another terminal)
-//   node scripts/browser-check.mjs [ui|pwa] [url] [screenshot-dir]
+//   node scripts/browser-check.mjs [ui|pwa|persist] [url] [screenshot-dir]
 //
 // CHROME_PATH overrides where Chrome is found. On WSL in NAT mode, WSL cannot reach a Windows
 // Chrome's debug port, so run this file with a Windows node.exe instead (see docs/PROGRESS.md).
@@ -22,34 +22,56 @@ const defaultChrome = {
   linux: 'google-chrome',
 }[process.platform];
 const PORT = 9333;
-const chrome = spawn(process.env.CHROME_PATH ?? defaultChrome, [
-  '--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), 'lq-cdp-'))}`,
-  '--no-first-run', '--no-default-browser-check', 'about:blank',
-], { stdio: 'ignore' });
-
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let target;
-for (let i = 0; i < 50 && !target; i++) {
-  try {
-    target = (await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json()).find((t) => t.type === 'page');
-  } catch {
-    await sleep(200);
-  }
-}
-if (!target) throw new Error('Could not reach Chrome. Set CHROME_PATH?');
 
-const ws = new WebSocket(target.webSocketDebuggerUrl);
-await new Promise((r) => ws.addEventListener('open', r));
+let chrome;
+let ws;
 let id = 0;
 const pending = new Map();
 const events = [];
-ws.addEventListener('message', (m) => {
-  const msg = JSON.parse(m.data);
-  if (msg.id && pending.has(msg.id)) {
-    pending.get(msg.id)(msg);
-    pending.delete(msg.id);
-  } else events.push(msg);
-});
+
+// Start Chrome on a profile folder. Reusing the folder later is a real relaunch: whatever the
+// app saved to disk must still be there.
+async function launch(profileDir = mkdtempSync(join(tmpdir(), 'lq-cdp-'))) {
+  chrome = spawn(process.env.CHROME_PATH ?? defaultChrome, [
+    '--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profileDir}`,
+    '--no-first-run', '--no-default-browser-check', 'about:blank',
+  ], { stdio: 'ignore' });
+  let target;
+  for (let i = 0; i < 50 && !target; i++) {
+    try {
+      target = (await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json()).find((t) => t.type === 'page');
+    } catch {
+      await sleep(200);
+    }
+  }
+  if (!target) throw new Error('Could not reach Chrome. Set CHROME_PATH?');
+  ws = new WebSocket(target.webSocketDebuggerUrl);
+  await new Promise((r) => ws.addEventListener('open', r));
+  ws.addEventListener('message', (m) => {
+    const msg = JSON.parse(m.data);
+    if (msg.id && pending.has(msg.id)) {
+      pending.get(msg.id)(msg);
+      pending.delete(msg.id);
+    } else events.push(msg);
+  });
+  await send('Page.enable');
+  await send('Runtime.enable');
+  await send('Log.enable');
+}
+
+// Close Chrome the normal way, so it writes its storage to disk like a phone closing the app.
+async function quit() {
+  const exited = new Promise((r) => chrome.once('exit', r));
+  try {
+    await send('Browser.close');
+  } catch {
+    chrome.kill();
+  }
+  await Promise.race([exited, sleep(5000)]);
+  ws.close();
+}
+
 const send = (method, params = {}) =>
   new Promise((resolve, reject) => {
     const n = ++id;
@@ -151,9 +173,7 @@ const layoutChecks = async (label) => {
   }
 };
 
-await send('Page.enable');
-await send('Runtime.enable');
-await send('Log.enable');
+if (mode !== 'persist') await launch();
 
 if (mode === 'ui') {
   // Home screen and navigation, including what the Android back button does.
@@ -391,14 +411,68 @@ if (mode === 'pwa') {
   check('offline deep link with a query string opens the lesson', (await text('h2')) === 'Cache');
 }
 
+if (mode === 'persist') {
+  // Close the app and open it again on later days: progress must resume, never reset.
+  // Later days are simulated by moving the page's clock forward.
+  const profile = mkdtempSync(join(tmpdir(), 'lq-persist-'));
+  const openOnDay = async (days) => {
+    await launch(profile);
+    await viewport(360, 740, true);
+    await media('reduce');
+    const shift = days * 86_400_000;
+    await send('Page.addScriptToEvaluateOnNewDocument', {
+      source: `(() => { const R = Date; const off = ${shift};
+        class D extends R { constructor(...a) { if (a.length === 0) super(R.now() + off); else super(...a); } static now() { return R.now() + off; } }
+        globalThis.Date = D; })();`,
+    });
+    await load();
+  };
+  const stats = () => text('.hud-stats');
+
+  await openOnDay(0);
+  await load(url + '#/lesson/hello-request-response');
+  await tap('Go to step 2', 'label');
+  await tap('Take the quiz');
+  await tap('The browser, by sending a request');
+  await load();
+  check('day 1: one lesson done', (await stats()) === 'Level1XP20 / 30Streak1 dayCoins5', await stats());
+  await quit();
+
+  await openOnDay(1);
+  check('day 2, after closing the app: XP, streak and coins resume', (await stats()) === 'Level1XP20 / 30Streak1 dayCoins5', await stats());
+  check('day 2: today starts fresh', (await text('.hud-today')) === 'Today: 0 / 1. Finish 1 lesson today to grow your streak. Missing today uses your buffer (−15 coins).', await text('.hud-today'));
+  check('day 2: finished lesson still marked done', (await evaluate(`document.querySelectorAll('.lesson-card.done').length`)) === 1);
+  await load(url + '#/progress');
+  check('progress screen reports the storage protection state', /keep your progress|may clear it/.test(await text('.persist-state')), await text('.persist-state'));
+  await load(url + '#/lesson/cache');
+  await tap('Go to step 5', 'label');
+  await tap('Take the quiz');
+  await tap('Users may see the old profile');
+  await tap('Next question');
+  await tap('So the next request is a cache hit');
+  await load();
+  check('day 2: second lesson grows the streak', (await stats()) === 'Level2XP50 / 80Streak2 daysCoins10', await stats());
+  await quit();
+
+  await openOnDay(3); // day 3 skipped
+  check('day 4 after a missed day: buffer used, streak kept, coins taken', (await stats()) === 'Level2XP50 / 80Streak2 daysCoins0', await stats());
+  check('day 4: says plainly how to keep the streak', (await text('.hud-today')) === 'Today: 0 / 1. Yesterday used your buffer. Finish 1 lesson today to keep your 2-day streak.', await text('.hud-today'));
+  await quit();
+
+  await openOnDay(5); // day 4 skipped too
+  check('day 6 after a second missed day: streak ends, XP and level untouched', (await stats()) === 'Level2XP50 / 80Streak0 daysCoins0', await stats());
+  await load(url + '#/progress');
+  check('best streak is remembered', (await text('.panel[aria-label="Streak"] p')) === 'Current: 0 days. Best: 2.', await text('.panel[aria-label="Streak"] p'));
+  await shot('persist-day6-progress');
+}
+
 const errors = [];
 for (const e of events) {
   if (e.method === 'Runtime.exceptionThrown') errors.push(e.params.exceptionDetails.exception?.description);
   if (e.method === 'Log.entryAdded' && e.params.entry.level === 'error') errors.push(`${e.params.entry.text} ${e.params.entry.url ?? ''}`);
 }
 check('no page errors', errors.length === 0, errors.join(' | '));
-ws.close();
-chrome.kill();
+await quit();
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} checks passed. Screenshots: ${outDir}`);
 process.exit(failed ? 1 : 0);

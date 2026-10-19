@@ -2,6 +2,7 @@ import './styles.css';
 import { loadCatalog } from './lesson/catalog';
 import type { Lesson } from './lesson/schema';
 import { LessonValidationError } from './lesson/validate';
+import { requestPersistentStorage, type PersistState } from './progress/persist';
 import { ProgressStore, SAVE_KEY, browserStorage } from './progress/store';
 import { Tracker } from './progress/tracker';
 import { registerServiceWorker } from './pwa/register';
@@ -18,6 +19,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
   const ids = new Set(byId.keys());
   const store = new ProgressStore(browserStorage());
   const tracker = new Tracker(store, Tracker.lessonInfo(lessons), REWARDS);
+  let persistState: PersistState = 'unsupported';
 
   const header = el('header', { class: 'app-header' });
   const backToList = button('← Lessons', () => history.back(), { class: 'nav-back' });
@@ -44,7 +46,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
     toProgress.hidden = route.name !== 'home';
     if (route.name === 'progress') {
       document.title = 'Progress · Logic Quest';
-      renderProgress(view, tracker, store, REWARDS);
+      renderProgress(view, tracker, store, REWARDS, persistState);
     } else if (route.name === 'lesson') {
       const lesson = byId.get(route.id)!;
       document.title = `${lesson.title} · Logic Quest`;
@@ -96,6 +98,12 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
     guard.hidden = false;
     stay.focus();
   }
+
+  // Ask the browser not to clear saved progress when space runs low.
+  void requestPersistentStorage().then((state) => {
+    persistState = state;
+    if (current.name === 'progress') show(current);
+  });
 
   // Progress saved in another tab: merge it, and refresh the home screen's numbers.
   window.addEventListener('storage', (e) => {
