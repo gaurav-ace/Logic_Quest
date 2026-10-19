@@ -4,13 +4,13 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 ## Current phase
 
-Phase 5b, Low-level design: **done**, pushed, and approved by the owner on 2026-10-19 ("site shows LLD now, proceed"); a phone check was not mentioned. Phase 5c plan approved 2026-10-19 ("Approve, build all of it"). **Phase 5c: all 21 lessons built and checked, awaiting the owner's review.**
+Phase 5b, Low-level design: **done**, pushed, and approved by the owner on 2026-10-19 ("site shows LLD now, proceed"); a phone check was not mentioned. Phase 5c plan approved 2026-10-19 ("Approve, build all of it"). **Phase 5c, Real-world systems: done, pushed, and approved by the owner on 2026-10-19.** Phase 6 plan written (`docs/PHASE6_PLAN.md`), awaiting approval.
 
 Phase 5, System design (HLD): **done**, pushed and approved by the owner on 2026-10-19.
 
 Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19 without a line-by-line content review; the owner will report any content problems they find later). Live at https://gaurav-ace.github.io/Logic_Quest/.
 
-## Done (Phase 5c, awaiting review)
+## Done (Phase 5c)
 
 - 5c.1 Engine (previous session): accuracy rule in the validator, timeline times on steps, "critique the design" exercise, `inventory` and `fanout` sims, `nearby` and `snowflake` traces.
 - 5c.2 Case studies R1–R4. 5c.3 R5–R12, with a new `autocomplete` trace (top 2 per trie node; tested against a full search of every prefix on 500 random logs; two mutations each failed tests). 5c.4 I1–I8 (Meta, Cloudflare, AWS S3, GitHub, Slack, Discord, Stripe, H3) and the C1 capstone. 93 lessons in all.
@@ -79,14 +79,12 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 
 ## Next step
 
-1. Owner reviews Phase 5c (21 lessons), on the site after a push.
-2. Owner decides on the answer-order fix below; then Phase 6 (agentic AI) needs a plan.
+1. Owner approves (or changes) the Phase 6 plan; then build 6.1 (agent runner and tests, then renderer and A3).
 
 ## Blockers and questions for the owner
 
-- **Answer order (an earlier mistake, found 2026-10-19):** in 149 of 168 quiz questions written before 5c.4 the right answer is first, and options are shown in file order, so tapping the first option scores well. Proposed fix: shuffle options deterministically when shown (quiz, predictions, critique), with a test. Needs approval because it changes the shared renderer.
+- **Answer order (an earlier mistake, found 2026-10-19):** in 149 of 168 quiz questions written before 5c.4 the right answer is first, and options are shown in file order, so tapping the first option scores well. Proposed fix: shuffle options deterministically when shown (quiz, predictions, critique), with a test. Owner chose to leave it for now (2026-10-19).
 - The main script is now 575 kB (181 kB gzipped), past Vite's 500 kB warning, because lesson data is bundled. Parked in `docs/IDEAS.md` (load lessons per track).
-
 - Wikipedia is cited for a few facts (square numbers, off-by-one, prefix sums, cycle detection, Big O, space–time tradeoff, topological sorting); the owner may veto it.
 
 ## Not tested yet
@@ -135,4 +133,4 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 - 2026-10-19: Started 5c (work in progress, committed with unit tests passing; browser checks NOT run on it). Done: accuracy rule in the validator (company + basis, own-domain check; a substring mutation of the domain match failed its test), timeline times on steps, "Critique the design" exercise (diagram, trace and sim lessons), `inventory` and `fanout` sims (challenge settings measured over 10 seeds; claim tests), `nearby` and `snowflake` traces (references and claim tests), and 4 case studies: payment gateway, food delivery, ride-hailing, train booking. Sources checked: Stripe docs and blogs, h3geo.org (Uber's H3), Cloudflare Waiting Room, Twitter's Snowflake README. Swiggy and IRCTC sites couldn't be reached, so those lessons are labelled plausible and make no claims about either company. Stopped at the usage limit.
 - 2026-10-19 (new session): Browser checks now walk the critique; full suite green on 5c.2. Built 5c.3 (8 case studies and the autocomplete trace) and 5c.4 (8 incident/article lessons and the capstone), from sources fetched this session. Added the box-spacing rule. Found the answer-order problem across earlier lessons and raised it. (Pushed by the owner afterwards: GitHub main was at 4901d0d.)
 - 2026-10-19: Owner asked to check 5c.4. Re-fetched all 8 company sources and checked every time, number and quote in the incident and article lessons against them. Fixed: GitHub's restore was dated 00:05, when the write-up says it was planned then and "initiated" by 00:41; Slack's "usual 99.999%" (write-up: "usually over 99.999%") and a quote ("around 7:00am") not in the write-up; the capstone's "no hints" message gave a hint. Everything else matched. npm run check 609/609; browser `lessons` on the 3 edited lessons 51/51. Not pushed.
-
+- 2026-10-19: Owner approved Phase 5c, asked to continue with Phase 6, and chose to leave the answer order as it is for now. Checked that the Phase 6 sources load (Anthropic engineering posts, Claude tool-use docs, OWASP LLM Top 10 2025) and wrote `docs/PHASE6_PLAN.md`.
