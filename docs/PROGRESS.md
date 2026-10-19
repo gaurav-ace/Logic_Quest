@@ -4,11 +4,11 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 ## Current phase
 
-Phase 5, System design (HLD): all of 5.1–5.4 built 2026-10-19, committed locally, not pushed. Not finished until the owner pushes, checks on the phone, and approves.
+Phase 5, System design (HLD): **done**, pushed and approved by the owner on 2026-10-19 ("things are working as expected"). Phase 5b plan drafted (`docs/PHASE5B_PLAN.md`), awaiting approval.
 
 Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19 without a line-by-line content review; the owner will report any content problems they find later). Live at https://gaurav-ace.github.io/Logic_Quest/.
 
-## Done (Phase 5), awaiting the owner's review
+## Done (Phase 5)
 
 - 5.1 Sim engine (`src/sim/`): seeded pure models, sliders, toggles, failure actions, live metrics, challenges with goals; every challenge proven winnable by its solution and not passable from its setup.
 - 5.2–5.4 Sixteen lessons: request journey, scaling, load balancing, caching, CDNs, SQL vs NoSQL, indexes, replication, sharding, consistent hashing, message queues, rate limiting, CAP, idempotency, URL shortener design, AI chat service design. Every one has a "what this simplifies" note and sources; no `TODO-VERIFY`.
@@ -59,9 +59,9 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 
 ## Next step
 
-1. Owner pushes (`git push origin main`) and checks the Phase 5 lessons on the phone.
-2. Owner approves Phase 5 (or reports content problems).
-3. Then the Phase 5b plan (low-level design).
+1. Owner approves the Phase 5b plan (`docs/PHASE5B_PLAN.md`).
+2. Build 5b.1–5b.4, then the owner checks and approves 5b.
+3. Then the Phase 5c plan (real-world systems).
 
 ## Blockers and questions for the owner
 
@@ -106,3 +106,4 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 - 2026-10-19: Built Phase 5.1 (sim engine) and 5.2 (5 traffic lessons). Challenge goals were chosen from measured runs over 10–20 seeds; two first attempts ("uneven work" with 3 servers, and a stampede goal that allowed recovery) did not separate right from wrong settings and were redesigned.
 - 2026-10-19: Built Phase 5.3 (5 data lessons). A suite run of mine failed one export check because my launch command collapsed the leading \\ of a Windows path; it also left 112 screenshots in a stray D:\wsl.localhost folder, which I checked and removed. Runs now go through a launcher script without that quoting.
 - 2026-10-19: Built Phase 5.4 (6 lessons, 3 models, 1 trace). Found and fixed clipped diagram notes (sharding since 5.3, topological sort since Phase 4); proved the new checks fail on the old build via a temporary worktree at HEAD, then removed it.
+- 2026-10-19: Owner pushed Phase 5. A re-run of an old workflow run (commit 2b14b10, attempt 4) finished 14 s after the new deploy and put the old version back; a manual "Run workflow" on a0dc2aa restored it. README now says to use "Run workflow", not "Re-run". Owner saw no progress on the phone: progress was earned only on the laptop (saves are per browser); export/import explained. Owner approved Phase 5.

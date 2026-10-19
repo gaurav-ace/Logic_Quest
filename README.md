@@ -29,6 +29,12 @@ LESSONS=bfs,heaps node scripts/browser-check.mjs lessons   # walk only these les
 
 Set `CHROME_PATH` if Chrome is not in the default place. Screenshots go to your temp folder.
 
+## Deploy
+
+Every push to `main` runs the checks and deploys to GitHub Pages by itself. To deploy again without a push, use **Actions → CI → Run workflow** on `main`. Do not use "Re-run" on an older run: a re-run uses that run's original commit, so it puts the old version back on the site.
+
+Progress is saved in each browser separately (there is no server). To move it to another device, use Progress → Export, then Progress → Import on the other device; importing merges, so nothing is counted twice.
+
 ## Layout
 
 | Path | What lives there |
