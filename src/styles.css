@@ -466,3 +466,123 @@ button.primary {
     animation: none;
   }
 }
+
+.panel {
+  padding: 14px;
+  margin-top: 16px;
+}
+
+.panel h3 {
+  margin: 0 0 8px;
+  font-size: 1.125rem;
+}
+
+.panel p {
+  margin: 0 0 10px;
+}
+
+.panel .small {
+  color: var(--mute);
+  font-size: 0.875rem;
+  margin: 10px 0 0;
+}
+
+.week {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  text-align: center;
+}
+
+.day .mark {
+  display: grid;
+  place-items: center;
+  height: 36px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  font-weight: 800;
+  background: var(--card);
+}
+
+.day small {
+  color: var(--mute);
+  font-size: 0.75rem;
+}
+
+.day.met .mark {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: #fff;
+}
+
+.day.buffer .mark {
+  background: var(--hi);
+  color: var(--hi-ink);
+}
+
+.day.broken .mark {
+  background: var(--bad);
+  border-color: var(--bad);
+  color: #fff;
+}
+
+.day.pending .mark {
+  border-style: dashed;
+}
+
+.badges {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.badge {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  border: 2px dashed var(--mute);
+  border-radius: 12px;
+  color: var(--mute);
+  font-size: 0.875rem;
+}
+
+.badge strong {
+  font-size: 0.9375rem;
+}
+
+.badge.earned {
+  border-style: solid;
+  border-color: var(--line);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--hi) 25%, var(--card));
+}
+
+.segmented {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.segmented button {
+  flex: 1;
+}
+
+button[aria-pressed='true'] {
+  background: var(--hi);
+  color: var(--hi-ink);
+}
+
+.backup-status {
+  margin-top: 12px;
+}
+
+.backup-status .bad {
+  color: var(--bad);
+  font-weight: 700;
+}

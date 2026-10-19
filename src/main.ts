@@ -9,6 +9,7 @@ import { REWARDS } from './rewards/config';
 import { button, el } from './render/dom';
 import { renderHome } from './render/home';
 import { renderLesson, type LessonView } from './render/lesson';
+import { renderProgress } from './render/progress';
 import { celebrate, clearToast } from './render/toast';
 import { HOME, parseRoute, routeHash, sameRoute, type Route } from './router';
 
@@ -20,7 +21,10 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
 
   const header = el('header', { class: 'app-header' });
   const backToList = button('← Lessons', () => history.back(), { class: 'nav-back' });
-  header.append(el('h1', {}, 'Logic Quest'), backToList);
+  const toProgress = button('Progress', () => {
+    location.hash = routeHash({ name: 'progress' });
+  }, { class: 'nav-progress' });
+  header.append(el('h1', {}, 'Logic Quest'), backToList, toProgress);
   const view = el('div');
   const guard = el('div', { class: 'guard', role: 'alertdialog', 'aria-label': 'Leave the quiz?' });
   guard.hidden = true;
@@ -37,7 +41,11 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
     clearToast();
     current = route;
     backToList.hidden = route.name === 'home';
-    if (route.name === 'lesson') {
+    toProgress.hidden = route.name !== 'home';
+    if (route.name === 'progress') {
+      document.title = 'Progress · Logic Quest';
+      renderProgress(view, tracker, store, REWARDS);
+    } else if (route.name === 'lesson') {
       const lesson = byId.get(route.id)!;
       document.title = `${lesson.title} · Logic Quest`;
       lessonView = renderLesson(view, lesson, {
@@ -93,14 +101,14 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
   window.addEventListener('storage', (e) => {
     if (e.key !== SAVE_KEY) return;
     store.reload();
-    if (current.name === 'home') show(current);
+    if (current.name !== 'lesson') show(current);
   });
 
-  // A deep link straight to a lesson still gets a home entry underneath it, so back goes to
-  // the lesson list instead of closing the app.
+  // A deep link straight to a lesson or the progress screen still gets a home entry underneath
+  // it, so back goes to the lesson list instead of closing the app.
   const first = parseRoute(location.hash, ids);
   history.replaceState(null, '', routeHash(HOME));
-  if (first.name === 'lesson') history.pushState(null, '', routeHash(first));
+  if (first.name !== 'home') history.pushState(null, '', routeHash(first));
   show(first);
 }
 

@@ -7,7 +7,7 @@
 // CHROME_PATH overrides where Chrome is found. On WSL in NAT mode, WSL cannot reach a Windows
 // Chrome's debug port, so run this file with a Windows node.exe instead (see docs/PROGRESS.md).
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync, mkdtempSync } from 'node:fs';
+import { mkdirSync, writeFileSync, mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -227,6 +227,73 @@ if (mode === 'ui') {
   check('wrong answer shows no reward', (await text('.reward')) === '');
   await tap('Stop sending it requests for a while, then try it again');
   check('right after a retry earns less', (await text('.reward')) === '+5 XP, after a retry', await text('.reward'));
+
+  // Progress screen: stats, week, badges, settings, export and import.
+  await load();
+  await tap('Progress');
+  check('Progress button opens the progress screen', (await hash()) === '#/progress' && (await text('h2')) === 'Your progress');
+  await layoutChecks('progress-360');
+  await shot('progress-360');
+  check('today shows as goal met in the 7-day view', await evaluate(`[...document.querySelectorAll('.week .day')].at(-1).classList.contains('met')`));
+  check('badges count what was earned', (await text('.panel[aria-label="Badges"] h3')) === 'Badges: 2 of 18', await text('.panel[aria-label="Badges"] h3'));
+  await tap('2 lessons a day', 'label');
+  check('daily goal can be raised', (await evaluate(`document.querySelector('[aria-label="2 lessons a day"]').getAttribute('aria-pressed')`)) === 'true' && (await text('.hud-today')).startsWith('Today: 1 / 2'));
+  await tap('1 lesson a day', 'label');
+  await tap('Calm mode: off');
+  check('calm mode turns on', (await evaluate(`!!document.querySelector('[aria-pressed="true"]') && [...document.querySelectorAll('button')].some((b) => b.textContent === 'Calm mode: on')`)));
+  await load(url + '#/lesson/cache');
+  await tap('Go to step 5', 'label');
+  await tap('Take the quiz');
+  await tap('Users may see the old profile');
+  const calmLines = await evaluate(`[...document.querySelectorAll('.reward span')].map((s) => s.textContent)`);
+  // 20 + 5 XP so far, +10 here crosses the level-2 threshold (30).
+  check('calm mode: reward as text (with the level-up), no pop-up', JSON.stringify(calmLines) === JSON.stringify(['+10 XP, first try', 'Level up!']) && !(await evaluate(`!!document.querySelector('.toast')`)), JSON.stringify(calmLines));
+  await load(url + '#/progress');
+  await tap('Calm mode: on');
+
+  // Export: a real download through Chrome's download flow.
+  const downloads = join(outDir, 'downloads');
+  rmSync(downloads, { recursive: true, force: true });
+  mkdirSync(downloads, { recursive: true });
+  await send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloads });
+  await tap('Export backup');
+  await sleep(1000);
+  const today = await evaluate(`(() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })()`);
+  const exported = join(downloads, `logic-quest-progress-${today}.json`);
+  const backupOk = existsSync(exported);
+  check('export downloads a backup file', backupOk, exported);
+  const xpBefore = await text('.hud-stats');
+  const importFile = async (path) => {
+    const { result } = await send('Runtime.evaluate', { expression: `document.querySelector('input[type=file]')` });
+    await send('DOM.setFileInputFiles', { files: [path], objectId: result.objectId });
+    await sleep(500);
+  };
+  if (backupOk) {
+    const backup = JSON.parse(readFileSync(exported, 'utf8'));
+    check('backup holds the events and settings', backup.app === 'logic-quest' && backup.version === 1 && backup.events.length > 0);
+    await importFile(exported);
+    check('importing the same backup adds nothing', (await text('.backup-status')) === 'Everything in that file is already here. Nothing to add.' && (await text('.hud-stats')) === xpBefore);
+    const extra = { id: 'imported-1', type: 'complete', at: new Date().toISOString(), day: today, lesson: 'agent-loop' };
+    const merged = join(downloads, 'with-extra.json');
+    writeFileSync(merged, JSON.stringify({ ...backup, events: [...backup.events, extra] }));
+    await importFile(merged);
+    check('import previews only what is new', (await text('.backup-status')).startsWith('This file has 1 new item.'), await text('.backup-status'));
+    await tap('Merge 1 item');
+    check('merge adds it once: +10 XP for the newly completed lesson', (await text('.backup-status')) === 'Merged 1 item into your progress.');
+    const xpAfter = await text('.hud-stats');
+    await importFile(merged);
+    check('importing the merged file again adds nothing', (await text('.backup-status')) === 'Everything in that file is already here. Nothing to add.' && (await text('.hud-stats')) === xpAfter, `${xpBefore} -> ${xpAfter}`);
+    const bad = join(downloads, 'bad.json');
+    writeFileSync(bad, '{"version": 1, "events": [{"id": "x"}]}');
+    await importFile(bad);
+    check('a bad file is rejected with a reason', (await text('.backup-status')).startsWith("That file can't be imported: event 1 is invalid"), await text('.backup-status'));
+  }
+  await layoutChecks('progress-360 after import');
+  await browserBack();
+  check('back from progress returns to the list', (await text('h2')) === 'Lessons');
+  await load(url + '#/progress');
+  await browserBack();
+  check('back from a progress deep link goes to the list', (await text('h2')) === 'Lessons');
 
   // Every lesson: layout, labels, and a walk through all steps to the quiz.
   for (const id of ['load-balancer', 'cache', 'agent-loop']) {

@@ -9,6 +9,12 @@ describe('parseRoute', () => {
     expect(parseRoute('#/lesson/load-balancer/', ids)).toEqual({ name: 'lesson', id: 'load-balancer' });
   });
 
+  it('reads the progress screen', () => {
+    expect(parseRoute('#/progress', ids)).toEqual({ name: 'progress' });
+    expect(parseRoute('#/progress/', ids)).toEqual({ name: 'progress' });
+    expect(parseRoute('#/progressx', ids)).toEqual(HOME);
+  });
+
   it('treats empty and root hashes as home', () => {
     for (const h of ['', '#', '#/']) expect(parseRoute(h, ids)).toEqual(HOME);
   });
@@ -22,7 +28,7 @@ describe('parseRoute', () => {
 
 describe('routeHash', () => {
   it('round-trips through parseRoute', () => {
-    for (const r of [HOME, { name: 'lesson', id: 'cache' } as const]) expect(parseRoute(routeHash(r), ids)).toEqual(r);
+    for (const r of [HOME, { name: 'progress' } as const, { name: 'lesson', id: 'cache' } as const]) expect(parseRoute(routeHash(r), ids)).toEqual(r);
   });
 
   it('compares routes', () => {
