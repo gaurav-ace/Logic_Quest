@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { randomInt, seeded } from '../tools';
+import { autocomplete, bruteTop, K } from './autocomplete';
 import { limiterClass, perUser } from './limiter-class';
 import { lruCache, lruReference } from './lru-cache';
 import { bruteForce, nearby } from './nearby';
@@ -149,5 +150,33 @@ describe('snowflake IDs (R11)', () => {
   it('packs time, machine and sequence into separate bits', () => {
     expect(idOf(1000, 2, 3)).toBe(1000 * 16 + 2 * 4 + 3);
     expect(idOf(1001, 0, 0)).toBeGreaterThan(idOf(1000, 3, 3));
+  });
+});
+
+describe('autocomplete (R10)', () => {
+  it('keeps every node\'s stored top list equal to a full search of its prefix, on 500 random search logs', () => {
+    const r = seeded(61);
+    for (let run = 0; run < 500; run++) {
+      const input = autocomplete.randomInput(r);
+      // Every third log has equal counts, where the alphabetical tie-break shows.
+      if (run % 3 === 0) input.searches = input.searches.map(([w]) => [w, 4]);
+      const last = autocomplete.run(input).at(-1)!;
+      const table = last.views.find((v) => v.type === 'table');
+      if (table?.type !== 'table') throw new Error('no table view');
+      for (const [prefix, list] of table.rows) {
+        const words = String(list).split(', ').map((e) => e.split(' ')[0]);
+        expect(words).toEqual(bruteTop({ ...input, prefix: String(prefix) }));
+        expect(words.length).toBeLessThanOrEqual(K);
+      }
+      expect(last.vars.find(([n]) => n === 'result')![1]).toEqual(bruteTop(input));
+    }
+  });
+
+  it('suggests by walking only the prefix: one step per letter', () => {
+    const input = { searches: autocomplete.defaultInput.searches, prefix: 'car' };
+    const frames = autocomplete.run(input);
+    const walk = frames.slice(frames.findIndex((f) => f.line === 9) + 1);
+    expect(walk.filter((f) => f.line === 13)).toHaveLength(3);
+    expect(walk.at(-1)!.vars.find(([n]) => n === 'result')![1]).toEqual(['car', 'cart']);
   });
 });

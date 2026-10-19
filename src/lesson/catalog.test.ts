@@ -98,6 +98,14 @@ describe('lesson catalog', () => {
       'case-food-delivery',
       'case-ride-hailing',
       'case-train-booking',
+      'case-chat',
+      'case-video-streaming',
+      'case-news-feed',
+      'case-flash-sale',
+      'case-notifications',
+      'case-autocomplete',
+      'case-unique-ids',
+      'case-collab-editing',
       'agent-loop',
     ]);
   });

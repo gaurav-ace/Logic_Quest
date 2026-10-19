@@ -1,0 +1,351 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "case-notifications",
+  "title": "Case study: notification system",
+  "track": "real-world",
+  "level": "medium",
+  "objective": "Design a notification system: respect each user's settings, give each channel its own queue, stay under providers' rate limits, and retry without sending twice.",
+  "requires": [
+    "case-flash-sale",
+    "rate-limiting"
+  ],
+  "sources": [
+    {
+      "title": "Firebase docs: FCM throttling and quotas (Android: up to 240 messages a minute and 5,000 an hour to one device; over quota returns 429)",
+      "url": "https://firebase.google.com/docs/cloud-messaging/throttling-and-quotas"
+    },
+    {
+      "title": "IETF RFC 6585: HTTP status code 429 Too Many Requests",
+      "url": "https://www.rfc-editor.org/rfc/rfc6585"
+    },
+    {
+      "title": "AWS documentation: Amazon SQS dead-letter queues",
+      "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html"
+    },
+    {
+      "title": "Stripe: Designing robust and predictable APIs with idempotency",
+      "url": "https://stripe.com/blog/idempotency"
+    }
+  ],
+  "simplifies": "A generic design, not any one company's. Real systems add templates in many languages, delivery tracking, in-app inboxes, and legal rules about marketing messages. The FCM limits are from its docs; other numbers are illustrative.",
+  "nodes": [
+    {
+      "id": "svc",
+      "label": "Services",
+      "x": 60,
+      "y": 100,
+      "width": 110
+    },
+    {
+      "id": "prefs",
+      "label": "Settings",
+      "x": 200,
+      "y": 35,
+      "width": 110
+    },
+    {
+      "id": "notif",
+      "label": "Notifier",
+      "x": 200,
+      "y": 120,
+      "width": 110
+    },
+    {
+      "id": "queues",
+      "label": "Queues",
+      "x": 345,
+      "y": 70,
+      "width": 100
+    },
+    {
+      "id": "prov",
+      "label": "Providers",
+      "x": 345,
+      "y": 165,
+      "width": 120
+    }
+  ],
+  "edges": [
+    [
+      "svc",
+      "notif"
+    ],
+    [
+      "notif",
+      "prefs"
+    ],
+    [
+      "notif",
+      "queues"
+    ],
+    [
+      "queues",
+      "prov"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "Requirements: many services (orders, chat, marketing) send notifications by push, email and SMS. Users choose what they get. Important ones must not be lost; nobody should get the same one twice.",
+      "highlight": [
+        "svc"
+      ],
+      "path": []
+    },
+    {
+      "caption": "One notifier: services send \"this event happened for this user\", not \"send this SMS\". Channel details, templates and rules live in one place.",
+      "highlight": [
+        "svc",
+        "notif"
+      ],
+      "path": [
+        [
+          "svc",
+          "notif"
+        ]
+      ]
+    },
+    {
+      "caption": "Settings first: the notifier checks what the user agreed to (marketing off, quiet hours at night) before anything is queued.",
+      "highlight": [
+        "prefs",
+        "notif"
+      ],
+      "path": [
+        [
+          "notif",
+          "prefs"
+        ]
+      ],
+      "predict": {
+        "prompt": "A user turned off marketing notifications. Two events arrive: \"your order has shipped\" and \"weekend sale starts now\". What gets sent?",
+        "options": [
+          {
+            "text": "The shipping update only",
+            "explanation": "Right. It's about their own order; the sale is marketing, which they turned off."
+          },
+          {
+            "text": "Both: the system can't tell them apart",
+            "explanation": "Each event has a type, and that's what the setting checks."
+          },
+          {
+            "text": "Neither: they turned notifications off",
+            "explanation": "Only marketing was turned off."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Each channel has its own queue and workers. A slow SMS provider then only delays SMS; push and email keep flowing.",
+      "highlight": [
+        "queues"
+      ],
+      "path": [
+        [
+          "notif",
+          "queues"
+        ]
+      ],
+      "predict": {
+        "prompt": "Why give each channel its own queue instead of one shared queue?",
+        "options": [
+          {
+            "text": "So a slow or failing channel can't hold up the others",
+            "explanation": "Right. It's isolation: one provider's trouble stays in its own lane."
+          },
+          {
+            "text": "Because queues can only hold one kind of message",
+            "explanation": "A queue can hold anything; the reason is isolation."
+          },
+          {
+            "text": "To send each notification on every channel",
+            "explanation": "Which channels to use is a settings decision, not a queue one."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Rate limits: providers cap how fast you may send. Firebase Cloud Messaging documents up to 240 messages a minute and 5,000 an hour to one Android device, and answers 429 over quota. Workers send at a steady rate and back off on 429.",
+      "highlight": [
+        "queues",
+        "prov"
+      ],
+      "path": [
+        [
+          "queues",
+          "prov"
+        ]
+      ]
+    },
+    {
+      "caption": "Retries: a provider times out, so the worker tries again later. Each notification has its own ID, so the retry can't produce a second copy. One that keeps failing goes to a dead-letter queue; an invalid device token is removed, not retried forever.",
+      "highlight": [
+        "queues",
+        "prov"
+      ],
+      "path": [
+        [
+          "queues",
+          "prov"
+        ]
+      ]
+    },
+    {
+      "caption": "Failure: the SMS provider is down for 20 minutes. Its queue grows while push and email carry on. A login code that is 20 minutes old is useless, so time-sensitive notifications have an expiry and are dropped instead of sent late.",
+      "highlight": [
+        "prov",
+        "queues"
+      ],
+      "path": []
+    }
+  ],
+  "critique": {
+    "prompt": "A proposal: every service calls the push, email and SMS providers directly; nobody checks user settings; when a provider call fails, the service retries at once, in a loop, until it works.",
+    "nodes": [
+      {
+        "id": "orders",
+        "label": "Orders",
+        "x": 70,
+        "y": 40,
+        "width": 110
+      },
+      {
+        "id": "market",
+        "label": "Marketing",
+        "x": 70,
+        "y": 160,
+        "width": 130
+      },
+      {
+        "id": "push",
+        "label": "Push",
+        "x": 330,
+        "y": 40,
+        "width": 100
+      },
+      {
+        "id": "sms",
+        "label": "SMS",
+        "x": 330,
+        "y": 160,
+        "width": 100
+      }
+    ],
+    "edges": [
+      [
+        "orders",
+        "push"
+      ],
+      [
+        "orders",
+        "sms"
+      ],
+      [
+        "market",
+        "push"
+      ],
+      [
+        "market",
+        "sms"
+      ]
+    ],
+    "risks": [
+      {
+        "text": "Retrying at once in a loop hammers a provider that's already struggling, and hits its rate limit for everyone",
+        "real": true,
+        "why": "Back off between retries, cap the number of tries, and park failures in a dead-letter queue.",
+        "nodes": [
+          "push",
+          "sms"
+        ]
+      },
+      {
+        "text": "No settings check: users get marketing they turned off",
+        "real": true,
+        "why": "Check settings in one place before anything is sent.",
+        "nodes": [
+          "market"
+        ]
+      },
+      {
+        "text": "Each service has its own copy of the sending logic, so limits and fixes must be repeated everywhere",
+        "real": true,
+        "why": "One notifier owns channels, limits and retries.",
+        "nodes": [
+          "orders",
+          "market"
+        ]
+      },
+      {
+        "text": "Notifications are sent after the order is saved, not while the customer waits",
+        "real": false,
+        "why": "That's right: sending in the background keeps checkout fast."
+      },
+      {
+        "text": "Email and push use different templates",
+        "real": false,
+        "why": "They're different formats; separate templates are normal."
+      }
+    ],
+    "hint": "Think about a provider having a bad minute, a user who said no to marketing, and who has to fix things when a limit changes.",
+    "first": {
+      "prompt": "During a big sale, the push provider starts answering 429, and soon no push notifications go out at all, not even order updates. Which fix comes first?",
+      "options": [
+        {
+          "text": "Back off on 429 and limit the sending rate",
+          "explanation": "Right. Tight retry loops keep the quota exhausted; backing off lets important notifications through."
+        },
+        {
+          "text": "Add the settings check",
+          "explanation": "Needed, but it doesn't stop the retry storm."
+        },
+        {
+          "text": "Move the sending logic into one notifier",
+          "explanation": "That's where the fix should live, but the urgent part is backing off."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Fix what's stopping everything first: retry storms keep the provider's limit exhausted. Then centralise sending in one notifier with a settings check, so limits and rules live in one place."
+  },
+  "quiz": [
+    {
+      "prompt": "A worker's request to the push provider times out. Why is it safe to retry?",
+      "options": [
+        {
+          "text": "The notification has its own ID, so a retry that reaches the provider twice is still only delivered once",
+          "explanation": "Right. Same idea as idempotency keys in payments."
+        },
+        {
+          "text": "Timeouts mean the request definitely failed",
+          "explanation": "A timeout means you don't know; it may have gone through."
+        },
+        {
+          "text": "It isn't safe: never retry notifications",
+          "explanation": "Without retries, a brief blip loses notifications."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why do login codes get an expiry time in the queue?",
+      "options": [
+        {
+          "text": "A code that arrives after it has stopped working is useless, so it's better dropped than sent late",
+          "explanation": "Right. Time-sensitive notifications lose their value quickly."
+        },
+        {
+          "text": "To save storage",
+          "explanation": "The reason is usefulness, not storage."
+        },
+        {
+          "text": "Providers reject old messages",
+          "explanation": "Providers send what they're given; the notifier must decide."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

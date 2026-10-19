@@ -74,6 +74,14 @@ import casePaymentGatewayLesson from '../../lessons/case-payment-gateway.json';
 import caseFoodDeliveryLesson from '../../lessons/case-food-delivery.json';
 import caseRideHailingLesson from '../../lessons/case-ride-hailing.json';
 import caseTrainBookingLesson from '../../lessons/case-train-booking.json';
+import caseChatLesson from '../../lessons/case-chat.json';
+import caseVideoStreamingLesson from '../../lessons/case-video-streaming.json';
+import caseNewsFeedLesson from '../../lessons/case-news-feed.json';
+import caseFlashSaleLesson from '../../lessons/case-flash-sale.json';
+import caseNotificationsLesson from '../../lessons/case-notifications.json';
+import caseAutocompleteLesson from '../../lessons/case-autocomplete.json';
+import caseUniqueIdsLesson from '../../lessons/case-unique-ids.json';
+import caseCollabEditingLesson from '../../lessons/case-collab-editing.json';
 import { getModel } from '../sim/registry';
 import { getProgram } from '../trace/registry';
 import type { Lesson, SimLesson } from './schema';
@@ -159,6 +167,14 @@ export const LESSON_DATA: unknown[] = [
   caseFoodDeliveryLesson,
   caseRideHailingLesson,
   caseTrainBookingLesson,
+  caseChatLesson,
+  caseVideoStreamingLesson,
+  caseNewsFeedLesson,
+  caseFlashSaleLesson,
+  caseNotificationsLesson,
+  caseAutocompleteLesson,
+  caseUniqueIdsLesson,
+  caseCollabEditingLesson,
   agentLoop,
 ];
 

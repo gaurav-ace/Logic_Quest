@@ -1,0 +1,301 @@
+{
+  "schemaVersion": 1,
+  "kind": "sim",
+  "id": "case-flash-sale",
+  "title": "Case study: flash sale",
+  "track": "real-world",
+  "level": "hard",
+  "objective": "Run a flash sale: never sell stock you don't have, and let shoppers in at a rate the database can take, neither too fast nor too slow.",
+  "model": "inventory",
+  "requires": [
+    "case-news-feed"
+  ],
+  "sources": [
+    {
+      "title": "Martin Kleppmann, Designing Data-Intensive Applications (O'Reilly, 2017), chapter 7: preventing lost updates"
+    },
+    {
+      "title": "Cloudflare Docs: Waiting Room (queues surges of visitors so they don't overload the origin)",
+      "url": "https://developers.cloudflare.com/waiting-room/"
+    }
+  ],
+  "simplifies": "A generic design. The simulation reuses the train-booking model, so items in stock are shown as \"seats\". Database capacity (200 bookings a second), the 10× rush and payment times are illustrative. Real sales also limit items per shopper and stop bots.",
+  "challenges": [
+    {
+      "id": "last-items",
+      "title": "The last items",
+      "prompt": "500 items, 100 shoppers a second, and checkout reads the stock count, then writes it back minus one. Keep items sold twice at zero the whole time for 10 seconds.",
+      "predict": {
+        "prompt": "The stock count says 1. Two shoppers' checkouts both read 1 before either writes. What happens?",
+        "options": [
+          {
+            "text": "Both write 0 and both get the item: one item, two orders",
+            "explanation": "Right. The second write overwrote the first, so one sale vanished from the count."
+          },
+          {
+            "text": "One of them is told it's sold out",
+            "explanation": "Only if checking and taking happen in one atomic step."
+          },
+          {
+            "text": "The count goes to -1",
+            "explanation": "Each writes back what it read minus one: 0, twice."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "atomic": false,
+          "seats": 500,
+          "rate": 100
+        },
+        "lock": [
+          "seats",
+          "rate"
+        ]
+      },
+      "goal": {
+        "metric": "doubleSold",
+        "op": "<=",
+        "value": 0,
+        "forSeconds": 10,
+        "fromStart": true
+      },
+      "hint": "Same fix as the train seats: what if checking and taking were one step?",
+      "explain": "An atomic conditional update (take one only if one is left) can't interleave with another shopper's, so stock can't be sold twice.",
+      "solution": {
+        "atomic": true
+      }
+    },
+    {
+      "id": "admit-too-fast",
+      "title": "Letting people in too fast",
+      "prompt": "The waiting room is on but admits 300 shoppers a second, and the database handles about 200. At 2 seconds the sale opens with 10× the shoppers. Keep failed checkouts at 1% or less the whole time for 10 seconds.",
+      "predict": {
+        "prompt": "The waiting room lets 300 a second through to a database that handles 200. What happens to the extra 100 a second?",
+        "options": [
+          {
+            "text": "They fail at the database, as if there were no waiting room",
+            "explanation": "Right. A waiting room only protects the database if it admits less than the database can handle."
+          },
+          {
+            "text": "Nothing: the waiting room protects the database",
+            "explanation": "It only protects it at a rate the database can take."
+          },
+          {
+            "text": "They wait in the waiting room",
+            "explanation": "They've already been let through it."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "room": true,
+          "admit": 300
+        },
+        "lock": [
+          "rate",
+          "seats",
+          "room"
+        ],
+        "actions": [
+          {
+            "at": 2000,
+            "action": "open"
+          }
+        ]
+      },
+      "goal": {
+        "metric": "errorRate",
+        "op": "<=",
+        "value": 0.01,
+        "forSeconds": 10,
+        "fromStart": true
+      },
+      "hint": "What admit rate stays just under what the database can handle?",
+      "explain": "Admitting a little under the database's capacity turns the rush into a queue instead of errors. Now look at the waiting time: that's the cost.",
+      "solution": {
+        "admit": 175
+      }
+    },
+    {
+      "id": "admit-too-slow",
+      "title": "Letting people in too slowly",
+      "prompt": "Now the waiting room admits only 100 a second. At 2 seconds the sale opens. Keep the slowest 5% of waits at 6 seconds or less, the whole time, for 10 seconds.",
+      "setup": {
+        "params": {
+          "room": true,
+          "admit": 100
+        },
+        "lock": [
+          "rate",
+          "seats",
+          "room"
+        ],
+        "actions": [
+          {
+            "at": 2000,
+            "action": "open"
+          }
+        ]
+      },
+      "goal": {
+        "metric": "waitP95",
+        "op": "<=",
+        "value": 6000,
+        "forSeconds": 10,
+        "fromStart": true
+      },
+      "hint": "The database could take more. How close to its capacity can you go without errors?",
+      "explain": "Too slow wastes capacity and makes people wait; too fast causes errors. The best admit rate is just under what the database can handle, which is why real waiting rooms are tuned to the site's measured capacity.",
+      "solution": {
+        "admit": 175
+      }
+    }
+  ],
+  "critique": {
+    "prompt": "A proposal: checkout checks stock in a cache, then takes it in the database in a separate step; items stay reserved in carts until the shopper removes them; at 12:00 everyone hits checkout directly.",
+    "nodes": [
+      {
+        "id": "shoppers",
+        "label": "Shoppers",
+        "x": 65,
+        "y": 100,
+        "width": 120
+      },
+      {
+        "id": "checkout",
+        "label": "Checkout",
+        "x": 215,
+        "y": 100,
+        "width": 120
+      },
+      {
+        "id": "cache",
+        "label": "Cache",
+        "x": 355,
+        "y": 40,
+        "width": 100
+      },
+      {
+        "id": "db",
+        "label": "Stock DB",
+        "x": 355,
+        "y": 160,
+        "width": 110
+      }
+    ],
+    "edges": [
+      [
+        "shoppers",
+        "checkout"
+      ],
+      [
+        "checkout",
+        "cache"
+      ],
+      [
+        "checkout",
+        "db"
+      ]
+    ],
+    "risks": [
+      {
+        "text": "Checking in one place and taking in another lets two shoppers buy the last item",
+        "real": true,
+        "why": "Check and take in one atomic step in the database.",
+        "nodes": [
+          "checkout",
+          "cache",
+          "db"
+        ]
+      },
+      {
+        "text": "Reservations that never expire lock stock in carts nobody will check out",
+        "real": true,
+        "why": "Give each reservation an expiry, so unpaid items return to sale.",
+        "nodes": [
+          "db"
+        ]
+      },
+      {
+        "text": "Everyone hitting checkout at 12:00 overloads the database",
+        "real": true,
+        "why": "Put a waiting room in front that admits shoppers at a rate the database can handle.",
+        "nodes": [
+          "shoppers",
+          "checkout"
+        ]
+      },
+      {
+        "text": "The sale page is served from a CDN",
+        "real": false,
+        "why": "Static pages from a CDN take load off the servers; that's good."
+      },
+      {
+        "text": "Each order gets an ID before payment starts",
+        "real": false,
+        "why": "That's what makes payment retries safe (idempotency)."
+      }
+    ],
+    "hint": "Think about the last item, shoppers who walk away, and the stroke of 12:00.",
+    "first": {
+      "prompt": "After the sale, more orders were confirmed than there were items. Which fix comes first?",
+      "options": [
+        {
+          "text": "Check and take stock in one atomic step",
+          "explanation": "Right. Overselling means cancelling paid orders: the worst outcome for shoppers and the business."
+        },
+        {
+          "text": "Expire cart reservations",
+          "explanation": "That returns unpaid stock to sale; it doesn't stop overselling."
+        },
+        {
+          "text": "Add a waiting room",
+          "explanation": "That protects the database; overselling would still happen at a lower rate."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Correctness before capacity: never sell what you don't have. Then expire reservations so stock isn't lost to abandoned carts, and add a waiting room tuned just under the database's capacity."
+  },
+  "quiz": [
+    {
+      "prompt": "Why should cart reservations expire?",
+      "options": [
+        {
+          "text": "Shoppers who leave without paying would otherwise hold stock that real buyers want",
+          "explanation": "Right. Too short, though, and buyers lose items mid-payment: it's a trade-off."
+        },
+        {
+          "text": "To make shoppers hurry",
+          "explanation": "The point is returning abandoned stock, not pressure."
+        },
+        {
+          "text": "Databases can't store reservations for long",
+          "explanation": "They can; the problem is stock nobody will buy."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "What's the best rate for a waiting room to admit shoppers?",
+      "options": [
+        {
+          "text": "Just under what the checkout database can handle",
+          "explanation": "Right. Faster causes errors; slower wastes capacity and makes people wait."
+        },
+        {
+          "text": "As fast as people arrive",
+          "explanation": "Then it isn't protecting anything."
+        },
+        {
+          "text": "As slow as possible, to be safe",
+          "explanation": "That makes waits longer than they need to be."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

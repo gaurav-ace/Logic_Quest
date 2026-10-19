@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "kind": "sim",
+  "id": "case-news-feed",
+  "title": "Case study: news feed",
+  "track": "real-world",
+  "level": "hard",
+  "objective": "Build a news feed: choose between copying each post into followers' feeds (fan-out on write) and gathering posts when a feed opens (fan-out on read), and handle the account with a million followers.",
+  "model": "fanout",
+  "requires": [
+    "case-video-streaming",
+    "caching-sim"
+  ],
+  "sources": [
+    {
+      "title": "Martin Kleppmann, Designing Data-Intensive Applications (O'Reilly, 2017), chapter 1: describing load with the home-timeline example (fan-out at read time versus write time, and a hybrid for accounts with very many followers)"
+    }
+  ],
+  "simplifies": "A generic design, not any one company's. Real feeds rank posts instead of sorting by time, and remove posts that are deleted or blocked. Worker speed, read costs and follower counts are illustrative.",
+  "challenges": [
+    {
+      "id": "slow-reads",
+      "title": "Slow feeds",
+      "prompt": "Each feed load gathers posts from all 300 accounts the reader follows. Get the slowest 5% of feed loads to 50 ms or less for 10 seconds.",
+      "predict": {
+        "prompt": "A reader follows 300 accounts. With fan-out on read, how many timelines does one feed load look at?",
+        "options": [
+          {
+            "text": "300, one per followed account",
+            "explanation": "Right. Every feed load merges every followed timeline."
+          },
+          {
+            "text": "1: the reader's own feed",
+            "explanation": "That's fan-out on write, where the feed was built in advance."
+          },
+          {
+            "text": "It depends on how many posts there are today",
+            "explanation": "The count of timelines to merge is set by how many accounts you follow."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "write": false,
+          "following": 300
+        },
+        "lock": [
+          "following",
+          "readers",
+          "hybrid"
+        ]
+      },
+      "goal": {
+        "metric": "readMs",
+        "op": "<=",
+        "value": 50,
+        "forSeconds": 10
+      },
+      "hint": "What if each post were copied into followers' feeds when it's posted, so a feed load is one lookup?",
+      "explain": "Fan-out on write does the work once per post instead of once per feed load. Most people read far more often than they post, so that's usually the cheaper side.",
+      "solution": {
+        "write": true
+      }
+    },
+    {
+      "id": "celebrity",
+      "title": "The celebrity posts",
+      "prompt": "Feeds are built by fan-out on write. At 2 seconds, an account with a million followers posts. Keep the time for a new post to reach every feed at 1 second or less, the whole time, for 10 seconds.",
+      "predict": {
+        "prompt": "With fan-out on write, how many feed inserts does that one post cause?",
+        "options": [
+          {
+            "text": "A million, one per follower",
+            "explanation": "Right. One post becomes a million writes, and everyone else's posts queue behind them."
+          },
+          {
+            "text": "One",
+            "explanation": "That's fan-out on read: the post is written once to the author's timeline."
+          },
+          {
+            "text": "None until someone reads",
+            "explanation": "With fan-out on write, the copying happens at posting time."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "write": true,
+          "hybrid": false
+        },
+        "lock": [
+          "write",
+          "posts",
+          "followers"
+        ],
+        "actions": [
+          {
+            "at": 2000,
+            "action": "celebrity"
+          }
+        ]
+      },
+      "goal": {
+        "metric": "lag",
+        "op": "<=",
+        "value": 1000,
+        "forSeconds": 10,
+        "fromStart": true
+      },
+      "hint": "Does a celebrity's post have to be copied at all, or could readers pick it up when they open their feed?",
+      "explain": "The hybrid copies ordinary posts but leaves celebrity posts in the celebrity's own timeline; feeds merge in those few at read time. Feed loads cost a little more (look at the read time), but nothing floods the workers.",
+      "solution": {
+        "hybrid": true
+      }
+    },
+    {
+      "id": "heavy-posting",
+      "title": "Everyone posts a lot",
+      "prompt": "50 posts a second, each to 1,000 followers: more feed inserts than the workers can do. Keep the time for a post to reach every feed at 1 second or less for 10 seconds.",
+      "setup": {
+        "params": {
+          "write": true,
+          "posts": 50,
+          "followers": 1000
+        },
+        "lock": [
+          "posts",
+          "followers",
+          "hybrid"
+        ]
+      },
+      "goal": {
+        "metric": "lag",
+        "op": "<=",
+        "value": 1000,
+        "forSeconds": 10
+      },
+      "hint": "If copying can't keep up, is there a way to not copy at all?",
+      "explain": "Fan-out on read writes each post once, so there's no backlog. The price moved to the readers: look how much slower feed loads are. Neither side is free; you choose where the work goes.",
+      "solution": {
+        "write": false
+      }
+    }
+  ],
+  "critique": {
+    "prompt": "A proposal: fan out on write for every account, including ones with millions of followers; do the fan-out inside the post request, so posting returns only when every follower's feed is updated; keep every post ever in every feed.",
+    "nodes": [
+      {
+        "id": "poster",
+        "label": "Poster",
+        "x": 60,
+        "y": 100,
+        "width": 100
+      },
+      {
+        "id": "api",
+        "label": "Post API",
+        "x": 205,
+        "y": 100,
+        "width": 120
+      },
+      {
+        "id": "feeds",
+        "label": "Feeds",
+        "x": 350,
+        "y": 100,
+        "width": 100
+      }
+    ],
+    "edges": [
+      [
+        "poster",
+        "api"
+      ],
+      [
+        "api",
+        "feeds"
+      ]
+    ],
+    "risks": [
+      {
+        "text": "Doing the fan-out inside the post request makes posting slow, and it times out for accounts with many followers",
+        "real": true,
+        "why": "Save the post, return, and fan out in background workers.",
+        "nodes": [
+          "api"
+        ]
+      },
+      {
+        "text": "Accounts with millions of followers flood the fan-out with millions of inserts per post",
+        "real": true,
+        "why": "Use the hybrid: pull those accounts' posts at read time.",
+        "nodes": [
+          "api",
+          "feeds"
+        ]
+      },
+      {
+        "text": "Keeping every post ever in every feed wastes memory on posts nobody scrolls back to",
+        "real": true,
+        "why": "Keep only the most recent few hundred entries per feed; older posts can be fetched another way.",
+        "nodes": [
+          "feeds"
+        ]
+      },
+      {
+        "text": "Feed entries hold post IDs, not full copies of each post",
+        "real": false,
+        "why": "That's good: the post is stored once, and an edit shows up everywhere."
+      },
+      {
+        "text": "Readers see posts from the accounts they follow",
+        "real": false,
+        "why": "That's the requirement itself."
+      }
+    ],
+    "hint": "Think about the person posting, the account with a million followers, and what a feed really needs to keep.",
+    "first": {
+      "prompt": "Posting takes several seconds for everyone, and fails for accounts with many followers. Which fix comes first?",
+      "options": [
+        {
+          "text": "Move the fan-out out of the post request, into background workers",
+          "explanation": "Right. Posting should only save the post; spreading it can happen afterwards."
+        },
+        {
+          "text": "Trim old entries from feeds",
+          "explanation": "That saves memory but doesn't make posting faster."
+        },
+        {
+          "text": "Use the hybrid for celebrities",
+          "explanation": "That helps the biggest accounts, but every post still waits for its fan-out."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Fix what every user feels first: posting waits for work it doesn't need to wait for. Then use the hybrid for huge accounts, and cap feed length."
+  },
+  "quiz": [
+    {
+      "prompt": "When is fan-out on write a good fit?",
+      "options": [
+        {
+          "text": "When feeds are read far more often than posts are written, and most accounts have modest followings",
+          "explanation": "Right. The copying is paid once and every read is cheap."
+        },
+        {
+          "text": "When accounts have millions of followers",
+          "explanation": "That's exactly where it breaks: one post becomes millions of writes."
+        },
+        {
+          "text": "When nobody reads their feed",
+          "explanation": "Then the copies would be wasted work."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "What does the hybrid do with a celebrity's post?",
+      "options": [
+        {
+          "text": "Leaves it in the celebrity's own timeline; each reader's feed merges it in when it loads",
+          "explanation": "Right. A few extra merges per read instead of millions of writes per post."
+        },
+        {
+          "text": "Copies it to followers more slowly",
+          "explanation": "It isn't copied at all."
+        },
+        {
+          "text": "Shows it only to some followers",
+          "explanation": "Every follower still sees it."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

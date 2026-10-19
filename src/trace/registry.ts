@@ -1,4 +1,5 @@
 import { anagramGroups } from './programs/anagram-groups';
+import { autocomplete } from './programs/autocomplete';
 import { arrayInsert } from './programs/array-insert';
 import { bigO } from './programs/big-o';
 import { binarySearch } from './programs/binary-search';
@@ -98,6 +99,7 @@ export const PROGRAMS = [
   // Phase 5c, real-world systems
   nearby,
   snowflake,
+  autocomplete,
 ].map((p) => p as unknown as Program<unknown>);
 
 const byId = new Map(PROGRAMS.map((p) => [p.id, p]));

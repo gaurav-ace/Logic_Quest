@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "case-autocomplete",
+  "title": "Case study: search autocomplete",
+  "track": "real-world",
+  "level": "medium",
+  "objective": "Suggest searches as someone types: keep each trie node's top results ready, so a suggestion is a short walk and one read, never a search of everything below.",
+  "program": "autocomplete",
+  "requires": [
+    "case-notifications",
+    "tries"
+  ],
+  "sources": [
+    {
+      "title": "Sedgewick and Wayne, Algorithms, 4th ed.: section 5.2, Tries",
+      "url": "https://algs4.cs.princeton.edu/52trie/"
+    }
+  ],
+  "simplifies": "A generic design, not any one search engine's. Real autocomplete also corrects typos, personalises, and filters offensive suggestions. Keeping 2 per node is to keep the trace small; real systems keep more. Counts here are tiny and illustrative.",
+  "critique": {
+    "prompt": "A proposal: on every keystroke, run a database query that finds every past search starting with what's typed, sorted by count; also, every search updates the counts in that same table straight away, inside the search request.",
+    "nodes": [
+      {
+        "id": "box",
+        "label": "Search box",
+        "x": 80,
+        "y": 100,
+        "width": 150
+      },
+      {
+        "id": "api",
+        "label": "Suggest",
+        "x": 240,
+        "y": 100,
+        "width": 120
+      },
+      {
+        "id": "db",
+        "label": "Search log",
+        "x": 350,
+        "y": 170,
+        "width": 140
+      }
+    ],
+    "edges": [
+      [
+        "box",
+        "api"
+      ],
+      [
+        "api",
+        "db"
+      ]
+    ],
+    "risks": [
+      {
+        "text": "Scanning and sorting every matching search on every keystroke is far too slow",
+        "real": true,
+        "why": "Precompute: keep each prefix's top results in a trie node, so a suggestion is a walk and one read.",
+        "nodes": [
+          "api",
+          "db"
+        ]
+      },
+      {
+        "text": "Updating counts inside every search request puts constant writes on the table suggestions read from",
+        "real": true,
+        "why": "Collect searches and rebuild the top lists in batches; suggestions can be a little behind.",
+        "nodes": [
+          "db"
+        ]
+      },
+      {
+        "text": "Only the top few suggestions are shown",
+        "real": false,
+        "why": "Nobody reads 500 suggestions; a short list is the feature."
+      },
+      {
+        "text": "The browser remembers suggestions for prefixes it already asked about",
+        "real": false,
+        "why": "That saves repeated requests as people type and delete."
+      }
+    ],
+    "hint": "Count the requests: one per keystroke, from everyone typing at once.",
+    "first": {
+      "prompt": "Typing in the search box feels slow, and the database is at 100% CPU. Which fix comes first?",
+      "options": [
+        {
+          "text": "Precompute each prefix's top results, so a keystroke reads one short list",
+          "explanation": "Right. Keystrokes far outnumber searches, so make the read cheap."
+        },
+        {
+          "text": "Batch the count updates",
+          "explanation": "It reduces writes, but every keystroke would still scan and sort."
+        },
+        {
+          "text": "Show fewer suggestions",
+          "explanation": "Sorting everything to show fewer is still sorting everything."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Make the frequent thing cheap: keystrokes vastly outnumber completed searches, so precompute what they read. Then move count updates off the request path into batches."
+  },
+  "quiz": [
+    {
+      "prompt": "What does keeping the top results in every trie node cost?",
+      "options": [
+        {
+          "text": "Each new search updates a short list at every letter of its word, and every node stores a list",
+          "explanation": "Right. Writes and memory pay so that reads are a walk plus one lookup."
+        },
+        {
+          "text": "Nothing: it's free speed",
+          "explanation": "Every added search touches one list per letter."
+        },
+        {
+          "text": "Suggestions become less accurate",
+          "explanation": "They're exact for the counts the lists were built from."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why rebuild suggestion counts in batches instead of on every search?",
+      "options": [
+        {
+          "text": "Popular prefixes like a single letter would be rewritten by nearly every search; batching trades a little freshness for far fewer writes",
+          "explanation": "Right. A suggestion a few minutes behind is usually fine."
+        },
+        {
+          "text": "Tries can't be updated",
+          "explanation": "They can; the issue is how often."
+        },
+        {
+          "text": "Batches make the counts more accurate",
+          "explanation": "Same counts, just applied later."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

@@ -1,0 +1,356 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "case-collab-editing",
+  "title": "Case study: collaborative editing",
+  "track": "real-world",
+  "level": "hard",
+  "objective": "Design a shared editor: send small edits instead of whole documents, merge edits made at the same moment so nobody's typing is lost, and show who else is there.",
+  "requires": [
+    "case-unique-ids",
+    "cap-consistency"
+  ],
+  "sources": [
+    {
+      "title": "Figma: How Figma's multiplayer technology works (2019): server as central authority; not operational transforms; inspired by CRDTs; the last value sent to the server wins on one property",
+      "url": "https://www.figma.com/blog/how-figmas-multiplayer-technology-works/"
+    },
+    {
+      "title": "Martin Kleppmann, Designing Data-Intensive Applications (O'Reilly, 2017), chapter 5: automatic conflict resolution, CRDTs and operational transformation"
+    },
+    {
+      "title": "Shapiro, Preguiça, Baquero and Zawirski, Conflict-free Replicated Data Types (SSS 2011)"
+    }
+  ],
+  "simplifies": "A generic design. Only the Figma step describes a real company, from its own blog. Real editors also handle formatting, undo, permissions and very large documents. The text example uses single characters to keep it small.",
+  "nodes": [
+    {
+      "id": "ana",
+      "label": "Ana",
+      "x": 55,
+      "y": 50,
+      "width": 90
+    },
+    {
+      "id": "ben",
+      "label": "Ben",
+      "x": 55,
+      "y": 150,
+      "width": 90
+    },
+    {
+      "id": "sync",
+      "label": "Sync server",
+      "x": 210,
+      "y": 100,
+      "width": 150
+    },
+    {
+      "id": "log",
+      "label": "Edit log",
+      "x": 355,
+      "y": 100,
+      "width": 110
+    }
+  ],
+  "edges": [
+    [
+      "ana",
+      "sync"
+    ],
+    [
+      "ben",
+      "sync"
+    ],
+    [
+      "sync",
+      "log"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "Requirements: several people edit one document at once; each sees the others' changes within a moment; nobody's typing is lost; short disconnections are fine; you can see where others are working.",
+      "highlight": [
+        "sync"
+      ],
+      "path": []
+    },
+    {
+      "caption": "The naive way: each person saves the whole document, and the last save wins.",
+      "highlight": [
+        "ana",
+        "ben",
+        "sync"
+      ],
+      "path": [
+        [
+          "ana",
+          "sync"
+        ],
+        [
+          "ben",
+          "sync"
+        ]
+      ],
+      "predict": {
+        "prompt": "Ana fixes paragraph 1 and Ben fixes paragraph 3, at the same time. Both save the whole document; Ben's save lands last. What's in the document?",
+        "options": [
+          {
+            "text": "Ben's fix only: his copy still had Ana's paragraph 1 unchanged, so her fix is gone",
+            "explanation": "Right. Whole-document saves overwrite each other's work, even when they didn't touch the same part."
+          },
+          {
+            "text": "Both fixes",
+            "explanation": "Each save carries a full copy that's missing the other person's change."
+          },
+          {
+            "text": "Ana's fix only",
+            "explanation": "Ben's save landed last, so his copy wins."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Better: send small edits (\"insert 'x' at position 5\"). Each person types into their own copy at once, and the server puts everyone's edits into one ordered log.",
+      "highlight": [
+        "ana",
+        "sync",
+        "log"
+      ],
+      "path": [
+        [
+          "ana",
+          "sync"
+        ],
+        [
+          "sync",
+          "log"
+        ]
+      ]
+    },
+    {
+      "caption": "The hard part is edits made at the same moment. The text is \"cat\". Ana inserts \"a \" at position 0. Ben, who hasn't seen that yet, deletes the character at position 0 (the \"c\").",
+      "highlight": [
+        "ana",
+        "ben"
+      ],
+      "path": [
+        [
+          "ana",
+          "sync"
+        ],
+        [
+          "ben",
+          "sync"
+        ]
+      ],
+      "predict": {
+        "prompt": "The text is now \"a cat\". If Ben's \"delete position 0\" is applied unchanged, which character goes?",
+        "options": [
+          {
+            "text": "The \"a\" that Ana just typed",
+            "explanation": "Right. Ana's insert shifted everything by 2, so position 0 now points at her text, not the \"c\"."
+          },
+          {
+            "text": "The \"c\", as Ben meant",
+            "explanation": "Only if the position is adjusted to 2 first; unchanged, it hits Ana's \"a\"."
+          },
+          {
+            "text": "Nothing: the edit is rejected",
+            "explanation": "Nothing rejects it; it quietly deletes the wrong character."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Two known fixes. Operational transformation adjusts an incoming edit for edits it didn't know about (Ben's delete becomes position 2). CRDTs give every character its own ID and refer to IDs, not positions, so copies converge whatever order edits arrive in.",
+      "highlight": [
+        "sync"
+      ],
+      "path": []
+    },
+    {
+      "caption": "What Figma has published about its design tool: the server is the central authority; it chose not to use operational transforms; its approach is inspired by CRDTs but isn't a true CRDT; and if two people change the same property of the same object, the last value sent to the server wins.",
+      "highlight": [
+        "sync"
+      ],
+      "path": [],
+      "predict": {
+        "prompt": "Why can \"last value wins\" be fine for a shape's colour but not for text?",
+        "options": [
+          {
+            "text": "A colour is one value, so keeping one is reasonable; in text, two people typing in a sentence both expect their words kept",
+            "explanation": "Right. The right merge depends on what's being edited."
+          },
+          {
+            "text": "Colours change less often",
+            "explanation": "How often doesn't matter; whether both changes should survive does."
+          },
+          {
+            "text": "It isn't fine for either",
+            "explanation": "For a single value like a colour, one of the two must win anyway."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Presence (cursors, who's here) goes through the server too, but isn't saved in the document: a lost cursor update doesn't matter, because the next one replaces it.",
+      "highlight": [
+        "ana",
+        "ben",
+        "sync"
+      ],
+      "path": [
+        [
+          "ana",
+          "sync"
+        ],
+        [
+          "sync",
+          "ben"
+        ]
+      ]
+    },
+    {
+      "caption": "Failure: Ben's Wi-Fi drops for a minute. He keeps typing; his edits wait on his device and are sent on reconnect, where the server merges them with what changed meanwhile.",
+      "highlight": [
+        "ben"
+      ],
+      "path": []
+    }
+  ],
+  "critique": {
+    "prompt": "A proposal: every 5 seconds each browser uploads the whole document and the latest upload wins; every cursor move is written to the documents database; edits from others are applied at the positions they were made, unchanged.",
+    "nodes": [
+      {
+        "id": "browsers",
+        "label": "Browsers",
+        "x": 65,
+        "y": 100,
+        "width": 110
+      },
+      {
+        "id": "api",
+        "label": "Docs API",
+        "x": 210,
+        "y": 100,
+        "width": 110
+      },
+      {
+        "id": "db",
+        "label": "Docs DB",
+        "x": 355,
+        "y": 100,
+        "width": 100
+      }
+    ],
+    "edges": [
+      [
+        "browsers",
+        "api"
+      ],
+      [
+        "api",
+        "db"
+      ]
+    ],
+    "risks": [
+      {
+        "text": "Whole-document uploads with \"latest wins\" erase other people's changes",
+        "real": true,
+        "why": "Send small edits and merge them.",
+        "nodes": [
+          "browsers",
+          "api"
+        ]
+      },
+      {
+        "text": "Edits applied at unchanged positions can change the wrong characters when people type at once",
+        "real": true,
+        "why": "Transform positions (OT) or refer to character IDs (CRDTs).",
+        "nodes": [
+          "api"
+        ]
+      },
+      {
+        "text": "Writing every cursor move to the database is a huge write load for data nobody needs later",
+        "real": true,
+        "why": "Send presence through the server without storing it.",
+        "nodes": [
+          "db"
+        ]
+      },
+      {
+        "text": "Each person types into their own copy first",
+        "real": false,
+        "why": "That's what makes typing feel instant; edits are merged afterwards."
+      },
+      {
+        "text": "The server keeps a log of edits",
+        "real": false,
+        "why": "The log is what gives everyone one agreed order."
+      }
+    ],
+    "hint": "Think about two people typing at the same moment, and which data actually needs to be kept.",
+    "first": {
+      "prompt": "Users report whole paragraphs vanishing after two of them edit at the same time. Which fix comes first?",
+      "options": [
+        {
+          "text": "Replace whole-document uploads with small edits that are merged",
+          "explanation": "Right. \"Latest upload wins\" throws away everyone else's work every 5 seconds."
+        },
+        {
+          "text": "Stop storing cursor moves",
+          "explanation": "That saves load but doesn't bring back lost paragraphs."
+        },
+        {
+          "text": "Adjust edit positions",
+          "explanation": "That fixes wrong characters inside merged edits, but whole uploads still overwrite each other."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Losing whole paragraphs comes from overwriting, so switch to small merged edits first. Then make the merge correct (OT or CRDTs), and move presence out of the database."
+  },
+  "quiz": [
+    {
+      "prompt": "What problem do operational transformation and CRDTs both solve?",
+      "options": [
+        {
+          "text": "Edits made at the same moment on different copies must end up giving everyone the same text, with nobody's typing lost",
+          "explanation": "Right. They take different routes to the same goal."
+        },
+        {
+          "text": "Making the document load faster",
+          "explanation": "Speed isn't what they're about; agreement is."
+        },
+        {
+          "text": "Storing documents with less space",
+          "explanation": "They're about merging concurrent edits."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why isn't presence (cursor positions) stored in the document?",
+      "options": [
+        {
+          "text": "It changes constantly and is only useful right now; a lost update is replaced by the next one",
+          "explanation": "Right. It's sent through the server and forgotten."
+        },
+        {
+          "text": "Storing it is forbidden",
+          "explanation": "It's a cost and usefulness decision."
+        },
+        {
+          "text": "Cursors are part of the text",
+          "explanation": "They're about people, not content."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

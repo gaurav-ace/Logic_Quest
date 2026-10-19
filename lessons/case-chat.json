@@ -1,0 +1,395 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "case-chat",
+  "title": "Case study: chat at scale",
+  "track": "real-world",
+  "level": "hard",
+  "objective": "Design a chat service: push messages over open connections, keep each conversation in order, never lose a message, and store years of history.",
+  "requires": [
+    "case-train-booking",
+    "idempotency"
+  ],
+  "sources": [
+    {
+      "title": "IETF RFC 6455: The WebSocket Protocol (two-way communication over a single TCP connection)",
+      "url": "https://www.rfc-editor.org/rfc/rfc6455"
+    },
+    {
+      "title": "Discord: How Discord Stores Trillions of Messages (Bo Ingram, 2023): messages partitioned by channel plus a static time window",
+      "url": "https://discord.com/blog/how-discord-stores-trillions-of-messages"
+    },
+    {
+      "title": "Martin Kleppmann, Designing Data-Intensive Applications (O'Reilly, 2017), chapter 8: unreliable clocks"
+    },
+    {
+      "title": "Stripe: Designing robust and predictable APIs with idempotency",
+      "url": "https://stripe.com/blog/idempotency"
+    }
+  ],
+  "simplifies": "A generic design, not any one company's. Real chat adds end-to-end encryption, media files, search, multiple devices per user, and abuse handling. Heartbeat intervals and scale are illustrative.",
+  "nodes": [
+    {
+      "id": "alice",
+      "label": "Alice",
+      "x": 55,
+      "y": 50,
+      "width": 90
+    },
+    {
+      "id": "bob",
+      "label": "Bob",
+      "x": 55,
+      "y": 150,
+      "width": 90
+    },
+    {
+      "id": "gw",
+      "label": "Gateways",
+      "x": 190,
+      "y": 100,
+      "width": 120
+    },
+    {
+      "id": "chat",
+      "label": "Chat",
+      "x": 340,
+      "y": 50,
+      "width": 100
+    },
+    {
+      "id": "db",
+      "label": "Messages",
+      "x": 340,
+      "y": 150,
+      "width": 120
+    }
+  ],
+  "edges": [
+    [
+      "alice",
+      "gw"
+    ],
+    [
+      "bob",
+      "gw"
+    ],
+    [
+      "gw",
+      "chat"
+    ],
+    [
+      "chat",
+      "db"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "Requirements: one-to-one and group chats; messages appear in the same order for everyone; a sent message is never lost; ticks for sent and delivered; history kept for years.",
+      "highlight": [
+        "chat"
+      ],
+      "path": []
+    },
+    {
+      "caption": "Each phone keeps one connection open to a gateway server. WebSocket gives two-way traffic over a single TCP connection, so the server can push a message the moment it arrives.",
+      "highlight": [
+        "alice",
+        "gw"
+      ],
+      "path": [
+        [
+          "alice",
+          "gw"
+        ]
+      ],
+      "predict": {
+        "prompt": "Why not have every phone ask \"any new messages?\" once a second?",
+        "options": [
+          {
+            "text": "Almost every ask returns nothing, and millions of phones asking every second is a huge, useless load",
+            "explanation": "Right. An open connection lets the server push only when there is something to send."
+          },
+          {
+            "text": "Asking once a second is too slow for chat",
+            "explanation": "A second's delay is noticeable but not the main problem; the wasted load is."
+          },
+          {
+            "text": "Phones aren't allowed to make requests that often",
+            "explanation": "Nothing forbids it; it's just wasteful for the server and the battery."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Alice sends. The chat service gives the message the next sequence number for that conversation and stores it. Only then does Alice's app show one tick: sent.",
+      "highlight": [
+        "chat",
+        "db"
+      ],
+      "path": [
+        [
+          "alice",
+          "gw"
+        ],
+        [
+          "gw",
+          "chat"
+        ],
+        [
+          "chat",
+          "db"
+        ]
+      ],
+      "predict": {
+        "prompt": "When is it safe to show Alice \"sent\"?",
+        "options": [
+          {
+            "text": "After the message is stored, so a crash can't lose it",
+            "explanation": "Right. Before that, a crash would lose a message Alice was told was sent."
+          },
+          {
+            "text": "As soon as she taps send",
+            "explanation": "If the server crashes a moment later, the message is gone but Alice thinks it was sent."
+          },
+          {
+            "text": "After Bob has read it",
+            "explanation": "That's a different tick (read). Sent means the service has it safely."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Delivery: the service looks up which gateway Bob is connected to and pushes the message there. Bob's phone acknowledges it, and Alice sees a second tick: delivered. If Bob is offline, the message waits in storage.",
+      "highlight": [
+        "gw",
+        "bob"
+      ],
+      "path": [
+        [
+          "chat",
+          "gw"
+        ],
+        [
+          "gw",
+          "bob"
+        ]
+      ]
+    },
+    {
+      "caption": "Order comes from the server's per-conversation sequence number, not from phones' clocks: phone clocks disagree and can jump. A reconnecting phone asks for \"everything after number 1,042\" and misses nothing.",
+      "highlight": [
+        "chat"
+      ],
+      "path": [],
+      "predict": {
+        "prompt": "Alice's phone clock is 2 minutes fast. Her reply is sent after Bob's question. If messages were sorted by phone time, where would her reply appear?",
+        "options": [
+          {
+            "text": "Before Bob's question, which makes no sense",
+            "explanation": "Right. That's why order must come from one place: the server's sequence."
+          },
+          {
+            "text": "In the right place: clocks are always synced",
+            "explanation": "Phone clocks drift and can be set by hand; they can't be trusted for order."
+          },
+          {
+            "text": "It would be rejected",
+            "explanation": "Nothing would reject it; it would just be shown out of order."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Retries: if Alice's app gets no ack, it sends again. The message carries an ID made on her phone, so the server stores it once even if it arrives twice (the idempotency key idea).",
+      "highlight": [
+        "alice",
+        "chat"
+      ],
+      "path": [
+        [
+          "alice",
+          "gw"
+        ],
+        [
+          "gw",
+          "chat"
+        ]
+      ]
+    },
+    {
+      "caption": "Storage: history grows forever, but people mostly read recent messages. Discord has published that it partitions messages by channel plus a fixed time window, so one conversation's recent messages sit together.",
+      "highlight": [
+        "db"
+      ],
+      "path": [
+        [
+          "chat",
+          "db"
+        ]
+      ]
+    },
+    {
+      "caption": "Failure: a gateway dies. Its phones reconnect to another gateway and ask for everything after the last number they saw. Nothing is lost, because messages were stored before they were acknowledged.",
+      "highlight": [
+        "gw",
+        "alice",
+        "bob"
+      ],
+      "path": []
+    }
+  ],
+  "critique": {
+    "prompt": "A proposal: phones ask the server for new messages every second; messages are sorted by the time on the sender's phone; the app shows \"sent\" the moment the user taps send, and the server stores messages in a batch every 30 seconds.",
+    "nodes": [
+      {
+        "id": "phones",
+        "label": "Phones",
+        "x": 60,
+        "y": 100,
+        "width": 100
+      },
+      {
+        "id": "api",
+        "label": "Chat API",
+        "x": 200,
+        "y": 100,
+        "width": 110
+      },
+      {
+        "id": "db",
+        "label": "One table",
+        "x": 350,
+        "y": 100,
+        "width": 120
+      }
+    ],
+    "edges": [
+      [
+        "phones",
+        "api"
+      ],
+      [
+        "api",
+        "db"
+      ]
+    ],
+    "risks": [
+      {
+        "text": "Polling every second floods the servers with requests that almost always find nothing",
+        "real": true,
+        "why": "Keep a connection open and push instead; the load then follows real messages, not the clock.",
+        "nodes": [
+          "phones",
+          "api"
+        ]
+      },
+      {
+        "text": "Sorting by the sender's phone clock can show messages out of order",
+        "real": true,
+        "why": "Phone clocks drift; take the order from a per-conversation sequence number on the server.",
+        "nodes": [
+          "api"
+        ]
+      },
+      {
+        "text": "\"Sent\" is shown before the message is stored, so a crash in those 30 seconds loses messages people think were sent",
+        "real": true,
+        "why": "Store first, then acknowledge.",
+        "nodes": [
+          "api",
+          "db"
+        ]
+      },
+      {
+        "text": "Each message stores its text plus who sent it and when",
+        "real": false,
+        "why": "That's the minimum a message needs."
+      },
+      {
+        "text": "A user can be in many group chats",
+        "real": false,
+        "why": "That's a normal requirement, not a design flaw."
+      }
+    ],
+    "hint": "Think about load, order, and what happens if a server crashes at the wrong moment.",
+    "first": {
+      "prompt": "Users report messages that showed \"sent\" but never arrived. Which fix comes first?",
+      "options": [
+        {
+          "text": "Store each message before acknowledging it",
+          "explanation": "Right. Losing messages people were told were sent breaks the one promise chat must keep."
+        },
+        {
+          "text": "Switch from polling to open connections",
+          "explanation": "That cuts load, but polling doesn't lose messages."
+        },
+        {
+          "text": "Order by a server sequence number",
+          "explanation": "That fixes ordering, not loss."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Rank by harm: silently losing messages is worse than wasted load or odd ordering. Store, then acknowledge; then push over open connections; then order by a server sequence."
+  },
+  "quiz": [
+    {
+      "prompt": "Why does the server, not the phone, decide the order of messages in a conversation?",
+      "options": [
+        {
+          "text": "Phones' clocks disagree, so only one place can give a single agreed order",
+          "explanation": "Right. A per-conversation sequence number gives everyone the same order."
+        },
+        {
+          "text": "Servers are faster than phones",
+          "explanation": "Speed isn't the point; agreement is."
+        },
+        {
+          "text": "Phones can't count",
+          "explanation": "They can, but two phones counting separately would disagree."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Alice's app sends the same message twice because the first ack was lost. How does the server avoid showing it twice?",
+      "options": [
+        {
+          "text": "The message carries an ID made on her phone, and the server stores each ID once",
+          "explanation": "Right. It's the idempotency key idea from payments, applied to chat."
+        },
+        {
+          "text": "It compares the text with the last message",
+          "explanation": "Two different messages can have the same text (\"ok\")."
+        },
+        {
+          "text": "It can't; duplicates are unavoidable",
+          "explanation": "A client-made ID makes the retry safe."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Bob is offline for a day. How does he get the messages he missed?",
+      "options": [
+        {
+          "text": "On reconnect, his phone asks for everything after the last sequence number it saw",
+          "explanation": "Right. Storage holds them; the number says exactly what's missing."
+        },
+        {
+          "text": "The server keeps retrying the push all day",
+          "explanation": "It doesn't need to; stored messages wait for him."
+        },
+        {
+          "text": "They're lost: chat is real-time only",
+          "explanation": "Messages are stored before they're acknowledged, so they wait."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

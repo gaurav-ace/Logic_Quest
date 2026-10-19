@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "case-video-streaming",
+  "title": "Case study: video streaming",
+  "track": "real-world",
+  "level": "medium",
+  "objective": "Design video streaming: encode each upload into several qualities split into short segments, serve them from a CDN, and let the player switch quality as the network changes.",
+  "requires": [
+    "case-chat",
+    "cdn"
+  ],
+  "sources": [
+    {
+      "title": "IETF RFC 8216: HTTP Live Streaming (variant streams; clients switch between them to adapt to network conditions; media segments)",
+      "url": "https://www.rfc-editor.org/rfc/rfc8216"
+    },
+    {
+      "title": "MDN: Setting up adaptive streaming media sources (MPEG-DASH and HLS; several qualities split into segments; playlists; plain HTTP servers)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Audio_and_video_delivery/Setting_up_adaptive_streaming_media_sources"
+    },
+    {
+      "title": "MDN Glossary: CDN",
+      "url": "https://developer.mozilla.org/en-US/docs/Glossary/CDN"
+    }
+  ],
+  "simplifies": "A generic design, not any one company's. Real services add DRM, captions, recommendations and live streams; how players pick a quality varies by player. Segment lengths and the number of qualities are illustrative.",
+  "nodes": [
+    {
+      "id": "creator",
+      "label": "Creator",
+      "x": 55,
+      "y": 50,
+      "width": 90
+    },
+    {
+      "id": "uploads",
+      "label": "Uploads",
+      "x": 185,
+      "y": 50,
+      "width": 110
+    },
+    {
+      "id": "enc",
+      "label": "Encoders",
+      "x": 335,
+      "y": 50,
+      "width": 120
+    },
+    {
+      "id": "origin",
+      "label": "Origin",
+      "x": 335,
+      "y": 150,
+      "width": 100
+    },
+    {
+      "id": "cdn",
+      "label": "CDN",
+      "x": 185,
+      "y": 150,
+      "width": 90
+    },
+    {
+      "id": "viewer",
+      "label": "Viewer",
+      "x": 55,
+      "y": 150,
+      "width": 90
+    }
+  ],
+  "edges": [
+    [
+      "creator",
+      "uploads"
+    ],
+    [
+      "uploads",
+      "enc"
+    ],
+    [
+      "enc",
+      "origin"
+    ],
+    [
+      "origin",
+      "cdn"
+    ],
+    [
+      "cdn",
+      "viewer"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "Requirements: creators upload videos; viewers watch on fast Wi-Fi and slow mobile data alike; playback starts quickly and doesn't stall. Far more data goes out to viewers than comes in from creators.",
+      "highlight": [
+        "viewer"
+      ],
+      "path": []
+    },
+    {
+      "caption": "Upload: the original file goes to storage, then a job is put on a queue to encode it. The creator doesn't wait for encoding to finish.",
+      "highlight": [
+        "creator",
+        "uploads"
+      ],
+      "path": [
+        [
+          "creator",
+          "uploads"
+        ]
+      ]
+    },
+    {
+      "caption": "Encoding: each video becomes several versions at different qualities (for example 240p up to 1080p, illustrative), each split into segments a few seconds long. Segments can be encoded in parallel.",
+      "highlight": [
+        "enc"
+      ],
+      "path": [
+        [
+          "uploads",
+          "enc"
+        ]
+      ],
+      "predict": {
+        "prompt": "Why make several versions of the same video?",
+        "options": [
+          {
+            "text": "So a viewer on a slow connection can get a smaller version that still plays smoothly",
+            "explanation": "Right. One size can't suit both fast Wi-Fi and weak mobile data."
+          },
+          {
+            "text": "As backups in case one is lost",
+            "explanation": "Copies for safety would be identical; these differ in quality on purpose."
+          },
+          {
+            "text": "Because each device can only play one resolution",
+            "explanation": "Most devices can play many; the limit is the network."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "A playlist (HLS's .m3u8 or DASH's .mpd) lists the versions and where each one's segments are. The player downloads the playlist first, then segments one by one.",
+      "highlight": [
+        "origin"
+      ],
+      "path": [
+        [
+          "enc",
+          "origin"
+        ]
+      ]
+    },
+    {
+      "caption": "Segments are ordinary files over HTTP, so a CDN can cache them at edges close to viewers. No special streaming server is needed.",
+      "highlight": [
+        "cdn",
+        "viewer"
+      ],
+      "path": [
+        [
+          "origin",
+          "cdn"
+        ],
+        [
+          "cdn",
+          "viewer"
+        ]
+      ],
+      "predict": {
+        "prompt": "A new video gets popular in one city. The first viewer there fetches segment 1. What happens for the next viewer in that city?",
+        "options": [
+          {
+            "text": "The nearby CDN edge already has segment 1 cached and serves it directly",
+            "explanation": "Right. The origin serves each segment to an edge once, not once per viewer."
+          },
+          {
+            "text": "The origin sends segment 1 again",
+            "explanation": "That's what the CDN avoids: the edge keeps a copy."
+          },
+          {
+            "text": "The video must be encoded again",
+            "explanation": "Encoding happens once per upload, not per viewer."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Adaptive bitrate: the player watches how fast segments arrive and how much video it has buffered, and picks the quality of the next segment to suit. Quality can change every few seconds without stopping.",
+      "highlight": [
+        "viewer"
+      ],
+      "path": [
+        [
+          "cdn",
+          "viewer"
+        ]
+      ],
+      "predict": {
+        "prompt": "A viewer's train enters a tunnel and the download speed drops. What should the player do?",
+        "options": [
+          {
+            "text": "Fetch the next segments from a lower-quality version",
+            "explanation": "Right. A blurrier picture beats a frozen one; it switches back up when speed returns."
+          },
+          {
+            "text": "Keep the same quality and wait",
+            "explanation": "The buffer runs dry and the video stalls."
+          },
+          {
+            "text": "Restart the video from the beginning",
+            "explanation": "Nothing is wrong with the video; only the network changed."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "Failure: an encoder crashes mid-job. The job stays on the queue and another encoder takes it; segments have fixed names, so redoing one just overwrites the same file.",
+      "highlight": [
+        "enc"
+      ],
+      "path": []
+    }
+  ],
+  "critique": {
+    "prompt": "A proposal: encode each upload into one 4K version only, encoded on the web server while the creator's upload request waits; serve every viewer directly from one origin server in one region.",
+    "nodes": [
+      {
+        "id": "creator",
+        "label": "Creator",
+        "x": 60,
+        "y": 50,
+        "width": 100
+      },
+      {
+        "id": "web",
+        "label": "Web server",
+        "x": 215,
+        "y": 100,
+        "width": 130
+      },
+      {
+        "id": "viewers",
+        "label": "Viewers",
+        "x": 60,
+        "y": 150,
+        "width": 100
+      },
+      {
+        "id": "origin",
+        "label": "Origin",
+        "x": 360,
+        "y": 100,
+        "width": 100
+      }
+    ],
+    "edges": [
+      [
+        "creator",
+        "web"
+      ],
+      [
+        "web",
+        "origin"
+      ],
+      [
+        "viewers",
+        "origin"
+      ]
+    ],
+    "risks": [
+      {
+        "text": "Only one 4K version: viewers on slow connections stall",
+        "real": true,
+        "why": "Encode several qualities and let the player switch between them.",
+        "nodes": [
+          "origin"
+        ]
+      },
+      {
+        "text": "Encoding inside the upload request: long videos time out and tie up web servers",
+        "real": true,
+        "why": "Store the upload, put an encoding job on a queue, and let encoders work in the background.",
+        "nodes": [
+          "web"
+        ]
+      },
+      {
+        "text": "One origin in one region serves everyone: far-away viewers wait, and the origin carries all the traffic",
+        "real": true,
+        "why": "Put a CDN in front, so edges near viewers serve cached segments.",
+        "nodes": [
+          "origin",
+          "viewers"
+        ]
+      },
+      {
+        "text": "Videos are split into segments a few seconds long",
+        "real": false,
+        "why": "That's how HLS and DASH work, and it's what makes switching quality possible."
+      },
+      {
+        "text": "The player downloads a playlist before the video",
+        "real": false,
+        "why": "The playlist tells it which versions and segments exist."
+      }
+    ],
+    "hint": "Think about a viewer on weak mobile data, a creator uploading a long video, and a viewer on another continent.",
+    "first": {
+      "prompt": "Most complaints are from viewers on mobile data whose videos keep freezing. Which fix helps them most?",
+      "options": [
+        {
+          "text": "Encode several qualities and use adaptive bitrate",
+          "explanation": "Right. They need a smaller version, not the same 4K stream faster."
+        },
+        {
+          "text": "Move encoding to background workers",
+          "explanation": "That helps creators, not viewers."
+        },
+        {
+          "text": "Add a CDN",
+          "explanation": "It shortens the distance, but a 4K stream is still too big for a weak mobile link."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Match the fix to the symptom: freezing on weak links is a size problem, so offer smaller versions and switch between them. Background encoding and a CDN fix the other two risks."
+  },
+  "quiz": [
+    {
+      "prompt": "What lets a player change quality in the middle of a video without stopping?",
+      "options": [
+        {
+          "text": "Every version covers the same timeline in short segments, so the next few seconds can come from any version",
+          "explanation": "Right. The player switches between segments, using the timeline to find the matching point in the new version."
+        },
+        {
+          "text": "The server re-encodes the video live for each viewer",
+          "explanation": "Encoding happens once, ahead of time."
+        },
+        {
+          "text": "The player stretches the low-quality picture",
+          "explanation": "Scaling the picture doesn't change how much data arrives."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why can a CDN serve video segments well?",
+      "options": [
+        {
+          "text": "Segments are ordinary files over HTTP, so edges can cache them like any other file",
+          "explanation": "Right. MDN notes adaptive streaming over HTTP needs no special server-side components."
+        },
+        {
+          "text": "CDNs encode the video for you",
+          "explanation": "Encoding is a separate step; the CDN caches and serves the results."
+        },
+        {
+          "text": "Video can't be cached",
+          "explanation": "Segments are fixed files, ideal for caching."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

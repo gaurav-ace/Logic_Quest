@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "case-unique-ids",
+  "title": "Case study: unique ID generator",
+  "track": "real-world",
+  "level": "medium",
+  "objective": "Make unique IDs on many machines at once, with no central counter: pack the time, the machine number and a small counter into one number that sorts by time.",
+  "program": "snowflake",
+  "requires": [
+    "case-autocomplete",
+    "sharding"
+  ],
+  "sources": [
+    {
+      "title": "Twitter's Snowflake README (2010 release): 41 bits of milliseconds, 10-bit machine id, 12-bit sequence; machines don't coordinate; refuses to make IDs if the clock goes backwards",
+      "url": "https://github.com/twitter-archive/snowflake/tree/snowflake-2010"
+    }
+  ],
+  "simplifies": "The trace uses a tiny layout (2 machine bits and 2 sequence bits) so the numbers stay readable; Twitter's published Snowflake uses 41 bits of time, 10 of machine and 12 of sequence. In the trace a machine whose counter is full moves on to the next millisecond; Snowflake's README says it refuses to make IDs while its clock is behind the last time it used.",
+  "critique": {
+    "prompt": "A proposal: every service gets new IDs from one database counter; each ID machine picks its machine number at random when it starts; if the clock is moved back, machines carry on with whatever time it says.",
+    "nodes": [
+      {
+        "id": "svc",
+        "label": "Services",
+        "x": 70,
+        "y": 100,
+        "width": 120
+      },
+      {
+        "id": "counter",
+        "label": "Counter DB",
+        "x": 250,
+        "y": 50,
+        "width": 150
+      },
+      {
+        "id": "gen",
+        "label": "ID machines",
+        "x": 250,
+        "y": 150,
+        "width": 160
+      }
+    ],
+    "edges": [
+      [
+        "svc",
+        "counter"
+      ],
+      [
+        "svc",
+        "gen"
+      ]
+    ],
+    "risks": [
+      {
+        "text": "One counter database is a single point of failure: when it's down, nothing can be created",
+        "real": true,
+        "why": "Generate IDs on each machine from time, machine number and a sequence.",
+        "nodes": [
+          "counter"
+        ]
+      },
+      {
+        "text": "Random machine numbers can collide, and two machines with the same number make the same IDs",
+        "real": true,
+        "why": "Assign machine numbers so each is unique (from configuration or a coordination service).",
+        "nodes": [
+          "gen"
+        ]
+      },
+      {
+        "text": "Carrying on after the clock moves back can repeat IDs already handed out",
+        "real": true,
+        "why": "Do what Snowflake's README describes: refuse to make IDs until the clock passes the last time used.",
+        "nodes": [
+          "gen"
+        ]
+      },
+      {
+        "text": "IDs are 64-bit numbers",
+        "real": false,
+        "why": "That's what Snowflake aims for: compact and fast to compare."
+      },
+      {
+        "text": "IDs sort roughly by creation time",
+        "real": false,
+        "why": "That's a feature: newest-first lists can sort by ID."
+      }
+    ],
+    "hint": "Think about one machine going down, two machines picking the same number, and a clock being corrected.",
+    "first": {
+      "prompt": "Every service stops creating orders whenever one database restarts. Which fix comes first?",
+      "options": [
+        {
+          "text": "Stop using one central counter: make IDs on each machine",
+          "explanation": "Right. That's the risk that stops everything at once."
+        },
+        {
+          "text": "Assign machine numbers instead of picking them at random",
+          "explanation": "Important, but it causes rare duplicates, not a full stop."
+        },
+        {
+          "text": "Refuse to make IDs while the clock is behind",
+          "explanation": "Also important, but clocks moving back is occasional."
+        }
+      ],
+      "answer": 0
+    },
+    "explain": "Remove the single point of failure first; then make sure no two machines share a number, and never hand out IDs from a clock that went backwards."
+  },
+  "quiz": [
+    {
+      "prompt": "Why does each ID include the machine number?",
+      "options": [
+        {
+          "text": "Two machines making an ID in the same millisecond still get different IDs, without asking each other",
+          "explanation": "Right. That's what removes the need for a central counter."
+        },
+        {
+          "text": "To know which machine to blame for bugs",
+          "explanation": "Handy, but uniqueness is the reason."
+        },
+        {
+          "text": "To make IDs longer",
+          "explanation": "Length isn't the goal; uniqueness without coordination is."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why put the time in the highest bits?",
+      "options": [
+        {
+          "text": "Then sorting IDs as numbers sorts them by when they were made",
+          "explanation": "Right. Newest-first is just \"largest ID first\"."
+        },
+        {
+          "text": "Time is the most important number",
+          "explanation": "It's about sort order, not importance."
+        },
+        {
+          "text": "To make IDs unique",
+          "explanation": "The machine number and sequence make them unique; the time's position makes them sortable."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}
