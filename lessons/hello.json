@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "hello-request-response",
+  "title": "Hello, request",
+  "objective": "See that a web page arrives because your browser asks for it, and the server answers.",
+  "sources": [
+    {
+      "title": "MDN Web Docs: Overview of HTTP",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Overview"
+    }
+  ],
+  "simplifies": "Real page loads also involve DNS lookups, connection setup, and usually many requests (one per image, script or stylesheet). This lesson shows a single request and response.",
+  "nodes": [
+    { "id": "browser", "label": "Browser", "x": 80, "y": 100 },
+    { "id": "server", "label": "Server", "x": 340, "y": 100 }
+  ],
+  "edges": [["browser", "server"]],
+  "steps": [
+    {
+      "caption": "You type an address. Your browser sends a request to the server asking for the page.",
+      "highlight": ["browser"],
+      "path": [["browser", "server"]]
+    },
+    {
+      "caption": "The server answers with a response that contains the page. The browser then shows it.",
+      "highlight": ["server"],
+      "path": [["server", "browser"]]
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "In HTTP, who starts the exchange?",
+      "options": [
+        {
+          "text": "The browser, by sending a request",
+          "explanation": "Right. HTTP is a client-server protocol: the client (usually the browser) sends the request, and the server responds."
+        },
+        {
+          "text": "The server, by sending the page when it is ready",
+          "explanation": "Not in HTTP's basic model. The server waits for a request, then sends a response to it."
+        },
+        {
+          "text": "Both send at the same moment",
+          "explanation": "No. There is a clear order: request first, then response."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

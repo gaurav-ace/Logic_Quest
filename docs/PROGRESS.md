@@ -4,7 +4,7 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 ## Current phase
 
-Phase 0, Foundations. Plan in `docs/PHASE0_PLAN.md`, approved by the owner on 2026-10-19. Task 0.1 done.
+Phase 0, Foundations. Plan in `docs/PHASE0_PLAN.md`, approved by the owner on 2026-10-19. Tasks 0.1 and 0.2 done.
 
 ## Done
 
@@ -13,6 +13,7 @@ Phase 0, Foundations. Plan in `docs/PHASE0_PLAN.md`, approved by the owner on 20
 - Project background written: `docs/PROJECT_CONTEXT.md`.
 - Stack decided (vanilla TS + Vite + Vitest), hosting decided (GitHub Pages). Recorded in `docs/PROJECT_CONTEXT.md`.
 - Task 0.1 tooling: `npm run check` (lint, typecheck, 1 test) passes. A deliberately broken file was confirmed to fail both lint and typecheck.
+- Task 0.2 lesson schema and validator: 20 tests pass. Temporarily removing the edge check made its test fail, so the tests do catch breakage. `lessons/hello.json` source checked: the MDN page loads and says HTTP requests are initiated by the client, usually the browser.
 - Files moved into `docs/` and `prototype/`; `git init` run (no commits yet).
 
 ## In progress
@@ -21,7 +22,7 @@ Nothing.
 
 ## Next step
 
-Task 0.2: lesson schema and validator.
+Task 0.3: render the hello lesson (`index.html`, renderer, styles); check at 360 px and desktop widths.
 
 ## Blockers and questions for the owner
 
@@ -40,3 +41,4 @@ Task 0.2: lesson schema and validator.
 - 2026-10-19: Created CLAUDE.md, PROJECT_CONTEXT.md and PROGRESS.md. No code written.
 - 2026-10-19: Reviewed the prototype (found: dark mode ignores the viewer's theme toggle, no replay button after a wrong answer, streak not saved, the moving dot ignores reduced motion, replays can farm streak bonuses). Recorded the decisions, reorganised the files, ran git init, wrote the Phase 0 plan.
 - 2026-10-19: Owner approved the Phase 0 plan. Node 24 LTS installed user-level (nvm failed because of the IPv6 issue). Task 0.1 tooling done and committed.
+- 2026-10-19: Task 0.2 lesson schema and validator done and committed.
