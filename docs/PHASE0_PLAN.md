@@ -1,6 +1,6 @@
 # Phase 0 plan: Foundations
 
-Status: approved 2026-10-19. Tasks 0.1–0.5 built. Waiting for the first push, the CI run and the owner's install on their phone.
+Status: done 2026-10-19. CI green, live on GitHub Pages, owner tested on web and Android.
 
 **Goal (from CLAUDE.md section 9):** a "hello lesson" renders on desktop and in an Android-sized viewport, installs as a PWA, and one test passes in CI or a local script.
 
