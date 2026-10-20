@@ -6,9 +6,23 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 Phase 5b, Low-level design: **done**, pushed, and approved by the owner on 2026-10-19 ("site shows LLD now, proceed"); a phone check was not mentioned. Phase 5c plan approved 2026-10-19 ("Approve, build all of it"). **Phase 5c, Real-world systems: done, pushed, and approved by the owner on 2026-10-19.** Phase 6 plan approved 2026-10-19 ("go ahead"). **Phase 6, Agentic AI: all 10 lessons built and checked, awaiting the owner's review.** Not pushed.
 
+**Phase 6b, Practice and tools (plan approved 2026-10-20): in progress on branch `claude/ai_integration`, not pushed.** M1–M5 done; M6–M9 not started.
+
 Phase 5, System design (HLD): **done**, pushed and approved by the owner on 2026-10-19.
 
 Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19 without a line-by-line content review; the owner will report any content problems they find later). Live at https://gaurav-ace.github.io/Logic_Quest/.
+
+## Done (Phase 6b, in progress)
+
+- M1 Learner profiles (6b.1–6b.2): unit tests (two deliberately broken versions both failed them); browser `profiles` 20/20. Fixed on the way: Settings could wipe half-typed text (older bug); the top bar was too wide at 360 px with a name (phones show the initial).
+- M2 Discord reminders (6b.3): message tests and a preview run. **No real post sent yet**: needs the owner's `DISCORD_WEBHOOK_URL` secret, and the schedule only runs once the branch is on main.
+- M3 Practice engine and logic set (6b.4–6b.6): browser `practice` 27/27.
+- M4 Break-it-down workshop (6b.7–6b.8): browser `workshop` 24/24.
+- M5 Practice content for DSA, HLD, LLD, real-world and agentic (6b.10–6b.14, 2026-10-20): 6 items per track, 36 with logic. Five new debug programs, each checked against an independent reference on 200 random inputs and mutation-checked (breaking each fixed version failed a test). Every Python claim run in CPython 3.12.3; every source re-fetched and its wording checked on 2026-10-20 (Python docs, CSES handbook, RFC 9110/6585, nginx, Azure, MDN, PostgreSQL, Stripe, Redis, AWS, Cloudflare, Meta, GitHub, Claude docs, Anthropic posts, OWASP). No `TODO-VERIFY`. Corrected before commit: a binary-search fix option's explanation, "greedy from both ends" (it doesn't fix {1, 3, 4}), "most currencies" narrowed to the euro coins the source names, a claim that Azure says expiry covers missed invalidation (it doesn't; removed), AWS's stance on circuit breakers, a GitHub backup detail.
+- New browser mode `practice-walk` solves every item by touch at 360 px: 126/126. It found blank code lines drawn as 18 px disabled buttons (now plain spacing).
+- Found and fixed: Vitest's on-disk transform cache kept an old `import.meta.glob` list, so new practice files were left out of the per-item tests locally (797 tests instead of 800). Now off in `vite.config.ts`; CI was not affected.
+- Checks on the final build: `npm run check` 816/816; browser `practice-walk` 126/126, `practice` 27/27, `workshop` 24/24, `profiles` 20/20 (Linux Chromium with Windows fonts, at 360 px, touch only, reduced motion). Not re-run this session: `ui`, `design`, `sim`, `agent`, `pwa`, `persist` (the only shared change was the debug runner's blank-line rendering).
+- Not done from the plan: workshop notes are not yet in export/import.
 
 ## Done (Phase 6, awaiting review)
 
@@ -88,13 +102,16 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 
 ## Next step
 
-1. Owner pushes and reviews Phase 6 (10 lessons) on the site.
-2. Then Phase 7 (adaptive learning) needs a plan. `docs/UI_REVAMP_PLAN.md` (written in another session, untracked) also awaits the owner.
+1. Owner reviews the 36 practice items (Phase 6b, M5) and Phase 6 when convenient.
+2. Next build step: M6, offline tutor (tier 1). Also owed: workshop notes in export/import.
+3. Owner, when ready: add the `DISCORD_WEBHOOK_URL` secret (README has the steps). Gemini (M8) needs the owner's key later; ask before then.
+4. Then Phase 7 (adaptive learning) needs a plan. `docs/UI_REVAMP_PLAN.md` (written in another session, untracked) also awaits the owner.
 
 ## Blockers and questions for the owner
 
 - **Answer order (an earlier mistake, found 2026-10-19):** in 149 of 168 quiz questions written before 5c.4 the right answer is first, and options are shown in file order, so tapping the first option scores well. Proposed fix: shuffle options deterministically when shown (quiz, predictions, critique), with a test. Owner chose to leave it for now (2026-10-19).
 - The main script is now 660 kB (205 kB gzipped; 575 kB after 5c), past Vite's 500 kB warning, because lesson data is bundled. Parked in `docs/IDEAS.md` (load lessons per track).
+- New practice content (2026-10-20) puts right answers in varied positions; older lessons still have them mostly first (see above).
 - Wikipedia is cited for a few facts (square numbers, off-by-one, prefix sums, cycle detection, Big O, space–time tradeoff, topological sorting); the owner may veto it.
 
 ## Not tested yet
@@ -150,3 +167,5 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 - 2026-10-20: Owner merged the UI revamp to main (PR #1) and asked why some browser checks failed. Found two real bugs, fixed on branch `claude/guard-fix` (not pushed): (1) **my regression, live on the site:** the top bar's stats group used the class `.chips`, and the rule hiding it inside lessons on phones (under 480 px) also hid the design exercise's class buttons (`.exercise .chips`), so LLD "Improve the design" could not be done on a phone. Renamed to `.top-stats` / `.top-stat`. The lesson walk never tapped a class, so it missed this; it now checks every class button is shown and at least 48 px (fails on the merged build, 4 buttons at 0 px; passes on the fix). (2) **Older bug:** the "Leave the quiz?" sheet had no z-index, so the sticky lesson player (z-index 5) could cover Stay/Leave when the page is long enough for the player to stick; now z-index 15. The other failures (label fit, past the edge, decorator-adapter overflow) came from the Linux test browser using DejaVu Sans, wider than Segoe UI: with Windows fonts given to it through a private fontconfig (`FONTCONFIG_FILE`, Segoe UI preferred for sans-serif and system-ui), the 9 affected lessons pass 190/190. Full run on the fix with Windows fonts: `ui` 1327/1327, `design` 29/29, `sim` 24/24, `agent` 20/20, `pwa` 7/7, `persist` 11/11; `npm run check` 726/726. Not checked on a phone.
 - 2026-10-20: Owner asked for an AI tutor, more advanced and debugging questions, per-section practice (medium/hard), a structured break-it-down workspace, user accounts, an HLD drag-and-drop playground and twice-daily Discord reminders. Created branch `claude/ai_integration` from main (4818635, after fast-forwarding local main) and wrote `docs/AI_INTEGRATION_PLAN.md` (proposed Phase 6b, 8 milestones in priority order). Owner chose: local profiles (no cloud), reminders at 08:00 and 21:00 IST, the plan's priority order, and AI chat on their Claude Pro plan only (no API key, no extra cost). So tier 2 hands the question off to the Claude app or claude.ai instead of calling the API. Sources checked: GitHub `schedule` docs, Discord Execute Webhook docs. No code written; plan awaits approval.
 - 2026-10-20: Owner has Google AI Pro and asked whether it helps. Checked Google's pages: the Gemini API has a free tier (2.5 Flash with Search grounding up to 500 requests/day; free-tier content is used to improve Google's products); AI Pro adds higher AI Studio limits and $10/month Cloud credit (not confirmed to cover Gemini API). Owner chose an in-app Gemini chat on a free key (M8), with the Claude hand-off kept as the fallback (M9). Plan updated; CORS for direct browser calls still to be checked (task 6b.20).
+- 2026-10-20 (Phase 6b, before this entry; recorded afterwards from the commits): owner approved the plan; built M1 profiles, M2 reminders, M3 practice engine with the logic set, M4 workshop (commits 1010b14 to 29f91b2).
+- 2026-10-20: Owner said to proceed. Built M5: DSA, HLD, LLD, real-world and agentic practice sets (one commit each), five debug programs, the `practice-walk` browser mode, the blank-line fix, and the Vitest cache fix. OWASP pages now sit behind a JavaScript check, so they were read through the headless Chromium. CHANGELOG got its missing Phase 6b section. Not pushed. Not checked on a phone.
