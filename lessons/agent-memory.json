@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "kind": "agent",
+  "id": "agent-memory",
+  "title": "Memory: what the agent can still see",
+  "track": "agentic",
+  "level": "medium",
+  "objective": "Watch an agent forget when its context fills up, and compare three fixes: a bigger context, compaction into a summary, and notes kept outside the context.",
+  "scenario": "team-dinner",
+  "requires": [
+    "agent-loop-limits"
+  ],
+  "sources": [
+    {
+      "title": "Anthropic: Effective context engineering for AI agents (Sep 2025): context is a finite resource; compaction; structured note-taking",
+      "url": "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents"
+    },
+    {
+      "title": "Claude Platform docs: Using the Messages API (\"The Messages API is stateless, which means that you always send the full conversational history\")",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/working-with-messages"
+    }
+  ],
+  "simplifies": "The model here is a script with fixed rules, not a real AI: a real model's choices vary between runs, and it might give up, ask for help or retry differently. Budgets here are tiny so forgetting shows quickly; real context windows are far bigger, but long agent runs still fill them. Token counts are illustrative.",
+  "challenges": [
+    {
+      "id": "forgetful",
+      "title": "The forgetful agent",
+      "prompt": "The context holds 60 tokens and the agent keeps everything until it falls out. Get the right restaurant using at most 400 tokens.",
+      "predict": {
+        "prompt": "The fifth answer arrives, and the first one is pushed out of the context. What will the agent do?",
+        "options": [
+          {
+            "text": "Ask the first teammate again, without knowing it already did",
+            "explanation": "Right. Once an answer is out of view, the model can't tell it ever asked."
+          },
+          {
+            "text": "Remember it anyway",
+            "explanation": "The model only knows what's in its context right now."
+          },
+          {
+            "text": "Book a restaurant straight away",
+            "explanation": "It hasn't seen all five answers, so its rule says keep asking."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "budget": 60
+        },
+        "lock": [
+          "budget"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "correct",
+          "op": ">=",
+          "value": 1
+        },
+        {
+          "metric": "tokens",
+          "op": "<=",
+          "value": 400
+        }
+      ],
+      "hint": "The answers fall out of view one by one. What could keep their gist in less space?",
+      "explain": "Compaction replaces dropped answers with a short summary of the facts, so the agent stops re-asking. Notes would work too, but each one costs an extra turn: look at the tokens.",
+      "solution": {
+        "compact": true
+      }
+    },
+    {
+      "id": "tiny-context",
+      "title": "A tiny context",
+      "prompt": "The context holds only 40 tokens: even a summary of five answers doesn't fit. Get the right restaurant.",
+      "setup": {
+        "params": {
+          "budget": 40,
+          "compact": true
+        },
+        "lock": [
+          "budget"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "correct",
+          "op": ">=",
+          "value": 1
+        }
+      ],
+      "hint": "What survives no matter how small the context is?",
+      "explain": "Notes live outside the context, so they survive any budget. The price is an extra turn per note.",
+      "solution": {
+        "notes": true
+      }
+    },
+    {
+      "id": "no-need",
+      "title": "Memory you don't need",
+      "prompt": "The context holds 160 tokens, plenty for every answer, but the agent writes notes anyway. Get the right restaurant using at most 330 tokens.",
+      "setup": {
+        "params": {
+          "budget": 160,
+          "notes": true
+        },
+        "lock": [
+          "budget"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "correct",
+          "op": ">=",
+          "value": 1
+        },
+        {
+          "metric": "tokens",
+          "op": "<=",
+          "value": 330
+        }
+      ],
+      "hint": "Is the extra turn per note buying anything here?",
+      "explain": "When everything fits, notes only add turns and tokens. Match the memory approach to the task's size.",
+      "solution": {
+        "notes": false
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Why do notes survive when old context is dropped?",
+      "options": [
+        {
+          "text": "The model memorises them",
+          "explanation": "The model keeps nothing between calls; the app stores the notes."
+        },
+        {
+          "text": "They are shorter",
+          "explanation": "Short helps, but they survive because they're stored separately."
+        },
+        {
+          "text": "They are kept outside the context and added back on every turn",
+          "explanation": "Right. Anthropic calls this structured note-taking: notes persist outside the context window."
+        }
+      ],
+      "answer": 2
+    },
+    {
+      "prompt": "What does compaction trade?",
+      "options": [
+        {
+          "text": "Speed for accuracy: it makes the model slower but always right",
+          "explanation": "A summary can lose facts; it isn't a guarantee."
+        },
+        {
+          "text": "Detail for space: a summary keeps the gist in fewer tokens, and anything cut from it is gone",
+          "explanation": "Right. Too small a budget, and even the summary can't hold what matters."
+        },
+        {
+          "text": "Nothing: it's free",
+          "explanation": "It loses detail and needs a summary to be written."
+        }
+      ],
+      "answer": 1
+    }
+  ]
+}

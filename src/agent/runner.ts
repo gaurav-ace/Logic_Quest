@@ -52,7 +52,14 @@ export function runAgent<W>(scenario: Scenario<W>, params: Params): AgentRun {
   const views = (): View[] => [
     { type: 'table', label: 'Transcript', columns: ['turn', 'model did', 'result'], rows: rows.slice(-TRANSCRIPT_ROWS), ...(rows.length ? { highlightRow: Math.min(rows.length, TRANSCRIPT_ROWS) - 1 } : {}) },
     ...(Number.isFinite(budget) || state.notes.length
-      ? [{ type: 'queue' as const, label: `Context (${contextTokens()} of ${Number.isFinite(budget) ? budget : '∞'} tokens), oldest first`, items: state.context.map((e) => `${e.kind}: ${e.text}`) }]
+      ? [
+          {
+            type: 'table' as const,
+            label: `Context (${contextTokens()} of ${Number.isFinite(budget) ? budget : '∞'} tokens), oldest first`,
+            columns: ['kind', 'what the model can see'],
+            rows: [...state.context.map((e): Value[] => [e.kind, e.text]), ...state.notes.map((n): Value[] => ['note (kept)', n])],
+          },
+        ]
       : []),
   ];
   const contextTokens = () => state.context.reduce((s, e) => s + e.tokens, 0) + state.notes.reduce((s, n) => s + tokensOf(n), 0);
@@ -75,10 +82,19 @@ export function runAgent<W>(scenario: Scenario<W>, params: Params): AgentRun {
     const dropped: Entry[] = [];
     while (contextTokens() > budget && state.context.length > 2) dropped.push(...state.context.splice(1, 1));
     if (dropped.length) {
-      // Compaction keeps a short summary in their place, if it fits.
-      const summary = `earlier: ${dropped.map((e) => e.text).join('; ')}`.slice(0, 60);
-      const compacted = Boolean(params.compact) && contextTokens() + tokensOf(summary) <= budget;
-      if (compacted) state.context.splice(1, 0, { kind: 'summary', text: summary, tokens: tokensOf(summary) });
+      // Compaction keeps a short summary in their place. Making room for it may fold more old
+      // entries in (an earlier summary is the oldest, so it is folded in first).
+      let compacted = false;
+      if (params.compact) {
+        const summarize = scenario.summarize ?? ((es: Entry[]) => `earlier: ${es.map((e) => e.text).join('; ')}`.slice(0, 60));
+        let summary = summarize(dropped);
+        while (contextTokens() + tokensOf(summary) > budget && state.context.length > 2) {
+          dropped.push(...state.context.splice(1, 1));
+          summary = summarize(dropped);
+        }
+        compacted = contextTokens() + tokensOf(summary) <= budget;
+        if (compacted) state.context.splice(1, 0, { kind: 'summary', text: summary, tokens: tokensOf(summary) });
+      }
       frame(`The context is over its ${budget}-token budget, so the oldest ${dropped.length === 1 ? 'entry is' : `${dropped.length} entries are`} dropped${compacted ? ' and replaced by a short summary' : ''}: the model can no longer see ${dropped.map((e) => `"${e.text}"`).join(', ')}.`, ask({ kind: 'dropped', entries: dropped }));
     }
   };

@@ -95,6 +95,8 @@ export interface Scenario<W> {
   grade(answer: string, state: RunState<W>): boolean;
   /** Called after each tool runs, to count scenario extras (unsafe actions and so on). */
   afterCall?(call: Call, result: ToolResult, state: RunState<W>): void;
+  /** Compaction: a short summary of dropped entries (earlier summaries included). Default: their text, cut short. */
+  summarize?(dropped: Entry[]): string;
   /** Called once at the end, to count scenario extras that depend on the whole run. */
   finish?(state: RunState<W>): void;
   /** "What happens next?" before a frame, computed from the run (at most a few per run). */

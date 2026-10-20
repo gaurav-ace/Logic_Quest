@@ -1,5 +1,9 @@
 import agentLoop from '../../lessons/agent-loop.json';
 import agentLoopLimitsLesson from '../../lessons/agent-loop-limits.json';
+import promptTextOutLesson from '../../lessons/prompt-text-out.json';
+import toolUseLesson from '../../lessons/tool-use.json';
+import agentMemoryLesson from '../../lessons/agent-memory.json';
+import agentPlanningLesson from '../../lessons/agent-planning.json';
 import cache from '../../lessons/cache.json';
 import dryRun from '../../lessons/dry-run.json';
 import hello from '../../lessons/hello.json';
@@ -196,7 +200,11 @@ export const LESSON_DATA: unknown[] = [
   articleUberH3Lesson,
   capstoneDesignReviewLesson,
   agentLoop,
+  promptTextOutLesson,
+  toolUseLesson,
   agentLoopLimitsLesson,
+  agentMemoryLesson,
+  agentPlanningLesson,
 ];
 
 /** Validates every lesson up front, so bad data fails at load time, not mid-lesson. */

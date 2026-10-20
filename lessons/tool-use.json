@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "kind": "agent",
+  "id": "tool-use",
+  "title": "Tool use",
+  "track": "agentic",
+  "level": "easy",
+  "objective": "See who does what in tool use: the model asks for a tool call, your code runs it and sends the result back, and only then can the model answer.",
+  "scenario": "order-status",
+  "requires": [
+    "prompt-text-out"
+  ],
+  "sources": [
+    {
+      "title": "Claude Platform docs: Tool use with Claude (the model returns a tool_use block; your code runs client tools and sends back a tool_result)",
+      "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview"
+    },
+    {
+      "title": "Anthropic: Building effective agents (\"The basic building block of agentic systems is an LLM enhanced with augmentations such as retrieval, tools, and memory\")",
+      "url": "https://www.anthropic.com/engineering/building-effective-agents"
+    }
+  ],
+  "simplifies": "The model here is a script with fixed rules, not a real AI: a real model's choices vary between runs, and it might give up, ask for help or retry differently. In the real API the model's request is a tool_use block and your code replies with a tool_result block.",
+  "challenges": [
+    {
+      "id": "no-tool",
+      "title": "No tool, no facts",
+      "prompt": "The model has no order_status tool. Get a right answer, with no made-up ones.",
+      "predict": {
+        "prompt": "The model has no tool, and the user asks about their own order. What will it say?",
+        "options": [
+          {
+            "text": "Something general, like \"orders usually arrive in 3 to 5 days\"",
+            "explanation": "Right. It can't see your order system, so a general guess is all it has."
+          },
+          {
+            "text": "The order's real status",
+            "explanation": "Nothing has looked it up."
+          },
+          {
+            "text": "Nothing: it refuses to answer",
+            "explanation": "This script answers from general knowledge; real models may also guess."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "hasTool": false
+        },
+        "lock": [
+          "runTool",
+          "maxSteps"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "correct",
+          "op": ">=",
+          "value": 1
+        },
+        {
+          "metric": "madeUp",
+          "op": "<=",
+          "value": 0
+        }
+      ],
+      "hint": "What would let the model see the live status?",
+      "explain": "With the tool, the model can ask for the live status instead of guessing from general knowledge.",
+      "solution": {
+        "hasTool": true
+      }
+    },
+    {
+      "id": "nobody-runs-it",
+      "title": "Nobody runs the call",
+      "prompt": "The model has the tool, but your code doesn't run the calls it asks for. Get a right answer.",
+      "setup": {
+        "params": {
+          "runTool": false
+        },
+        "lock": [
+          "hasTool",
+          "maxSteps"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "correct",
+          "op": ">=",
+          "value": 1
+        }
+      ],
+      "hint": "The model asks. Who has to do the work?",
+      "explain": "The model only asks for the call; your code runs it and sends the result back. Without that, no result ever comes.",
+      "solution": {
+        "runTool": true
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Who actually runs a tool the model asks for?",
+      "options": [
+        {
+          "text": "The model, inside its own reply",
+          "explanation": "The model only asks; it can't run your code."
+        },
+        {
+          "text": "The user, by clicking a button",
+          "explanation": "Your app runs it, usually without the user doing anything."
+        },
+        {
+          "text": "Your application (for tools you define)",
+          "explanation": "Right. The model returns a tool_use request; your code executes it and returns a tool_result."
+        }
+      ],
+      "answer": 2
+    },
+    {
+      "prompt": "How does the model decide whether to call a tool?",
+      "options": [
+        {
+          "text": "It always calls every tool once",
+          "explanation": "It calls a tool only when the request needs it."
+        },
+        {
+          "text": "From the user's request and the tool's description",
+          "explanation": "Right. That's why clear tool descriptions matter."
+        },
+        {
+          "text": "At random",
+          "explanation": "It reads the request and the descriptions it was given."
+        }
+      ],
+      "answer": 1
+    }
+  ]
+}

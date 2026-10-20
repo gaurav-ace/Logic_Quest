@@ -1,0 +1,236 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "prompt-text-out",
+  "title": "Prompt in, text out",
+  "track": "agentic",
+  "level": "easy",
+  "objective": "See what one call to a language model can and can't do: it turns text into text, with no fresh facts, no actions and no memory of its own.",
+  "requires": [
+    "agent-loop"
+  ],
+  "sources": [
+    {
+      "title": "Claude Platform docs: Using the Messages API (\"The Messages API is stateless, which means that you always send the full conversational history\")",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/working-with-messages"
+    },
+    {
+      "title": "Claude Platform docs: Models overview (each model's \"reliable knowledge cutoff\": the date through which its knowledge is most extensive and reliable)",
+      "url": "https://platform.claude.com/docs/en/about-claude/models/overview"
+    },
+    {
+      "title": "Anthropic: Building effective agents (\"The basic building block of agentic systems is an LLM enhanced with augmentations such as retrieval, tools, and memory\")",
+      "url": "https://www.anthropic.com/engineering/building-effective-agents"
+    }
+  ],
+  "simplifies": "A real call also carries a system prompt and settings, and can include images. What a model knows depends on the model; check its documented knowledge cutoff.",
+  "nodes": [
+    {
+      "id": "app",
+      "label": "Your app",
+      "x": 70,
+      "y": 60,
+      "width": 120
+    },
+    {
+      "id": "model",
+      "label": "Model",
+      "x": 215,
+      "y": 60,
+      "width": 100
+    },
+    {
+      "id": "text",
+      "label": "Text out",
+      "x": 350,
+      "y": 60,
+      "width": 110
+    },
+    {
+      "id": "world",
+      "label": "The world",
+      "x": 70,
+      "y": 160,
+      "width": 120
+    }
+  ],
+  "edges": [
+    [
+      "app",
+      "model"
+    ],
+    [
+      "model",
+      "text"
+    ],
+    [
+      "app",
+      "world"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "One call: your app sends text (the prompt) and gets text back. That's all a single call does.",
+      "highlight": [
+        "app",
+        "model",
+        "text"
+      ],
+      "path": [
+        [
+          "app",
+          "model"
+        ],
+        [
+          "model",
+          "text"
+        ]
+      ]
+    },
+    {
+      "caption": "The model answers from what it learned in training. Each model has a documented knowledge cutoff: the date through which its knowledge is most reliable.",
+      "highlight": [
+        "model"
+      ],
+      "path": [],
+      "predict": {
+        "prompt": "With no tools, you ask a model for last night's match score. What do you get?",
+        "options": [
+          {
+            "text": "The right score: models are connected to the internet",
+            "explanation": "A plain call has no internet access; it only sees your prompt."
+          },
+          {
+            "text": "It can't know: the match is after what it learned, so it should say so, or it may guess",
+            "explanation": "Right. Fresh facts have to be put in the prompt, or fetched with a tool."
+          },
+          {
+            "text": "An error from the API",
+            "explanation": "The call succeeds; the problem is what the model can know."
+          }
+        ],
+        "answer": 1
+      }
+    },
+    {
+      "caption": "It can't act. If the text says \"I've emailed Bob\", no email was sent. Only your app can do things in the world.",
+      "highlight": [
+        "app",
+        "world"
+      ],
+      "path": [
+        [
+          "app",
+          "world"
+        ]
+      ],
+      "predict": {
+        "prompt": "The model's reply says \"Done, I've booked your table.\" Was a table booked?",
+        "options": [
+          {
+            "text": "Yes: the model booked it",
+            "explanation": "A model call returns text; it can't reach a booking system."
+          },
+          {
+            "text": "No, unless your app did it: the model only produced text",
+            "explanation": "Right. Actions need tools that your code runs (the next lesson)."
+          },
+          {
+            "text": "Yes, if the reply is polite enough",
+            "explanation": "Wording changes nothing outside the reply."
+          }
+        ],
+        "answer": 1
+      }
+    },
+    {
+      "caption": "It has no memory between calls. The API is stateless: your app sends the whole conversation every time.",
+      "highlight": [
+        "app",
+        "model"
+      ],
+      "path": [
+        [
+          "app",
+          "model"
+        ]
+      ],
+      "predict": {
+        "prompt": "Call 1 says \"My name is Ravi.\" Call 2 asks \"What's my name?\" and doesn't include call 1. What happens?",
+        "options": [
+          {
+            "text": "It answers Ravi: models remember users",
+            "explanation": "Each call stands alone; only what you send is seen."
+          },
+          {
+            "text": "The model can't know: call 2 contains no name",
+            "explanation": "Right. Memory is your app's job: it resends the history."
+          },
+          {
+            "text": "The API refuses the call",
+            "explanation": "The call is fine; it just has nothing to go on."
+          }
+        ],
+        "answer": 1
+      }
+    },
+    {
+      "caption": "So your app does the remembering, and the history it resends grows with every turn: longer conversations cost more, up to the model's context limit.",
+      "highlight": [
+        "app"
+      ],
+      "path": []
+    },
+    {
+      "caption": "What one call is good at: anything where the prompt holds everything needed, such as summarising, rewriting, classifying or drafting. Agents add retrieval, tools and memory around it.",
+      "highlight": [
+        "model",
+        "text"
+      ],
+      "path": [
+        [
+          "model",
+          "text"
+        ]
+      ]
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Which task can one plain model call do well on its own?",
+      "options": [
+        {
+          "text": "Tell you today's exchange rate",
+          "explanation": "That's a fresh fact; it needs a tool or the data in the prompt."
+        },
+        {
+          "text": "Cancel your subscription",
+          "explanation": "That's an action; only your app can do it."
+        },
+        {
+          "text": "Summarise a report you paste into the prompt",
+          "explanation": "Right. Everything it needs is in the prompt."
+        }
+      ],
+      "answer": 2
+    },
+    {
+      "prompt": "Why does a chat app send the whole conversation with every message?",
+      "options": [
+        {
+          "text": "To make the model faster",
+          "explanation": "Longer prompts are slower and cost more, not less."
+        },
+        {
+          "text": "The API is stateless: the model only sees what is in this call",
+          "explanation": "Right. The app keeps the history and resends it."
+        },
+        {
+          "text": "Because the model asks for it",
+          "explanation": "It's how the API works, not a request from the model."
+        }
+      ],
+      "answer": 1
+    }
+  ]
+}

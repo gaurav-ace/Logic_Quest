@@ -116,7 +116,11 @@ describe('lesson catalog', () => {
       'article-uber-h3',
       'capstone-design-review',
       'agent-loop',
+      'prompt-text-out',
+      'tool-use',
       'agent-loop-limits',
+      'agent-memory',
+      'agent-planning',
     ]);
   });
 

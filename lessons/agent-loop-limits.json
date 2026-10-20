@@ -8,7 +8,7 @@
   "objective": "Run a simple agent, then break its tool: see why the app, not the model, must stop a loop, and why tool errors must reach the model.",
   "scenario": "weather",
   "requires": [
-    "agent-loop"
+    "tool-use"
   ],
   "sources": [
     {

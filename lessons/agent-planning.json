@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "kind": "agent",
+  "id": "agent-planning",
+  "title": "Planning, and plans that go stale",
+  "track": "agentic",
+  "level": "medium",
+  "objective": "Compare planning first with deciding step by step, and see why a plan must be checked against what really happens.",
+  "scenario": "move-meeting",
+  "requires": [
+    "agent-memory"
+  ],
+  "sources": [
+    {
+      "title": "Anthropic: Building effective agents (Dec 2024): agents use tools in a loop; stopping conditions such as a maximum number of iterations; \"ground truth\" from the environment at each step",
+      "url": "https://www.anthropic.com/engineering/building-effective-agents"
+    },
+    {
+      "title": "Yao et al. (2022), ReAct: Synergizing Reasoning and Acting in Language Models",
+      "url": "https://arxiv.org/abs/2210.03629"
+    }
+  ],
+  "simplifies": "The model here is a script with fixed rules, not a real AI: a real model's choices vary between runs, and it might give up, ask for help or retry differently. Real planners differ: some re-check after every step, some only on failure. Token counts are illustrative.",
+  "challenges": [
+    {
+      "id": "stale-plan",
+      "title": "The stale plan",
+      "prompt": "The agent plans first and follows the plan without checking. After it plans, someone else books Room A. Make sure the team is told the right room.",
+      "predict": {
+        "prompt": "Booking Room A fails, but the agent follows its plan without checking results. What does the team get?",
+        "options": [
+          {
+            "text": "An email about Room B",
+            "explanation": "Nothing told the plan about Room B."
+          },
+          {
+            "text": "No email: the agent notices the failure",
+            "explanation": "This agent doesn't look at results while it follows the plan."
+          },
+          {
+            "text": "An email saying the meeting is in Room A, which nobody booked",
+            "explanation": "Right. The plan went stale, and nothing checked the result."
+          }
+        ],
+        "answer": 2
+      },
+      "setup": {
+        "params": {
+          "planFirst": true,
+          "replan": false,
+          "stale": true
+        },
+        "lock": [
+          "planFirst",
+          "stale"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "correct",
+          "op": ">=",
+          "value": 1
+        },
+        {
+          "metric": "wrongEmails",
+          "op": "<=",
+          "value": 0
+        }
+      ],
+      "hint": "When a step fails, what should happen to the rest of the plan?",
+      "explain": "Re-planning on failure throws away the stale plan and starts again from the facts: find a free room, book it, then email.",
+      "solution": {
+        "replan": true
+      }
+    },
+    {
+      "id": "fewest-turns",
+      "title": "Right, in fewer turns",
+      "prompt": "Re-planning works but takes 7 turns. Get the team told the right room in at most 4.",
+      "setup": {
+        "params": {
+          "planFirst": true,
+          "replan": true,
+          "stale": true
+        },
+        "lock": [
+          "stale"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "correct",
+          "op": ">=",
+          "value": 1
+        },
+        {
+          "metric": "steps",
+          "op": "<=",
+          "value": 4
+        }
+      ],
+      "hint": "Is a plan written up front helping in this task?",
+      "explain": "Deciding each step from the latest result adapts at once, with no plan to throw away. Plans help with long tasks; they just need checking against what really happens.",
+      "solution": {
+        "planFirst": false
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "What makes a plan go stale?",
+      "options": [
+        {
+          "text": "The plan is too short",
+          "explanation": "Length isn't the issue; outdated assumptions are."
+        },
+        {
+          "text": "The world changes after the plan is made, so a step's assumption is no longer true",
+          "explanation": "Right. Here someone took Room A between planning and booking."
+        },
+        {
+          "text": "The model forgets the plan",
+          "explanation": "This plan was in its notes; it was simply out of date."
+        }
+      ],
+      "answer": 1
+    },
+    {
+      "prompt": "Why should an agent check each tool result, even when it has a plan?",
+      "options": [
+        {
+          "text": "Results are the ground truth: they show whether each step really worked",
+          "explanation": "Right. Anthropic's guide stresses getting ground truth from the environment at each step."
+        },
+        {
+          "text": "Checking makes the plan longer",
+          "explanation": "Checking is about catching failures, not length."
+        },
+        {
+          "text": "Tools only work when checked",
+          "explanation": "The tool works the same either way; checking is how the agent learns the outcome."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

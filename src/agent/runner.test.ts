@@ -3,6 +3,9 @@ import { defaults, type Params } from '../sim/types';
 import { seeded } from '../trace/tools';
 import { SCENARIOS } from './registry';
 import { RUN_CAP, runAgent } from './runner';
+import { moveMeeting } from './scenarios/move-meeting';
+import { orderStatus } from './scenarios/order-status';
+import { pick, teamDinner } from './scenarios/team-dinner';
 import { weather } from './scenarios/weather';
 import type { Scenario } from './types';
 
@@ -98,12 +101,12 @@ describe('guardrails and the context budget', () => {
       for (let budget = 20; budget <= 200; budget += 10) {
         const { frames } = runAgent(guarded, { budget, compact, approve: false });
         for (const f of frames) {
-          const ctx = f.views.find((v) => v.type === 'queue');
-          if (ctx?.type !== 'queue') throw new Error('no context view');
+          const ctx = f.views.find((v) => v.type === 'table' && v.label?.startsWith('Context'));
+          if (ctx?.type !== 'table') throw new Error('no context view');
           const used = Number(/\((\d+) of/.exec(ctx.label ?? '')![1]);
           // Over budget only when nothing is left to drop: the task and the newest entry.
-          expect(used <= budget || ctx.items.length <= 2, `${used} > ${budget}: ${ctx.items.join(' | ')}`).toBe(true);
-          expect(String(ctx.items[0])).toBe(`task: ${guarded.task}`);
+          expect(used <= budget || ctx.rows.length <= 2, `${used} > ${budget}: ${ctx.rows.join(' | ')}`).toBe(true);
+          expect(ctx.rows[0]).toEqual(['task', guarded.task]);
         }
       }
     }
@@ -131,5 +134,77 @@ describe('weather (A3): what the lesson claims', () => {
 
   it('a limit too tight stops even a working run', () => {
     expect(run({ maxSteps: 1 })).toMatchObject({ stopped: 1, correct: 0 });
+  });
+});
+
+const outcomeOf = (s: Scenario<never>, p: Params) => runAgent(s as unknown as Scenario<unknown>, { ...defaults(s.controls), ...p }).outcome;
+
+describe('order status (A2): what the lesson claims', () => {
+  it('with the tool and your code running it: the right answer from one call', () => {
+    expect(outcomeOf(orderStatus as never, {})).toMatchObject({ correct: 1, toolCalls: 1, steps: 2 });
+  });
+
+  it('without the tool, the model can only guess, at any step limit', () => {
+    for (const maxSteps of [2, 5, 8]) expect(outcomeOf(orderStatus as never, { hasTool: false, maxSteps })).toMatchObject({ correct: 0, madeUp: 1, toolCalls: 0 });
+  });
+
+  it('if your code never runs the call, no answer ever comes: it stops at the limit', () => {
+    for (const maxSteps of [2, 5, 8]) expect(outcomeOf(orderStatus as never, { runTool: false, maxSteps })).toMatchObject({ answered: 0, stopped: 1, correct: 0 });
+  });
+});
+
+describe('team dinner (A4): what the lesson claims', () => {
+  const at = (budget: number, notes: boolean, compact: boolean) => outcomeOf(teamDinner as never, { budget, notes, compact });
+
+  it('keeping everything works while all five answers fit, and loops (re-asking) once they do not', () => {
+    for (let b = 70; b <= 160; b += 10) expect(at(b, false, false)).toMatchObject({ correct: 1, asked: 5 });
+    for (let b = 40; b <= 60; b += 10) expect(at(b, false, false)).toMatchObject({ correct: 0, stopped: 1 });
+  });
+
+  it('compaction rescues a budget of 60 but not 40 or 50: five facts no longer fit a short summary', () => {
+    expect(at(60, false, true)).toMatchObject({ correct: 1, asked: 5 });
+    expect(at(50, false, true)).toMatchObject({ correct: 0 });
+    expect(at(40, false, true)).toMatchObject({ correct: 0 });
+  });
+
+  it('notes work at every budget, for extra turns and tokens', () => {
+    for (let b = 40; b <= 160; b += 10) {
+      const withNotes = at(b, true, false);
+      expect(withNotes).toMatchObject({ correct: 1, asked: 5, steps: 11 });
+      if (b >= 70) expect(withNotes.tokens).toBeGreaterThan(at(b, false, false).tokens);
+    }
+  });
+
+  it('never picks a restaurant that leaves someone out: a wrong pick only comes from not answering', () => {
+    for (let b = 40; b <= 160; b += 10) for (const notes of [false, true]) for (const compact of [false, true]) {
+      const o = at(b, notes, compact);
+      expect(o.answered === 1 ? o.correct : 0).toBe(o.answered);
+    }
+  });
+
+  it('pick() takes the first restaurant serving every need', () => {
+    expect(pick(['vegetarian', 'no nuts', 'gluten-free', 'vegan', 'mild food'])).toBe('Green Bowl');
+    expect(pick(['vegetarian', 'mild food'])).toBe('Pasta Place');
+    expect(pick(['vegan', 'mild food', 'halal'])).toBe('none of them');
+  });
+});
+
+describe('move meeting (A5): what the lesson claims', () => {
+  const at = (planFirst: boolean, replan: boolean, stale: boolean) => outcomeOf(moveMeeting as never, { planFirst, replan, stale });
+
+  it('with nothing stale, every approach gets it right', () => {
+    for (const planFirst of [false, true]) for (const replan of [false, true]) expect(at(planFirst, replan, false)).toMatchObject({ correct: 1, wrongEmails: 0 });
+  });
+
+  it('a stale plan followed blindly emails the team about a room nobody booked', () => {
+    expect(at(true, false, true)).toMatchObject({ correct: 0, wrongEmails: 1 });
+  });
+
+  it('re-planning on failure fixes it in more turns; deciding step by step fixes it in fewer', () => {
+    const replanned = at(true, true, true);
+    const stepwise = at(false, false, true);
+    expect(replanned).toMatchObject({ correct: 1, wrongEmails: 0 });
+    expect(stepwise).toMatchObject({ correct: 1, wrongEmails: 0 });
+    expect(stepwise.steps).toBeLessThan(replanned.steps);
   });
 });
