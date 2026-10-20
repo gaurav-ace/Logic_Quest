@@ -7,6 +7,8 @@ import agentPlanningLesson from '../../lessons/agent-planning.json';
 import workflowsVsAgentsLesson from '../../lessons/workflows-vs-agents.json';
 import agentGuardrailsLesson from '../../lessons/agent-guardrails.json';
 import agentFailuresLesson from '../../lessons/agent-failures.json';
+import multiAgentLesson from '../../lessons/multi-agent.json';
+import agentEvalsLesson from '../../lessons/agent-evals.json';
 import cache from '../../lessons/cache.json';
 import dryRun from '../../lessons/dry-run.json';
 import hello from '../../lessons/hello.json';
@@ -211,6 +213,8 @@ export const LESSON_DATA: unknown[] = [
   workflowsVsAgentsLesson,
   agentGuardrailsLesson,
   agentFailuresLesson,
+  multiAgentLesson,
+  agentEvalsLesson,
 ];
 
 /** Validates every lesson up front, so bad data fails at load time, not mid-lesson. */

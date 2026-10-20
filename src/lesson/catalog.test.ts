@@ -124,6 +124,8 @@ describe('lesson catalog', () => {
       'workflows-vs-agents',
       'agent-guardrails',
       'agent-failures',
+      'multi-agent',
+      'agent-evals',
     ]);
   });
 

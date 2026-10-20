@@ -1,4 +1,5 @@
 import { anagramGroups } from './programs/anagram-groups';
+import { agentEvals } from './programs/agent-evals';
 import { autocomplete } from './programs/autocomplete';
 import { arrayInsert } from './programs/array-insert';
 import { bigO } from './programs/big-o';
@@ -100,6 +101,8 @@ export const PROGRAMS = [
   nearby,
   snowflake,
   autocomplete,
+  // Phase 6, agentic AI
+  agentEvals,
 ].map((p) => p as unknown as Program<unknown>);
 
 const byId = new Map(PROGRAMS.map((p) => [p.id, p]));

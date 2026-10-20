@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "kind": "agent",
+  "id": "multi-agent",
+  "title": "Multi-agent systems",
+  "track": "agentic",
+  "level": "hard",
+  "objective": "Split work between a lead agent and parallel workers: see the speed it buys, the tokens it costs, and what goes wrong without a clear hand-off.",
+  "scenario": "research",
+  "requires": [
+    "agent-failures"
+  ],
+  "sources": [
+    {
+      "title": "Anthropic: How we built our multi-agent research system (Jun 2025): a lead agent with parallel subagents; agents use about 4× and multi-agent systems about 15× the tokens of chats; early failures such as spawning 50 subagents for simple queries and duplicated work",
+      "url": "https://www.anthropic.com/engineering/multi-agent-research-system"
+    },
+    {
+      "title": "Anthropic: Building effective agents: workflows (\"orchestrated through predefined code paths\") versus agents; prompt chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer; \"finding the simplest solution possible\"",
+      "url": "https://www.anthropic.com/engineering/building-effective-agents"
+    }
+  ],
+  "simplifies": "The model here is a script with fixed rules, not a real AI: a real model's choices vary between runs, and it might give up, ask for help or retry differently. Time is counted in rounds of waiting, and token costs are illustrative; Anthropic measured its real multi-agent system using about 15× the tokens of a chat. Real hand-offs can also lose context between agents.",
+  "challenges": [
+    {
+      "id": "faster",
+      "title": "Faster answers",
+      "prompt": "One agent checks the four plans one by one. Get the right answer in at most 2 rounds of waiting.",
+      "setup": {
+        "params": {
+          "workers": 1
+        },
+        "lock": [
+          "split"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "rounds",
+          "op": "<=",
+          "value": 2
+        },
+        {
+          "metric": "correct",
+          "op": ">=",
+          "value": 1
+        }
+      ],
+      "hint": "What if several workers checked plans at the same time?",
+      "explain": "Four workers check one plan each, side by side, so the wait drops from 5 rounds to 2. Look at the tokens, though: every worker pays for its own instructions and context.",
+      "solution": {
+        "workers": 4
+      }
+    },
+    {
+      "id": "duplicated",
+      "title": "Everyone did the same thing",
+      "prompt": "Four workers are told just \"check the plans\". Get the right answer with no check done twice.",
+      "predict": {
+        "prompt": "The lead tells 4 workers \"check the plans\", without saying which. What will they do?",
+        "options": [
+          {
+            "text": "Split the plans between them",
+            "explanation": "Nobody told them how to split."
+          },
+          {
+            "text": "All check Plan A, and nobody checks Plan C",
+            "explanation": "Right. With no split, each starts at the top of the list."
+          },
+          {
+            "text": "Each check all four plans",
+            "explanation": "Each worker takes the share it expects, starting from the top."
+          }
+        ],
+        "answer": 1
+      },
+      "setup": {
+        "params": {
+          "workers": 4,
+          "split": false
+        },
+        "lock": [
+          "workers"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "duplicated",
+          "op": "<=",
+          "value": 0
+        },
+        {
+          "metric": "correct",
+          "op": ">=",
+          "value": 1
+        }
+      ],
+      "hint": "Did the lead tell each worker what was theirs?",
+      "explain": "A clear split (each worker gets different plans) stops repeated work and makes sure every plan is checked. Anthropic saw subagents duplicate each other's work in its own system until the lead gave clearer tasks.",
+      "solution": {
+        "split": true
+      }
+    },
+    {
+      "id": "too-many",
+      "title": "Too many workers",
+      "prompt": "Six workers for four plans. Keep the answer right in 2 rounds, using at most 360 tokens.",
+      "setup": {
+        "params": {
+          "workers": 6,
+          "split": true
+        },
+        "lock": [
+          "split"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "rounds",
+          "op": "<=",
+          "value": 2
+        },
+        {
+          "metric": "correct",
+          "op": ">=",
+          "value": 1
+        },
+        {
+          "metric": "tokens",
+          "op": "<=",
+          "value": 360
+        }
+      ],
+      "hint": "What do the fifth and sixth workers do?",
+      "explain": "Workers with nothing to do still cost their setup tokens. Match the number of workers to the parallel work available; Anthropic saw early agents spawn 50 subagents for simple queries.",
+      "solution": {
+        "workers": 4
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "What do parallel workers buy, and what do they cost?",
+      "options": [
+        {
+          "text": "They cut waiting time, and cost more tokens because each runs with its own context",
+          "explanation": "Right. Worth it when the task is valuable and splits into independent parts."
+        },
+        {
+          "text": "They are faster and cheaper",
+          "explanation": "Each worker adds its own tokens."
+        },
+        {
+          "text": "They make answers more accurate by themselves",
+          "explanation": "Accuracy depends on a good split and good instructions."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "When is a multi-agent system a poor fit?",
+      "options": [
+        {
+          "text": "When the parts depend on each other and every agent needs the same context",
+          "explanation": "Right. Anthropic notes that such domains, and much coding work, split poorly."
+        },
+        {
+          "text": "When the task is large",
+          "explanation": "Large, separable tasks are where it helps most."
+        },
+        {
+          "text": "When there are more than two tools",
+          "explanation": "The number of tools isn't the deciding factor."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

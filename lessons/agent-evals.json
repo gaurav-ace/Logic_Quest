@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "kind": "trace",
+  "id": "agent-evals",
+  "title": "Evaluating agents",
+  "track": "agentic",
+  "level": "hard",
+  "objective": "Run a regression eval: test a new agent version on a fixed set of tasks, grade each end state, and catch what it broke before it ships.",
+  "program": "agent-evals",
+  "requires": [
+    "multi-agent"
+  ],
+  "sources": [
+    {
+      "title": "Anthropic: Demystifying evals for AI agents (Jan 2026): tasks, trials, graders, outcomes; grade what the agent produced, not the path; regression evals should pass nearly 100%",
+      "url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents"
+    }
+  ],
+  "simplifies": "The agent here is the scripted flight agent from Failure modes, so each task gives the same result every time and one run (trial) per task is enough. Real agents vary between runs, so real evals run several trials per task. The grader here is code; real evals also use model-based and human graders.",
+  "quiz": [
+    {
+      "prompt": "Why grade the end state rather than the exact steps the agent took?",
+      "options": [
+        {
+          "text": "Steps can't be recorded",
+          "explanation": "Transcripts record every step; they're just not what you grade."
+        },
+        {
+          "text": "It's faster to write",
+          "explanation": "The reason is fairness to valid alternatives, not speed."
+        },
+        {
+          "text": "An agent may find a different but valid path; what matters is whether the result is right",
+          "explanation": "Right. Anthropic's guide recommends grading what the agent produced, not the path it took."
+        }
+      ],
+      "answer": 2
+    },
+    {
+      "prompt": "What pass rate should a regression eval have?",
+      "options": [
+        {
+          "text": "Around 50%, to leave room to improve",
+          "explanation": "That's a capability eval, which measures what it can't do yet."
+        },
+        {
+          "text": "Close to 100%: these are tasks the agent already handles",
+          "explanation": "Right. A drop means something that used to work is now broken."
+        },
+        {
+          "text": "It doesn't matter as long as it runs",
+          "explanation": "The pass rate is the whole point."
+        }
+      ],
+      "answer": 1
+    },
+    {
+      "prompt": "Why do real agent evals run several trials per task?",
+      "options": [
+        {
+          "text": "Real agents can behave differently from run to run",
+          "explanation": "Right. One lucky or unlucky run can mislead."
+        },
+        {
+          "text": "To use up the budget",
+          "explanation": "Trials measure variability, not spend."
+        },
+        {
+          "text": "Graders need practice",
+          "explanation": "Code graders give the same verdict on the same end state."
+        }
+      ],
+      "answer": 0
+    }
+  ]
+}

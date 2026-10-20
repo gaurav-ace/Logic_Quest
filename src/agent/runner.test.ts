@@ -7,6 +7,8 @@ import { flight } from './scenarios/flight';
 import { moveMeeting } from './scenarios/move-meeting';
 import { orderStatus } from './scenarios/order-status';
 import { PRICE, refund } from './scenarios/refund';
+import { assign, cheapest5G, PLANS, research } from './scenarios/research';
+import { CASES, GUARDS, passes } from '../trace/programs/agent-evals';
 import { pick, teamDinner } from './scenarios/team-dinner';
 import { weather } from './scenarios/weather';
 import type { Scenario } from './types';
@@ -260,5 +262,42 @@ describe('flight (A8): each failure, and the guardrail that catches it', () => {
   it('the wrong guardrail does not catch a failure: each guard is specific', () => {
     expect(at({ invented: true, onlyNeeded: true, retry: true })).toMatchObject({ correct: 0, unsafe: 1 });
     expect(at({ wrongTool: true, validate: true, retry: true }).unsafe).toBe(1);
+  });
+});
+
+describe('research (A9): what the lesson claims', () => {
+  const at = (workers: number, split: boolean) => outcomeOf(research as never, { workers, split });
+
+  it('workers with a clear split are faster than one agent, but spend more tokens', () => {
+    const solo = at(1, true);
+    for (let w = 2; w <= 6; w++) {
+      const team = at(w, true);
+      expect(team).toMatchObject({ correct: 1, duplicated: 0 });
+      expect(team.rounds).toBeLessThan(solo.rounds!);
+      expect(team.tokens).toBeGreaterThan(solo.tokens);
+    }
+  });
+
+  it('without a split, workers repeat each other and miss the answer', () => {
+    for (let w = 2; w <= 6; w++) expect(at(w, false)).toMatchObject({ correct: 0 });
+    for (let w = 2; w <= 6; w++) expect(at(w, false).duplicated).toBeGreaterThan(0);
+  });
+
+  it('more workers than plans buy no speed, only tokens', () => {
+    expect(at(5, true).rounds).toBe(at(4, true).rounds);
+    expect(at(6, true).tokens).toBeGreaterThan(at(4, true).tokens);
+    expect(assign(6, true).filter((s) => s.length === 0)).toHaveLength(2);
+    expect(cheapest5G(PLANS.map(([n, p, g]) => `${n}: ₹${p}, ${g ? '5G' : 'no 5G'}`).join('; '))).toBe('Plan C');
+  });
+});
+
+describe('agent evals (A10): what the lesson claims', () => {
+  it('the current version passes every task, and dropping each guardrail fails exactly the task it guards', () => {
+    expect(CASES.every(([, inject]) => passes(inject, [...GUARDS]))).toBe(true);
+    const guarded: Record<string, string> = { retry: 'flaky search', limitOn: 'stuck booking', validate: 'typo in passenger', onlyNeeded: 'cancel tool offered' };
+    for (const g of GUARDS) {
+      const failing = CASES.filter(([, inject]) => !passes(inject, GUARDS.filter((x) => x !== g))).map(([name]) => name);
+      expect(failing).toEqual([guarded[g]]);
+    }
   });
 });
