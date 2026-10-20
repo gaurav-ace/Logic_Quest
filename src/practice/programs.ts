@@ -253,6 +253,35 @@ export const PROGRAMS: Record<string, DebugProgram> = {
     },
   },
 
+  // A webhook handler that adds 100 credits per delivery, though events can arrive twice.
+  'webhook-duplicates': {
+    buggy: (i) => `credits added: ${100 * (i as string[]).length}`,
+    fixed: (i) => {
+      const seen = new Set<string>();
+      let credits = 0;
+      for (const id of i as string[]) {
+        if (seen.has(id)) continue; // already processed: skip
+        seen.add(id);
+        credits += 100;
+      }
+      return `credits added: ${credits}`;
+    },
+    random: (r) => Array.from({ length: randomInt(r, 1, 5) }, () => `evt_${randomInt(r, 1, 3)}`),
+    show: (i) => `deliveries, in order: ${(i as string[]).join(', ')}`,
+  },
+
+  // call(layer) where every layer retries the layer below TRIES times, and the database at the
+  // bottom fails every query. Counts the queries one user request causes.
+  'retry-layers': {
+    buggy: (i) => queriesFor(i as LayersInput, false),
+    fixed: (i) => queriesFor(i as LayersInput, true),
+    random: (r) => ({ depth: randomInt(r, 1, 5), tries: randomInt(r, 2, 4) }),
+    show: (i) => {
+      const { depth, tries } = i as LayersInput;
+      return `DEPTH = ${depth}, TRIES = ${tries}; call(0) while the database fails every query`;
+    },
+  },
+
   // run(agent) with no step limit, where the tool fails every time and the agent retries.
   'agent-no-step-limit': {
     buggy: (i) => runAgent(i as AgentInput, null),
@@ -360,6 +389,18 @@ function payment(lost: number, withKey: boolean): string {
   const charges = withKey ? 1 : attempts;
   const times = `charged ${charges} time${charges === 1 ? '' : 's'}`;
   return lost >= ATTEMPTS ? `${times}, then PaymentFailed` : times;
+}
+
+type LayersInput = { depth: number; tries: number };
+/** Walks the call tree: each retrying layer calls the one below up to `tries` times, all failing. */
+function queriesFor({ depth, tries }: LayersInput, topOnly: boolean): string {
+  const count = (layer: number): number => {
+    if (layer === depth) return 1; // one database query, which fails
+    const n = topOnly && layer > 0 ? 1 : tries;
+    return n * count(layer + 1);
+  };
+  const q = count(0);
+  return `the database gets ${q} quer${q === 1 ? 'y' : 'ies'}`;
 }
 
 type AgentInput = { failures: number | 'always' };

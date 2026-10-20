@@ -91,6 +91,15 @@ describe('fixed versions match an independent reference on random inputs', () =>
   it('retry-no-idempotency (fixed charges exactly once, however many replies are lost)', () =>
     each('retry-no-idempotency', (i) => expect(PROGRAMS['retry-no-idempotency']!.fixed(i)).toMatch(/^charged 1 time(, then PaymentFailed)?$/)));
 
+  it('webhook-duplicates (fixed = 100 credits per distinct event)', () =>
+    each('webhook-duplicates', (i) => expect(PROGRAMS['webhook-duplicates']!.fixed(i)).toBe(`credits added: ${100 * new Set(i as string[]).size}`)));
+
+  it('retry-layers (fixed = only the top layer retries, so TRIES queries)', () =>
+    each('retry-layers', (i) => {
+      const { tries } = i as { depth: number; tries: number };
+      expect(PROGRAMS['retry-layers']!.fixed(i)).toBe(`the database gets ${tries} queries`);
+    }));
+
   it('agent-no-step-limit (fixed always stops within 8 steps)', () =>
     each('agent-no-step-limit', (i) => {
       const out = PROGRAMS['agent-no-step-limit']!.fixed(i);
@@ -138,6 +147,12 @@ describe('the bugs really are bugs', () => {
     expect(PROGRAMS['retry-no-idempotency']!.buggy({ lost: 1 })).toBe('charged 2 times');
     expect(PROGRAMS['retry-no-idempotency']!.buggy({ lost: 3 })).toBe('charged 3 times, then PaymentFailed');
     expect(PROGRAMS['retry-no-idempotency']!.fixed({ lost: 3 })).toBe('charged 1 time, then PaymentFailed');
+    expect(PROGRAMS['webhook-duplicates']!.buggy(['evt_1', 'evt_1', 'evt_2'])).toBe('credits added: 300');
+    expect(PROGRAMS['webhook-duplicates']!.fixed(['evt_1', 'evt_1', 'evt_2'])).toBe('credits added: 200');
+    // AWS's example: a five-deep stack, three tries per layer, gives 243 times the load.
+    expect(PROGRAMS['retry-layers']!.buggy({ depth: 5, tries: 3 })).toBe('the database gets 243 queries');
+    expect(PROGRAMS['retry-layers']!.buggy({ depth: 3, tries: 2 })).toBe('the database gets 8 queries');
+    expect(PROGRAMS['retry-layers']!.fixed({ depth: 5, tries: 3 })).toBe('the database gets 3 queries');
   });
 
   it('every program shows its input and runs on its own random inputs without throwing', () => {

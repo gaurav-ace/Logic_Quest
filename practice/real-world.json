@@ -1,0 +1,735 @@
+[
+  {
+    "id": "outage-lessons",
+    "title": "What four outages teach",
+    "track": "real-world",
+    "level": "medium",
+    "kind": "quiz",
+    "objective": "Name the design lesson behind four published outages, using each company's own write-up.",
+    "sources": [
+      {
+        "title": "AWS: Summary of the Amazon S3 Service Disruption in the Northern Virginia (US-EAST-1) Region",
+        "url": "https://aws.amazon.com/message/41926/"
+      },
+      {
+        "title": "Cloudflare Blog: Details of the Cloudflare outage on July 2, 2019 (John Graham-Cumming)",
+        "url": "https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/"
+      },
+      {
+        "title": "Engineering at Meta: More details about the October 4 outage (Santosh Janardhan, 5 Oct 2021)",
+        "url": "https://engineering.fb.com/2021/10/05/networking-traffic/outage-details/"
+      },
+      {
+        "title": "The GitHub Blog: October 21 post-incident analysis (30 Oct 2018)",
+        "url": "https://github.blog/news-insights/company-news/oct21-post-incident-analysis/"
+      }
+    ],
+    "related": "incident-github-2018",
+    "intro": "Every fact here is from the company's own write-up. The questions ask what each one teaches about design.",
+    "questions": [
+      {
+        "prompt": "In 2017, an S3 engineer ran a command where, in AWS's words, “one of the inputs to the command was entered incorrectly and a larger set of servers was removed than intended.” What did AWS change in the tool?",
+        "options": [
+          {
+            "text": "It removes capacity more slowly, and won't take any subsystem below its minimum required capacity",
+            "explanation": "Right. That's AWS's own description. The lesson: a tool should make a big mistake slow and bounded, not depend on perfect typing."
+          },
+          {
+            "text": "The command was deleted, so capacity can only be added",
+            "explanation": "AWS kept the tool and added limits to it. Removing capacity is a normal, needed operation."
+          },
+          {
+            "text": "S3 moved out of the Northern Virginia region",
+            "explanation": "AWS's summary describes changes to the tool, not moving the service."
+          },
+          {
+            "text": "Nothing changed in the tool; only the engineer's process did",
+            "explanation": "AWS's summary says the tool itself was changed, which is the stronger fix: it protects against the next typo too."
+          }
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "In July 2019, one firewall rule with a bad regular expression used up CPU across Cloudflare's network within minutes. According to Cloudflare, why did it reach everywhere at once?",
+        "options": [
+          {
+            "text": "A hardware fault in one data centre spread to the others",
+            "explanation": "The cause was a rule, which is software. Cloudflare's write-up describes no hardware fault."
+          },
+          {
+            "text": "The procedure let a non-emergency rule change go to production globally, without a staged rollout",
+            "explanation": "Right. Cloudflare then moved rules to staged rollouts (keeping fast global deploys for active attacks) and to regex engines with run-time guarantees (re2 or Rust's)."
+          },
+          {
+            "text": "An attacker uploaded the rule",
+            "explanation": "Cloudflare's write-up describes its own routine rule update, not an attack."
+          },
+          {
+            "text": "DNS stopped working, so traffic went to the wrong servers",
+            "explanation": "The servers were reached fine; they ran out of CPU while matching the regular expression."
+          }
+        ],
+        "answer": 1
+      },
+      {
+        "prompt": "During Meta's October 2021 outage, its DNS servers were still running, yet nobody could reach them. Why, according to Meta?",
+        "options": [
+          {
+            "text": "They had crashed under the extra load",
+            "explanation": "Meta says they “became unreachable even though they were still operational”."
+          },
+          {
+            "text": "Their software had a bug that deleted the DNS records",
+            "explanation": "The records were fine. The routes to the servers were gone."
+          },
+          {
+            "text": "A storm cut the power to them",
+            "explanation": "Meta's write-up describes a maintenance command and its effects, not a power cut."
+          },
+          {
+            "text": "They withdrew their BGP route announcements, because they couldn't reach the data centres, a rule meant to take unhealthy servers out",
+            "explanation": "Right. With the backbone down, every DNS site judged itself unhealthy and withdrew. A health rule that is right for one site was wrong when all sites failed together."
+          }
+        ],
+        "answer": 3
+      },
+      {
+        "prompt": "GitHub's network link came back after 43 seconds, but the service was degraded for 24 hours and 11 minutes. Why so long?",
+        "options": [
+          {
+            "text": "The optical equipment took a day to replace",
+            "explanation": "Connectivity was restored in 43 seconds. The long tail came from the databases."
+          },
+          {
+            "text": "Automated failover had sent writes to the West Coast, and the East Coast held writes not yet copied there, so GitHub reconciled rather than drop data",
+            "explanation": "Right. Restoring terabytes of backups to rebuild the replicas took hours, and in GitHub's words the strategy was “to prioritize data integrity over site usability and time to recovery”."
+          },
+          {
+            "text": "Users stopped visiting, so the caches went cold",
+            "explanation": "GitHub's analysis is about database writes on two coasts, not about caches."
+          },
+          {
+            "text": "GitHub had to restore everything from backups made the week before",
+            "explanation": "GitHub did restore from backups (taken every four hours), but it didn't fall back to an old copy: it says no user data was lost."
+          }
+        ],
+        "answer": 1
+      }
+    ]
+  },
+  {
+    "id": "oversell-last-item",
+    "title": "Two buyers, one item",
+    "track": "real-world",
+    "level": "medium",
+    "kind": "debug",
+    "objective": "Find a check-then-act race that sells stock you don't have, and replace it with one atomic step.",
+    "sources": [
+      {
+        "title": "Martin Kleppmann, Designing Data-Intensive Applications (O'Reilly, 2017), chapter 7: preventing lost updates (atomic write operations)"
+      },
+      {
+        "title": "PostgreSQL documentation: Transaction isolation, Read Committed (a concurrent UPDATE re-checks its WHERE clause on the updated row)",
+        "url": "https://www.postgresql.org/docs/current/transaction-iso.html"
+      }
+    ],
+    "related": "case-flash-sale",
+    "simplifies": "Shows the worst timing: every buyer reads the stock before anyone writes. Usually the reads and writes interleave less badly, which is why this bug can pass tests and still appear in a flash sale.",
+    "language": "python",
+    "code": [
+      "def buy(item_id):",
+      "    stock = db.get_stock(item_id)",
+      "    if stock > 0:",
+      "        db.decrement_stock(item_id)",
+      "        return 'sold'",
+      "    return 'sold out'"
+    ],
+    "symptom": "During a flash sale for 1 phone, two customers both got “sold”. Afterwards, the stock column reads -1.",
+    "bugLine": 2,
+    "lineWhy": "The decision uses a number read a moment earlier. Between the read and the decrement, another buyer can read the same 1, so both pass the check and both decrement.",
+    "program": "oversell-race",
+    "input": {
+      "stock": 1,
+      "buyers": 2
+    },
+    "predict": {
+      "prompt": "stock = 1. Two buyers run buy() at the same moment: both reads happen before either decrement. What's the result?",
+      "options": [
+        {
+          "text": "sold 1, stock 0",
+          "explanation": "That's correct behaviour, but both buyers read 1 and both pass the check."
+        },
+        {
+          "text": "sold 0, stock 1",
+          "explanation": "Both see stock 1, which is above 0, so both buy."
+        },
+        {
+          "text": "sold 2, stock -1",
+          "explanation": "Right. Both read 1, both pass `if stock > 0`, both decrement: two sales for one phone."
+        },
+        {
+          "text": "sold 2, stock 0",
+          "explanation": "decrement_stock subtracts 1 each time, so two decrements from 1 leave -1."
+        }
+      ],
+      "answer": 2
+    },
+    "fix": {
+      "prompt": "Which fix is right?",
+      "options": [
+        {
+          "text": "Read the stock twice and only sell if both reads agree",
+          "explanation": "Both reads can still happen before the other buyer's write. The gap is smaller, not gone."
+        },
+        {
+          "text": "Check and decrement in one statement: UPDATE … SET stock = stock - 1 WHERE id = … AND stock > 0, and sell only if it changed a row",
+          "explanation": "Right. The database does the check and the write as one step. In PostgreSQL the second buyer waits, then re-checks stock > 0 on the updated row, finds 0, and changes nothing."
+        },
+        {
+          "text": "Add a short sleep before the decrement",
+          "explanation": "Sleeping makes the window between read and write wider, so the race gets more likely."
+        },
+        {
+          "text": "Fix the stock with a nightly job that sets negatives to 0",
+          "explanation": "The phone was already promised to two people. Cleaning the number afterwards doesn't undo that."
+        }
+      ],
+      "answer": 1
+    }
+  },
+  {
+    "id": "webhook-delivered-twice",
+    "title": "Paid once, credited twice",
+    "track": "real-world",
+    "level": "medium",
+    "kind": "debug",
+    "objective": "Make a webhook handler safe when the same event is delivered more than once.",
+    "sources": [
+      {
+        "title": "Stripe Docs: Webhooks, handle duplicate events (“Webhook endpoints might occasionally receive the same event more than once”; log the event IDs you've processed)",
+        "url": "https://docs.stripe.com/webhooks"
+      }
+    ],
+    "related": "case-payment-gateway",
+    "simplifies": "Keeps processed IDs in a set in memory. A real handler stores them in the database, ideally in the same transaction as the credits, so a crash between the two can't double-count.",
+    "language": "python",
+    "code": [
+      "def on_event(event):",
+      "    if event.type == 'payment.succeeded':",
+      "        add_credits(event.user_id, 100)"
+    ],
+    "symptom": "Each payment should add 100 credits. A few customers got 200 for one payment, always on days with network trouble.",
+    "bugLine": 2,
+    "lineWhy": "Payment providers resend an event when they're not sure it arrived, and Stripe's docs say an endpoint may receive the same event more than once. This line adds credits for every delivery, not for every event.",
+    "program": "webhook-duplicates",
+    "input": [
+      "evt_1",
+      "evt_1",
+      "evt_2"
+    ],
+    "predict": {
+      "prompt": "Deliveries arrive in this order: evt_1, evt_1 (a resend), evt_2. Each event is one successful payment. How many credits are added?",
+      "options": [
+        {
+          "text": "credits added: 200",
+          "explanation": "That's the right total for two payments, but this handler doesn't know evt_1 came twice."
+        },
+        {
+          "text": "credits added: 100",
+          "explanation": "Two different payments happened (evt_1 and evt_2), so at least 200 is due."
+        },
+        {
+          "text": "credits added: 300",
+          "explanation": "Right. Three deliveries, three times 100. The resend of evt_1 pays out again."
+        },
+        {
+          "text": "An error on the second evt_1",
+          "explanation": "Nothing in the handler checks for repeats, so it runs again without complaint."
+        }
+      ],
+      "answer": 2
+    },
+    "fix": {
+      "prompt": "Which fix is right?",
+      "options": [
+        {
+          "text": "Remember each processed event ID, and skip any event whose ID was seen before",
+          "explanation": "Right. This is what Stripe's docs suggest: log the event IDs you've processed and don't process them again."
+        },
+        {
+          "text": "Ignore events that arrive within 1 second of the previous one",
+          "explanation": "Resends can come minutes or hours later, and two different payments can arrive a second apart."
+        },
+        {
+          "text": "Skip a payment if the user already got credits today",
+          "explanation": "That blocks a genuine second payment on the same day."
+        },
+        {
+          "text": "Reply with an error to every resend, so the provider stops",
+          "explanation": "The handler can't tell a resend from a new event without checking the ID, and an error usually makes the provider retry again."
+        }
+      ],
+      "answer": 0
+    }
+  },
+  {
+    "id": "hold-a-seat",
+    "title": "Hold a seat while they pay",
+    "track": "real-world",
+    "level": "medium",
+    "kind": "guided",
+    "objective": "Design seat holds for a ticket rush: one atomic claim, an expiry, and a confirm step that checks the hold is still yours.",
+    "sources": [
+      {
+        "title": "Martin Kleppmann, Designing Data-Intensive Applications (O'Reilly, 2017), chapter 7: preventing lost updates (atomic writes, compare-and-set)"
+      },
+      {
+        "title": "PostgreSQL documentation: Transaction isolation, Read Committed",
+        "url": "https://www.postgresql.org/docs/current/transaction-iso.html"
+      }
+    ],
+    "related": "case-train-booking",
+    "simplifies": "A plausible design, not any company's actual system. One database holds the seats; real booking sites also queue visitors when a rush starts and spread seats across machines.",
+    "problem": "Tickets go on sale and thousands of people pick seats at once. After picking, a shopper has 10 minutes to pay. Nobody else may buy that seat in the meantime, no seat may ever be sold twice, and seats of shoppers who give up must come back for others.",
+    "steps": [
+      {
+        "stage": "understand",
+        "prompt": "In your own words: what must never happen, and what must eventually happen?",
+        "hints": [
+          "Never: the worst outcome for two customers.",
+          "Eventually: what about a shopper who walks away?"
+        ],
+        "model": "Never: one seat sold to two people, or a held seat taken by someone else during the 10 minutes. Eventually: an abandoned hold is released, so the seat goes back on sale.",
+        "check": {
+          "type": "choice",
+          "prompt": "Which statement captures the job?",
+          "options": [
+            {
+              "text": "Sell seats as fast as possible, and fix double sales afterwards",
+              "explanation": "Two people turning up for one seat can't be fixed afterwards. It must be prevented."
+            },
+            {
+              "text": "Lock the seat map while anyone is paying",
+              "explanation": "Then thousands of shoppers wait for each payment. Only the one seat needs protecting."
+            },
+            {
+              "text": "Each seat goes to at most one shopper, a hold lasts 10 minutes, and abandoned holds come back",
+              "explanation": "Right. One rule for safety, one for fairness while paying, one for not wasting seats."
+            },
+            {
+              "text": "Let shoppers pay first, then choose a seat",
+              "explanation": "That changes the product, and it still needs the same no-double-sale rule at seat time."
+            }
+          ],
+          "answer": 2
+        }
+      },
+      {
+        "stage": "shrink",
+        "prompt": "Shrink it: one free seat, two shoppers tap it at the same moment. What should each of them see?",
+        "hints": [
+          "Exactly one of them can get it.",
+          "The other needs to know quickly, and why."
+        ],
+        "model": "Exactly one gets the hold and goes to payment. The other is told at once that the seat was just taken and can pick another. Which of them wins doesn't matter; that only one wins does.",
+        "check": {
+          "type": "choice",
+          "prompt": "Two shoppers tap the same free seat at the same moment. What should happen?",
+          "options": [
+            {
+              "text": "Both get the hold; whoever pays first gets the seat",
+              "explanation": "The loser finds out after entering their card. The hold is meant to prevent exactly that."
+            },
+            {
+              "text": "Exactly one gets the hold; the other is told the seat was just taken",
+              "explanation": "Right. The claim must be a single atomic step, so only one of the two can succeed."
+            },
+            {
+              "text": "Neither gets it, to be fair",
+              "explanation": "Then nobody can buy a popular seat."
+            },
+            {
+              "text": "The one with the lower user ID always wins",
+              "explanation": "Any one winner is fine, but the rule doesn't matter; what matters is that the claim is atomic."
+            }
+          ],
+          "answer": 1
+        }
+      },
+      {
+        "stage": "breakdown",
+        "prompt": "Break the design into parts, in the order you'd build them. What does a seat need to remember?",
+        "hints": [
+          "Start with the seat's possible states.",
+          "Then the step that moves it from free to held."
+        ],
+        "model": "Model each seat's state: free, held (by whom, until when) or sold. Claim it in one atomic step that only succeeds if it's still free (for example UPDATE … WHERE status = 'free'), setting the holder and expiry. Take payment while the hold lasts. Confirm with another atomic step: held → sold only if the hold is still this shopper's and hasn't expired. Separately, holds past their expiry count as free again.",
+        "check": {
+          "type": "order",
+          "parts": [
+            "Model each seat: free, held (by whom, until when), or sold",
+            "Claim: free → held in one atomic step, with the shopper and an expiry",
+            "Take the payment while the hold lasts",
+            "Confirm: held → sold, only if the hold is still this shopper's"
+          ],
+          "explain": "The states come first because every step is a move between them. A claim must exist before payment, and the confirm checks the claim, so it comes last."
+        }
+      },
+      {
+        "stage": "logic",
+        "prompt": "Write the rule for confirming. Then try this: shopper A's hold ended at 10:10:00, shopper B took the seat at 10:10:05, and A's payment succeeds at 10:10:20.",
+        "hints": [
+          "Whose hold is the seat under now?",
+          "A paid, though. What do you owe A?"
+        ],
+        "model": "Confirm only if the seat is held by this shopper and the hold hasn't expired, in one atomic step. For A that fails: the seat is B's now. A's payment must be refunded (or the authorisation released) and A told clearly what happened. B keeps the seat.",
+        "check": {
+          "type": "choice",
+          "prompt": "A's payment succeeds 20 seconds after their hold expired, and B now holds the seat. What should happen?",
+          "options": [
+            {
+              "text": "Give the seat to A, since A paid",
+              "explanation": "B holds the seat fairly. Taking it back breaks the promise the hold made to B."
+            },
+            {
+              "text": "Sell the seat to both and let staff sort it out",
+              "explanation": "That's the double sale the design exists to prevent."
+            },
+            {
+              "text": "Keep A's money and put A on a waiting list",
+              "explanation": "A paid for something they didn't get. The money must go back."
+            },
+            {
+              "text": "A's confirm fails; refund A and say why; B keeps the seat",
+              "explanation": "Right. The confirm step checks the hold is still A's, finds it isn't, and the system undoes A's payment."
+            }
+          ],
+          "answer": 3
+        }
+      },
+      {
+        "stage": "edges",
+        "prompt": "Your design handles one shopper paying in time. Which situations need explicit handling?",
+        "hints": [
+          "Go through: at the same time, too late, twice, never.",
+          "Which actions change nothing?"
+        ],
+        "model": "Simultaneous taps (the atomic claim), a shopper who leaves (the expiry), a payment that lands after expiry (confirm fails, refund), and a double tap on Pay (pay and confirm must be safe to repeat, for example with an idempotency key). Browsing the map and the normal quick payment need nothing new.",
+        "check": {
+          "type": "select",
+          "prompt": "Tap every situation that needs its own handling.",
+          "cases": [
+            {
+              "text": "Two shoppers tap the same free seat in the same millisecond",
+              "pick": true,
+              "why": "Only an atomic claim makes sure exactly one wins."
+            },
+            {
+              "text": "A shopper holds a seat, then closes the app",
+              "pick": true,
+              "why": "Without an expiry the seat stays held forever and is never sold."
+            },
+            {
+              "text": "A payment completes just after the hold expired",
+              "pick": true,
+              "why": "Confirm must check the hold is still valid, and the payment must be refunded if not."
+            },
+            {
+              "text": "The same shopper taps Pay twice",
+              "pick": true,
+              "why": "Without an idempotency key, two charges for one seat."
+            },
+            {
+              "text": "A shopper looks at the seat map without picking",
+              "pick": false,
+              "why": "Reading changes no seat's state."
+            },
+            {
+              "text": "A shopper holds a seat and pays within a minute",
+              "pick": false,
+              "why": "The normal path: claim, pay, confirm."
+            }
+          ]
+        }
+      },
+      {
+        "stage": "combine",
+        "prompt": "Describe the whole design in plain words, then compare. What would you tell an interviewer about why holds expire?",
+        "hints": [
+          "Name the two atomic steps."
+        ],
+        "model": "A seat is free, held (holder and expiry) or sold. Claiming is one atomic update that succeeds only if the seat is free (or its hold has expired); the loser is told at once. Payment carries an idempotency key. Confirming is a second atomic update: held by me and not expired → sold; if it fails, refund and explain. Holds expire so shoppers who leave don't lock seats away during the rush; the 10 minutes trades fairness to slow payers against seats sitting idle."
+      }
+    ]
+  },
+  {
+    "id": "retries-multiply",
+    "title": "Retries at every layer",
+    "track": "real-world",
+    "level": "hard",
+    "kind": "debug",
+    "objective": "See how retries at every layer of a call chain multiply the load on a struggling database, and where to retry instead.",
+    "sources": [
+      {
+        "title": "AWS Builders' Library: Timeouts, retries, and backoff with jitter (a five-deep stack with three tries per layer multiplies database load 243x; retry at a single point in the stack)",
+        "url": "https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backoff-with-jitter"
+      }
+    ],
+    "related": "article-stripe-retries",
+    "simplifies": "Counts the queries from one user request while the database fails everything, with no backoff and no timeouts. Real retries are spread over time, but the multiplying is the same.",
+    "language": "python",
+    "code": [
+      "def call(layer):",
+      "    if layer == DEPTH:",
+      "        return database.query()",
+      "    for attempt in range(TRIES):",
+      "        try:",
+      "            return call(layer + 1)",
+      "        except Overloaded:",
+      "            pass",
+      "    raise Overloaded()"
+    ],
+    "symptom": "The database slowed down for a moment under load. Instead of recovering, it got buried in queries and stayed down until every service was restarted.",
+    "bugLine": 3,
+    "lineWhy": "Every layer retries the layer below it. When the database fails, each try at the top becomes TRIES tries one level down, and so on: the counts multiply instead of add.",
+    "program": "retry-layers",
+    "input": {
+      "depth": 5,
+      "tries": 3
+    },
+    "predict": {
+      "prompt": "DEPTH = 5 layers, TRIES = 3, and the database fails every query. How many queries does one call(0) send to the database?",
+      "options": [
+        {
+          "text": "the database gets 15 queries",
+          "explanation": "That's 3 tries added up over 5 layers. But each try calls a layer that itself tries 3 times, so they multiply."
+        },
+        {
+          "text": "the database gets 3 queries",
+          "explanation": "That's what happens when only one layer retries."
+        },
+        {
+          "text": "the database gets 125 queries",
+          "explanation": "That's 5³. It's 3 tries, multiplied once per layer: 3⁵."
+        },
+        {
+          "text": "the database gets 243 queries",
+          "explanation": "Right. 3 × 3 × 3 × 3 × 3 = 243, the same figure AWS gives for a five-deep stack with three tries per layer."
+        }
+      ],
+      "answer": 3
+    },
+    "fix": {
+      "prompt": "Which fix is right?",
+      "options": [
+        {
+          "text": "Lower TRIES to 2 at every layer",
+          "explanation": "Still multiplying: 2⁵ = 32 queries for one request."
+        },
+        {
+          "text": "Retry only at one layer (say the top), and let the others fail fast",
+          "explanation": "Right. AWS's advice is to retry at a single point in the stack. Here that's 3 queries per request instead of 243."
+        },
+        {
+          "text": "Retry at every layer, but with no delay so it finishes sooner",
+          "explanation": "Same 243 queries, all at once: worse for a database that's already struggling."
+        },
+        {
+          "text": "Add more layers so each does less work",
+          "explanation": "Each extra layer multiplies the count by TRIES again."
+        }
+      ],
+      "answer": 1
+    }
+  },
+  {
+    "id": "retry-policy",
+    "title": "A retry policy that doesn't make things worse",
+    "track": "real-world",
+    "level": "hard",
+    "kind": "guided",
+    "objective": "Design timeouts and retries that ride out a blip without turning an overload into an outage.",
+    "sources": [
+      {
+        "title": "AWS Builders' Library: Timeouts, retries, and backoff with jitter",
+        "url": "https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backoff-with-jitter"
+      },
+      {
+        "title": "Stripe: Designing robust and predictable APIs with idempotency",
+        "url": "https://stripe.com/blog/idempotency"
+      }
+    ],
+    "related": "article-stripe-retries",
+    "simplifies": "Leaves out how to cap retries during a long outage. AWS's article limits retries locally with a token bucket, and discusses circuit breakers, which it finds harder to test.",
+    "problem": "Checkout calls an inventory service. Usually it answers in 50 ms, but sometimes a call fails or hangs, and now and then the inventory service is overloaded for a minute. Design how checkout times out and retries, so blips are hidden and overloads aren't made worse.",
+    "steps": [
+      {
+        "stage": "understand",
+        "prompt": "In your own words: which failures should retries hide, and which must they not make worse?",
+        "hints": [
+          "A blip goes away by itself.",
+          "An overload is made worse by extra requests."
+        ],
+        "model": "Hide short, random failures (a dropped connection, one slow call) by trying again. During an overload, extra requests are the problem, so retries must be limited, spread out, and never multiply.",
+        "check": {
+          "type": "choice",
+          "prompt": "Which statement captures the job?",
+          "options": [
+            {
+              "text": "Retry every failure until it succeeds",
+              "explanation": "During an overload, endless retries are more load on the thing that's already overloaded."
+            },
+            {
+              "text": "Never retry; show the error at once",
+              "explanation": "Then every blip becomes a failed checkout, even ones a second try would fix."
+            },
+            {
+              "text": "Retry only on Mondays",
+              "explanation": "Failures don't follow a calendar."
+            },
+            {
+              "text": "Hide brief failures with a few well-spaced retries, without adding much load during an overload",
+              "explanation": "Right. Both halves matter: recover from blips, don't pile on during overloads."
+            }
+          ],
+          "answer": 3
+        }
+      },
+      {
+        "stage": "shrink",
+        "prompt": "Shrink it: one call, one random failure, then the next call works. Should checkout retry, and what must be true for that to be safe?",
+        "hints": [
+          "What if the first call actually succeeded and only its reply was lost?"
+        ],
+        "model": "Yes, retry once: it turns a blip into a success. It's only safe if repeating the call can't do the work twice: reads are naturally safe, and a call that changes something needs an idempotency key.",
+        "check": {
+          "type": "choice",
+          "prompt": "A call to reserve stock times out once; the retry would probably work. When is it safe to retry?",
+          "options": [
+            {
+              "text": "Only if repeating it can't reserve twice: it's idempotent, for example with an idempotency key",
+              "explanation": "Right. The first call may have worked with only its reply lost. AWS and Stripe both recommend idempotent APIs so calls can be retried safely."
+            },
+            {
+              "text": "Always: a timeout means nothing happened",
+              "explanation": "A timeout only means no reply came. The work may have been done."
+            },
+            {
+              "text": "Never: timeouts mean the service is down",
+              "explanation": "Often it's a single slow or lost call, and a retry works."
+            },
+            {
+              "text": "Only if the user taps the button again",
+              "explanation": "That's a retry too, just a manual one, and it has the same risk of reserving twice."
+            }
+          ],
+          "answer": 0
+        }
+      },
+      {
+        "stage": "breakdown",
+        "prompt": "List the decisions in the order you'd make them.",
+        "hints": [
+          "You can't retry a call that never ends: what comes first?",
+          "Then: which failures are worth retrying, how long to wait, how many times."
+        ],
+        "model": "Set a timeout, so a hung call becomes a failure you can act on; decide what's retryable (timeouts and server errors, not client errors like 400); wait between tries with capped exponential backoff plus jitter; cap the number of tries and retry at one layer only.",
+        "check": {
+          "type": "order",
+          "parts": [
+            "Set a timeout on every call",
+            "Decide what's worth retrying: timeouts and server errors, not client errors",
+            "Wait between tries: capped exponential backoff, plus random jitter",
+            "Cap the tries, and retry at one layer only"
+          ],
+          "explain": "A call has to end (timeout) before it can fail; you need to know which failures to retry before scheduling retries; the cap and the single layer bound the total."
+        }
+      },
+      {
+        "stage": "logic",
+        "prompt": "1,000 checkouts fail at the same second. Each waits exactly 1 s, then 2 s, then 4 s before retrying. What does the inventory service see?",
+        "hints": [
+          "When does each of the 1,000 retry?",
+          "What would spread them out?"
+        ],
+        "model": "All 1,000 retry at the same moments (1 s, 3 s, 7 s), in waves that hit the service just as hard as the first failure. Adding jitter (a random part to each wait) spreads them out, so the service sees a trickle instead of spikes.",
+        "check": {
+          "type": "choice",
+          "prompt": "1,000 clients, same failure time, same fixed backoff. What happens, and what helps?",
+          "options": [
+            {
+              "text": "The retries arrive spread out on their own",
+              "explanation": "Identical waits from an identical start time give identical retry times."
+            },
+            {
+              "text": "They retry in synchronised waves; adding random jitter to each wait spreads them out",
+              "explanation": "Right. AWS notes that retries can be ineffective if all clients retry at the same time, and uses jitter to spread them."
+            },
+            {
+              "text": "Exponential backoff alone fixes it",
+              "explanation": "It makes the waves further apart, but each wave still arrives all at once."
+            },
+            {
+              "text": "Shorter waits would help the service recover",
+              "explanation": "Shorter waits mean more retries sooner: more load on a struggling service."
+            }
+          ],
+          "answer": 1
+        }
+      },
+      {
+        "stage": "edges",
+        "prompt": "Check your policy against these cases. Which ones does a naive “retry 3 times” policy get wrong?",
+        "hints": [
+          "Would a retry ever succeed for this error?",
+          "Does repeating this call do the work twice?"
+        ],
+        "model": "Retrying a 400 can't succeed (client errors should not be retried with the same request); retrying a create with no idempotency key can create duplicates; retries at every layer of a 5-deep chain multiply to 243x; and identical schedules retry in waves without jitter. A read retried with backoff and jitter, and giving up after a few tries, are fine.",
+        "check": {
+          "type": "select",
+          "prompt": "Tap every case where a naive “retry 3 times” goes wrong.",
+          "cases": [
+            {
+              "text": "Retrying a 400 Bad Request",
+              "pick": true,
+              "why": "The same request will fail the same way. AWS: client errors shouldn't be retried with the same request."
+            },
+            {
+              "text": "Retrying “create order” with no idempotency key",
+              "pick": true,
+              "why": "If the first try worked and only the reply was lost, the retry makes a second order."
+            },
+            {
+              "text": "Every service in a 5-deep chain retrying 3 times",
+              "pick": true,
+              "why": "3⁵ = 243 tries reach the bottom for one request, the figure AWS warns about."
+            },
+            {
+              "text": "Every client using the same fixed backoff schedule",
+              "pick": true,
+              "why": "They retry in lockstep. Jitter spreads them out."
+            },
+            {
+              "text": "Retrying a read once after a timeout, with backoff and jitter",
+              "pick": false,
+              "why": "Reads are safe to repeat and one spaced-out retry adds little load."
+            },
+            {
+              "text": "Giving up after 3 tries and showing a clear error",
+              "pick": false,
+              "why": "A bounded number of tries is the point; past that, failing clearly is right."
+            }
+          ]
+        }
+      },
+      {
+        "stage": "combine",
+        "prompt": "Write the policy in plain words, then compare. What would you add if the inventory service stays down for minutes?",
+        "hints": [
+          "AWS's article describes a way to limit how many retries a client can send."
+        ],
+        "model": "Every call has a timeout. Only timeouts and server errors are retried, and only for idempotent calls (with an idempotency key for anything that changes data). Waits grow exponentially up to a cap, with random jitter. At most 3 tries, and only checkout retries; the services below fail fast. For long outages, limit retries locally with a token bucket, as AWS describes, so a dead dependency gets little extra traffic until it recovers. (Circuit breakers are another option; AWS notes they add modes that are hard to test.)"
+      }
+    ]
+  }
+]
