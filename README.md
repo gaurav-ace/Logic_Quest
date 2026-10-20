@@ -35,6 +35,22 @@ Every push to `main` runs the checks and deploys to GitHub Pages by itself. To d
 
 Progress is saved in each browser separately (there is no server). To move it to another device, use Progress → Export, then Progress → Import on the other device; importing merges, so nothing is counted twice.
 
+## Daily reminders (Discord)
+
+`.github/workflows/reminder.yml` posts a short reminder to a Discord channel at 08:00 and 21:00 IST. The Discord app on your phone shows it as a notification. The app itself asks for no permissions.
+
+1. In Discord, open the channel's settings, then **Integrations > Webhooks > New Webhook**, and copy its URL.
+2. On GitHub, go to **Settings > Secrets and variables > Actions > New repository secret**. Set the name to `DISCORD_WEBHOOK_URL` and paste the URL as the value. The URL is the password to the channel, so keep it only there.
+3. Test it: **Actions > Daily reminder > Run workflow**.
+
+Good to know:
+- Scheduled runs only start once the workflow is on `main`.
+- GitHub can delay them when Actions is busy.
+- In a public repo, they pause after 60 days with no activity. Re-enable them from the Actions tab.
+- The reminder can't see your progress, because progress lives only on your device. It reminds you; it can't tell you whether today's lesson is done.
+
+Preview the text without sending anything: `node scripts/reminder.ts --dry-run --slot morning`.
+
 ## Layout
 
 | Path | What lives there |
