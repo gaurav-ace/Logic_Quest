@@ -1790,3 +1790,48 @@ a:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ---- Keyboard and screen-reader aids ---- */
+.skip {
+  position: absolute;
+  left: 8px;
+  top: -64px;
+  z-index: 30;
+  padding: 12px 16px;
+  min-height: var(--tap);
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-radius: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.skip:focus {
+  top: 8px;
+}
+
+.page:focus {
+  outline: none;
+}
+
+/* ---- Progress page ---- */
+.progress-grid {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+
+.progress-grid > .panel,
+.progress-grid > .hud {
+  margin: 0;
+}
+
+@media (min-width: 1100px) {
+  .progress-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .progress-grid > .panel[aria-label='Badges'] {
+    grid-column: 1 / -1;
+  }
+}

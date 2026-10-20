@@ -54,7 +54,15 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
   const view = el('main', { class: 'page', id: 'view' });
   const guard = el('div', { class: 'guard', role: 'alertdialog', 'aria-label': 'Leave the quiz?' });
   guard.hidden = true;
-  root.replaceChildren(header, nav, view, guard);
+  // A real hash link would be read as a route, so the click only moves focus.
+  const skip = el('a', { class: 'skip', href: routeHash(HOME) }, 'Skip to content');
+  skip.addEventListener('click', (e) => {
+    e.preventDefault();
+    view.focus();
+  });
+  // The page is focusable so a route change moves keyboard and screen-reader users to it.
+  view.tabIndex = -1;
+  root.replaceChildren(skip, header, nav, view, guard);
 
   let current: Route = HOME;
   let lessonView: LessonView | undefined;
@@ -96,6 +104,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
       if (store.notice) view.prepend(el('p', { class: 'card notice', role: 'status' }, store.notice));
     }
     window.scrollTo(0, 0);
+    view.focus({ preventScroll: true });
   }
 
   // The Android back button (and "← Lessons") pops history. Leaving mid-quiz asks first

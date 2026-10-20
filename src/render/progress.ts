@@ -52,7 +52,9 @@ export function renderProgress(root: HTMLElement, tracker: Tracker, config: Rewa
   const badgeCard = el('section', { class: 'card panel', 'aria-label': 'Badges' });
   badgeCard.append(el('h3', {}, `Badges: ${earned.length} of ${config.badges.length}`), grid);
 
-  root.replaceChildren(el('h2', {}, 'Your progress'), renderHud(p, config.coins.bufferCost), streakCard, badgeCard);
+  const layout = el('div', { class: 'progress-grid' });
+  layout.append(renderHud(p, config.coins.bufferCost), streakCard, badgeCard);
+  root.replaceChildren(el('h2', {}, 'Your progress'), layout);
 }
 
 export function renderSettings(root: HTMLElement, tracker: Tracker, store: ProgressStore, config: RewardsConfig, persist: PersistState): void {
