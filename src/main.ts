@@ -6,6 +6,7 @@ import { persistMessage, requestPersistentStorage, type PersistState } from './p
 import { loadPractice, practiceTracks } from './practice/catalog';
 import { practiceKey, type PracticeItem } from './practice/schema';
 import { practiceStatus } from './practice/status';
+import { WorkshopStore } from './practice/workshop';
 import { Profiles, profileKey } from './progress/profiles';
 import { ProgressStore, browserStorage } from './progress/store';
 import { Tracker } from './progress/tracker';
@@ -17,6 +18,7 @@ import { renderHome } from './render/home';
 import { renderLearners, renderPicker } from './render/learners';
 import { renderPractice, type PracticeContext, type PracticeHooks } from './render/practice';
 import { practiceSection } from './render/practice-list';
+import { renderWorkshop } from './render/workshop';
 import { renderLesson, type LessonView } from './render/lesson';
 import { renderProgress, renderSettings } from './render/progress';
 import { celebrate, clearToast } from './render/toast';
@@ -167,10 +169,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
       back: () => history.back(),
       ...(related ? { related: { title: related.title, open: () => (location.hash = routeHash({ name: 'lesson', id: related.id })) } } : {}),
     };
-    if (item.kind === 'guided') {
-      view.replaceChildren(el('h2', {}, item.title), el('p', {}, 'Guided problems open in the workshop, which is still being built.'));
-      return { inQuiz: () => false, destroy: () => {} };
-    }
+    if (item.kind === 'guided') return renderWorkshop(view, item, hooks, ctx, { store: new WorkshopStore(kv, profileKey(profiles.current.id, 'workshop')) });
     return renderPractice(view, item, hooks, ctx);
   }
 

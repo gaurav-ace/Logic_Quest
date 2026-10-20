@@ -2077,3 +2077,182 @@ button.code-line.wrong {
 .practice-done h3 {
   margin-top: 0;
 }
+
+/* The workshop: steps on the left, "My workspace" beside them on wide screens, below on phones. */
+.workshop {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.workshop > * {
+  min-width: 0;
+}
+
+@media (min-width: 1100px) {
+  .workshop {
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    align-items: start;
+  }
+
+  .workspace {
+    position: sticky;
+    top: 76px;
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+  }
+}
+
+.workshop-steps {
+  display: grid;
+  gap: 12px;
+}
+
+.workshop-step h3,
+.workspace h3,
+.problem h3 {
+  margin-top: 0;
+}
+
+.workshop-step.done {
+  border-left: 4px solid var(--ok);
+}
+
+.problem .example code {
+  overflow-wrap: anywhere;
+}
+
+.note {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0;
+  font-weight: 700;
+}
+
+.note textarea {
+  width: 100%;
+  min-height: 5.5rem;
+  padding: 10px 12px;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 400;
+  resize: vertical;
+}
+
+.note-label {
+  display: block;
+  margin: 8px 0;
+  font-weight: 700;
+}
+
+.hints button {
+  margin-bottom: 8px;
+}
+
+.hint-list {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+
+.expert {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent-soft);
+}
+
+.outline {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.outline-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 8px;
+  margin-left: calc(var(--depth) * 20px);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.outline-text {
+  flex: 1 1 10rem;
+  overflow-wrap: anywhere;
+}
+
+.outline-tools {
+  display: flex;
+  gap: 4px;
+}
+
+.outline-tools button {
+  padding: 0;
+}
+
+.outline-add {
+  display: flex;
+  gap: 8px;
+}
+
+.outline.readonly li {
+  margin-left: calc(var(--depth) * 16px);
+  padding: 2px 0;
+}
+
+.outline.readonly li::before {
+  content: '• ';
+  color: var(--mute);
+}
+
+.order-picked {
+  min-height: var(--tap);
+  margin: 0 0 8px;
+  padding: 8px 8px 8px 28px;
+  border: 1px dashed var(--stroke);
+  border-radius: 10px;
+}
+
+.order-picked li {
+  padding: 2px 0;
+}
+
+.order-pool {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.option.toggle[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.option.toggle.left {
+  color: var(--mute);
+}
+
+.case-why {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.ws-row {
+  margin-bottom: 10px;
+}
+
+.ws-row p {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.save-state:empty {
+  display: none;
+}

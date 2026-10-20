@@ -2,7 +2,7 @@
 // No dependencies: talks to Chrome over the DevTools protocol with Node's built-in WebSocket.
 //
 //   npm run build && npm run preview          (in another terminal)
-//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design|agent|profiles|practice] [url] [screenshot-dir]
+//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design|agent|profiles|practice|workshop] [url] [screenshot-dir]
 //   DIST_DIR=dist node scripts/browser-check.mjs update   (edits dist/ to simulate a deploy: rebuild after)
 //   LESSONS=binary-search,heaps node scripts/browser-check.mjs lessons   (walk only those)
 //
@@ -989,6 +989,85 @@ if (mode === 'practice') {
   await sleep(800);
   await shot('practice-debug-desktop-dark');
   await layoutChecks('debug problem (desktop)');
+}
+
+if (mode === 'workshop') {
+  // One guided problem end to end by touch: notes, hints, the outline editor, the order and
+  // select checks, resuming after a reload, XP, and the two-column layout on desktop.
+  await viewport(360, 740, true);
+  await media('reduce');
+  const typeInto = async (selector, value, n = 0) => {
+    await tapSel(selector, n);
+    await send('Input.insertText', { text: value });
+    await sleep(150);
+  };
+  const lastStep = () => evaluate(`[...document.querySelectorAll('.workshop-step')].at(-1)?.dataset.stage`);
+  await load(url + '#/practice/logic/second-largest');
+  await sleep(800);
+  check('a guided problem opens with the problem and step 1', /^Given a list of numbers, return the second largest distinct value/.test(await text('.problem p')) && (await lastStep()) === 'understand', await text('.problem p'));
+  await typeInto('.workshop-step textarea', 'In: numbers. Out: biggest value below the max.');
+  check('notes collect in "My workspace"', (await text('.workspace .ws-row p')) === 'In: numbers. Out: biggest value below the max.', await text('.workspace .ws-row p'));
+  await tap('Show a hint (1 of 2)');
+  check('hints come one at a time', (await evaluate(`document.querySelectorAll('.hint-list li').length`)) === 1 && !!(await evaluate(`[...document.querySelectorAll('button')].find((b) => b.textContent === 'Another hint (2 of 2)')`)));
+  await tap('Return the second item of the list');
+  await tap('The largest value that is smaller than the maximum; None if there is none');
+  check('after the right answer, the expert’s version appears', /^An expert’s version: In: a list of numbers/.test(await evaluate(`document.querySelector('.expert').textContent`)));
+  await layoutChecks('workshop step 1 (360px)');
+  await tap('Next step');
+  await tap('3: the smaller of the two');
+  await tap('Next step');
+  check('step 3 is the breakdown, with an outline editor', (await lastStep()) === 'breakdown' && !!(await evaluate(`document.querySelector('.outline-add input')`)));
+  await typeInto('.outline-add input', 'Loop over the list');
+  await tap('Add');
+  await typeInto('.outline-add input', 'Update best and second');
+  await tap('Add');
+  await tap('Indent “Update best and second”', 'label');
+  await typeInto('.outline-add input', 'Remember best and second');
+  await tap('Add');
+  await tap('Move “Remember best and second” up', 'label');
+  await tap('Outdent “Remember best and second”', 'label');
+  const outline = () => evaluate(`[...document.querySelectorAll('.workshop-step .outline-row')].map((r) => r.style.getPropertyValue('--depth').trim() + ':' + r.querySelector('.outline-text').textContent).join(' | ')`);
+  check('the outline can be built, indented, moved and outdented by tap', (await outline()) === '0:Loop over the list | 0:Remember best and second | 1:Update best and second', await outline());
+  check('the workspace shows the outline', (await evaluate(`[...document.querySelectorAll('.workspace .outline li')].map((l) => l.textContent).join(' | ')`)) === 'Loop over the list | Remember best and second | Update best and second');
+  await layoutChecks('workshop outline (360px)');
+  await shot('workshop-outline');
+  // Tap the parts in the (deliberately shuffled) order they're shown: never the right order.
+  const poolCount = await evaluate(`document.querySelectorAll('.order-pool button').length`);
+  for (let k = 0; k < poolCount; k++) await tapSel('.order-pool button', 0);
+  await tap('Check the order');
+  check('a wrong order gets a hint, not a penalty', /what must already exist/.test(await text('.order-check .feedback')));
+  for (let k = 0; k < poolCount; k++) await tap('Undo');
+  for (const part of ['Decide what to remember: the best and the second best so far', 'Start both as None (nothing seen yet)', 'For each number, update the best and the second best', 'Return the second best (None if it was never set)']) await tap(part);
+  await tap('Check the order');
+  check('the right order passes and explains why', /That fixes the order/.test(await text('.order-check .feedback')) && (await text('.order-check .reward')) === '+5 XP, after a retry', await text('.order-check .reward'));
+  await tap('Next step');
+  await load(url + '#/practice/logic/second-largest');
+  await sleep(800);
+  check('after a reload it resumes at step 4, with notes and outline kept', (await lastStep()) === 'logic' && (await evaluate(`document.querySelectorAll('.workshop-step.done').length`)) === 3 && (await evaluate(`document.querySelector('.workshop-step textarea').value`)) === 'In: numbers. Out: biggest value below the max.' && (await outline()) === '0:Loop over the list | 0:Remember best and second | 1:Update best and second');
+  await tap('Nothing: 9 equals the best, and the second best must be smaller than the best');
+  await tap('Next step');
+  await tap('[]');
+  await tap('Check');
+  check('select: a partial pick says how many are missing', /3 to add/.test(await text('.select-check .feedback')), await text('.select-check .feedback'));
+  for (const c of ['[7]', '[5, 5]', '[4, 9, 7, 9]']) await tap(c);
+  await tap('Check');
+  check('select: the right picks pass, and every case is explained', (await evaluate(`document.querySelectorAll('.case-why li').length`)) === 6);
+  await layoutChecks('workshop edge cases (360px)');
+  await tap('Next step');
+  await tap('Show the expert’s version');
+  check('the last step ends with Done', (await text('.practice-done h3')) === 'Done ✓');
+  await shot('workshop-done');
+  await load();
+  // Retry 5 + 10 + retry 5 + 10 + retry 5.
+  check('XP from the graded checks only', (await text('.hud-stats')) === 'Level2XP35 / 80Streak0 daysCoins0', await text('.hud-stats'));
+  await viewport(1280, 800, false);
+  await media('no-preference', 'dark');
+  await load(url + '#/practice/logic/second-largest');
+  await sleep(800);
+  const cols = await evaluate(`(() => { const s = document.querySelector('.workshop-steps').getBoundingClientRect(); const w = document.querySelector('.workspace').getBoundingClientRect(); return w.left > s.right - 1 && Math.abs(w.top - s.top) < 2; })()`);
+  check('desktop: "My workspace" sits beside the steps', cols);
+  await layoutChecks('workshop (desktop)');
+  await shot('workshop-desktop-dark');
 }
 
 if (mode === 'update') {
