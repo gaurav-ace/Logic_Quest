@@ -230,6 +230,10 @@ const layoutChecks = async (label) => {
 async function walkExercise(id) {
   await layoutChecks(`${id}-360 exercise`);
   await shot(`${id}-360-exercise`);
+  // The walk below never picks a class, so check the class buttons are really on screen
+  // (a top-bar rule once hid them on phones).
+  const chips = await evaluate(`[...document.querySelectorAll('.exercise .chips button')].map((b) => [b.textContent, !!b.offsetParent, Math.round(b.getBoundingClientRect().height)])`);
+  check(`${id}: every class can be tapped`, chips.length > 0 && chips.every(([, shown, h]) => shown && h >= 48), JSON.stringify(chips));
   await tap('Check');
   await tap('Show me');
   await tap('Next: fix the design');
