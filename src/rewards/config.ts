@@ -27,8 +27,8 @@ export interface RewardsConfig {
   /**
    * Spaced review of missed questions (Phase 7). intervals: days to wait in each box, shortest
    * first; a right answer after the last box means mastered. sessionMax: questions per session.
-   * goalReviews: a finished session of this many (or all that were due, if fewer) counts as one
-   * lesson towards the daily goal.
+   * goalReviews: after this many the learner may stop; a session that reaches it, or answers all
+   * that were due if fewer, counts as one lesson towards the daily goal.
    */
   review: { intervals: number[]; sessionMax: number; goalReviews: number };
   coins: { perGoalDay: number; bufferCost: number; breakCost: number };

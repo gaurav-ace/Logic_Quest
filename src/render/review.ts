@@ -13,6 +13,8 @@ export interface ReviewDeps {
   load(): Promise<ReviewTarget[]>;
   /** Questions per session. */
   sessionMax: number;
+  /** After this many, the learner may stop and still have the session count towards the goal. */
+  goalReviews: number;
   /** Seeds the option order, so it differs from the lesson's and from yesterday's. */
   today: string;
   answer(lesson: string, question: number, option: number, correct: boolean): Feedback;
@@ -85,7 +87,8 @@ export function renderReview(root: HTMLElement, deps: ReviewDeps): void {
           reward.replaceChildren(...[result.text, ...(result.levelUp ? ['Level up!'] : []), ...result.badges.map((x) => `Badge earned: ${x.title}.`)].filter(Boolean).map((s) => el('span', {}, s)));
           if (result.xp > 0 || result.badges.length) deps.celebrate(result);
           const last = i === asks.length - 1;
-          after.replaceChildren(button(last ? 'Finish the review' : 'Next question', () => (last ? finish() : show(i + 1)), { class: 'primary' }));
+          const stop = !last && i + 1 >= deps.goalReviews ? [button('Stop here', () => finish(i + 1))] : [];
+          after.replaceChildren(button(last ? 'Finish the review' : 'Next question', () => (last ? finish(asks.length) : show(i + 1)), { class: 'primary' }), ...stop);
         }, { class: 'option' });
         return b;
       });
@@ -102,14 +105,15 @@ export function renderReview(root: HTMLElement, deps: ReviewDeps): void {
       scrollTo(box, 'nearest');
     }
 
-    function finish(): void {
-      const result = deps.finished(asks.length);
+    function finish(done: number): void {
+      const result = deps.finished(done);
+      const left = waiting + asks.length - done;
       if (result.xp > 0 || result.badges.length) deps.celebrate(result);
       box.replaceChildren(
         el('h3', {}, 'Review done ✓'),
         el('p', {}, result.text),
         ...result.badges.map((b) => el('p', {}, `Badge earned: ${b.title}.`)),
-        ...(waiting ? [el('p', {}, `${waiting} more ${waiting === 1 ? 'question is' : 'questions are'} due. Open Review again for the next session.`)] : []),
+        ...(left ? [el('p', {}, `${left} more ${left === 1 ? 'question is' : 'questions are'} due. Open Review again for the next session.`)] : []),
       );
       if (redos.length) box.after(redoList(redos));
       root.append(homeLink());

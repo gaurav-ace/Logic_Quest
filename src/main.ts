@@ -187,6 +187,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
       renderReview(view, {
         load: loadReviews,
         sessionMax: REWARDS.review.sessionMax,
+        goalReviews: REWARDS.review.goalReviews,
         today: today(),
         answer: (lesson, question, option, correct) => tracker.answer(lesson, question, option, correct),
         finished: (count) => tracker.reviewed(count),

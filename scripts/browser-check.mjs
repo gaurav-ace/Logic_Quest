@@ -1317,6 +1317,9 @@ if (mode === 'review') {
       break;
     }
     await tap(q.options[q.answer].text);
+    const canStop = await evaluate(`[...document.querySelectorAll('.review-box button')].some((b) => b.textContent === 'Stop here')`);
+    if (i === 3) check('no Stop here before 5 answers', !canStop);
+    if (i === 4) check('Stop here is offered after 5 answers', canStop);
     await tap(i === 9 ? 'Finish the review' : 'Next question');
   }
   check('finishing says it counts towards today’s goal', /^Review done\. Today’s goal is done\./.test((await text('.review-box p')) ?? ''), await text('.review-box p'));
