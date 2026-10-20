@@ -56,6 +56,14 @@ export class Tracker {
     return { ...result, outcome: 'complete', text };
   }
 
+  /** A review session finished with `count` questions answered: one lesson towards today's goal. */
+  reviewed(count: number): Feedback {
+    const result = this.record({ ...this.stamp(), type: 'review', count });
+    const p = this.progress();
+    const goal = p.doneToday >= p.goalToday ? ' Today’s goal is done.' : ' It counts as one lesson towards today’s goal.';
+    return { ...result, outcome: 'complete', text: `Review done.${goal}` };
+  }
+
   setDailyGoal(goal: number): void {
     const { min, max } = this.config.dailyGoal;
     if (!Number.isInteger(goal) || goal < min || goal > max) throw new Error(`Daily goal must be ${min} to ${max}`);

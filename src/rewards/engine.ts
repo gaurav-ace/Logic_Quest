@@ -102,14 +102,15 @@ function goalOn(goals: { day: Day; goal: number }[], day: Day, fallback: number)
 
 function walkDays(log: ProgressEvent[], config: RewardsConfig, todayIn: Day) {
   const goals = log.filter((e) => e.type === 'goal').map((e) => ({ day: e.day, goal: e.goal }));
-  // Distinct lessons finished per day: replays count towards the goal, the same lesson twice does not.
+  // Distinct lessons finished per day: replays count towards the goal, the same lesson twice does
+  // not. Each finished review session counts as one more (Phase 7).
   const finished = new Map<Day, Set<string>>();
   for (const e of log) {
-    if (e.type !== 'complete') continue;
+    if (e.type !== 'complete' && e.type !== 'review') continue;
     if (!finished.has(e.day)) finished.set(e.day, new Set());
-    finished.get(e.day)!.add(e.lesson);
+    finished.get(e.day)!.add(e.type === 'complete' ? e.lesson : `review:${e.id}`);
   }
-  const activity = log.filter((e) => e.type === 'answer' || e.type === 'complete').map((e) => e.day);
+  const activity = log.filter((e) => e.type === 'answer' || e.type === 'complete' || e.type === 'review').map((e) => e.day);
   // If the clock moved backwards, "today" is never earlier than the last recorded day.
   const today = activity.reduce((max, d) => (d > max ? d : max), todayIn);
   const met = (day: Day) => (finished.get(day)?.size ?? 0) >= goalOn(goals, day, config.dailyGoal.default);

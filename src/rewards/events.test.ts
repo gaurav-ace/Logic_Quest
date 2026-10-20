@@ -36,6 +36,9 @@ describe('events', () => {
     expect(eventProblem({ id: 'x', type: 'complete', at: '2026-10-19T10:00:00Z', day: '19/10/2026', lesson: 'a' })).toBe('bad day');
     expect(eventProblem({ id: 'x', type: 'answer', at: '2026-10-19T10:00:00Z', day: '2026-10-19', lesson: 'a', question: -1, option: 0, correct: true })).toBe('bad answer');
     expect(eventProblem({ id: 'x', type: 'goal', at: '2026-10-19T10:00:00Z', day: '2026-10-19', goal: 0 })).toBe('bad goal');
+    expect(eventProblem({ id: 'x', type: 'review', at: '2026-10-19T10:00:00Z', day: '2026-10-19', count: 5 })).toBeNull();
+    expect(eventProblem({ id: 'x', type: 'review', at: '2026-10-19T10:00:00Z', day: '2026-10-19', count: 0 })).toBe('bad review');
+    expect(eventProblem({ id: 'x', type: 'review', at: '2026-10-19T10:00:00Z', day: '2026-10-19' })).toBe('bad review');
     expect(eventProblem({ id: 'x', type: 'cheat', at: '2026-10-19T10:00:00Z', day: '2026-10-19' })).toBe('unknown event type');
   });
 

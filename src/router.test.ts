@@ -29,6 +29,8 @@ describe('parseRoute', () => {
   });
 
   it('reads a practice item, with its track', () => {
+    expect(parseRoute('#/review', ids)).toEqual({ name: 'review' });
+    expect(routeHash({ name: 'review' })).toBe('#/review');
     expect(parseRoute('#/practice/logic/second-largest', ids)).toEqual({ name: 'practice', track: 'logic', id: 'second-largest' });
     expect(routeHash({ name: 'practice', track: 'dsa', id: 'x-1' })).toBe('#/practice/dsa/x-1');
     for (const h of ['#/practice/nope/x', '#/practice/logic', '#/practice/logic/Bad_Id', '#/practice/logic/a/b']) expect(parseRoute(h, ids), h).toEqual(HOME);

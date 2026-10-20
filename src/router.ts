@@ -7,6 +7,7 @@ export type Route =
   | { name: 'progress' }
   | { name: 'settings' }
   | { name: 'playground' }
+  | { name: 'review' }
   | { name: 'lesson'; id: string }
   // Practice items load per track when opened, so the route carries the track and the item is
   // looked up after loading (an unknown id then shows a "not found" message).
@@ -19,6 +20,7 @@ export function parseRoute(hash: string, lessonIds: ReadonlySet<string>): Route 
   if (/^#\/progress\/?$/.test(hash)) return { name: 'progress' };
   if (/^#\/settings\/?$/.test(hash)) return { name: 'settings' };
   if (/^#\/playground\/?$/.test(hash)) return { name: 'playground' };
+  if (/^#\/review\/?$/.test(hash)) return { name: 'review' };
   const m = /^#\/lesson\/([a-z0-9-]+)\/?$/.exec(hash);
   if (m && lessonIds.has(m[1]!)) return { name: 'lesson', id: m[1]! };
   const p = /^#\/practice\/([a-z-]+)\/([a-z0-9]+(?:-[a-z0-9]+)*)\/?$/.exec(hash);
@@ -31,6 +33,7 @@ export function routeHash(route: Route): string {
   if (route.name === 'practice') return `#/practice/${route.track}/${route.id}`;
   if (route.name === 'progress') return '#/progress';
   if (route.name === 'playground') return '#/playground';
+  if (route.name === 'review') return '#/review';
   return route.name === 'settings' ? '#/settings' : '#/';
 }
 

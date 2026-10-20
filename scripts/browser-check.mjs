@@ -1272,6 +1272,79 @@ if (mode === 'tutor-ai') {
   await shot('tutor-ai-desktop-dark');
 }
 
+if (mode === 'review') {
+  // Phase 7 review by touch at 360 px, from a seeded history: yesterday's misses on 10 lesson
+  // questions, one practice question and one design exercise. Home's card, a session of 10 (one
+  // left waiting), a wrong tap then the right one, finishing (counts towards today's goal), the
+  // exercise sent back to its lesson, the rest after a reload, and the empty state.
+  await viewport(360, 740, true);
+  await media('reduce');
+  const day = (n) => new Date(Date.now() + n * 86_400_000).toLocaleDateString('en-CA');
+  const yesterday = day(-1);
+  const quizLessons = lessonFiles.map((f) => lessonData(f.replace(/\.json$/, ''))).filter((l) => l.quiz?.length).slice(0, 10);
+  const practice = JSON.parse(readFileSync(join(lessonsDir, '..', 'practice', 'dsa.json'), 'utf8'));
+  const pq = (Array.isArray(practice) ? practice : practice.items).find((i) => i.id === 'python-structure-corners');
+  // Prompt -> its options, to tap a wrong one and then the right one by text.
+  const answers = new Map([...quizLessons.map((l) => l.quiz[0]), pq.questions[0]].map((q) => [q.prompt, q]));
+  let n = 0;
+  const miss = (lesson, question) => ({ id: `seed${++n}`, type: 'answer', at: `${yesterday}T10:00:${String(n).padStart(2, '0')}.000Z`, day: yesterday, lesson, question, option: 9, correct: false });
+  const events = [...quizLessons.map((l) => miss(l.id, 0)), miss('practice:python-structure-corners', 0), miss('composition-inheritance', 301)];
+  await load();
+  await evaluate(`localStorage.setItem('logic-quest:progress', ${JSON.stringify(JSON.stringify({ version: 1, events, settings: {} }))})`);
+  await load();
+  check('Home shows how many reviews are due', (await text('.review-card h3')) === '12 questions to review', await text('.review-card h3'));
+  await layoutChecks('home with reviews (360px)');
+  await shot('review-home');
+  await tap('Start review');
+  await sleep(800);
+  check('a session asks 10 and says how many wait', (await text('.review-count')) === '10 questions today, 1 more after this session.', await text('.review-count'));
+  check('the review cites its source', /Roediger and Karpicke/.test((await text('.review-source')) ?? ''));
+  const prompt = async () => (await text('.review-box h3')) ?? '';
+  const q0 = answers.get(await prompt());
+  check('the first question is one of the missed ones', !!q0, await prompt());
+  const wrong = q0.options.find((_, i) => i !== q0.answer).text;
+  await tap(wrong);
+  check('a wrong tap explains, and offers another try', (await text('.review-box .quiz-after p')) === 'Try another option. This question will come back tomorrow.');
+  await tap(q0.options[q0.answer].text);
+  check('the right answer explains, and moves on', (await text('.review-box .feedback')) === q0.options[q0.answer].explanation && !!(await evaluate(`[...document.querySelectorAll('.review-box button')].some((b) => b.textContent === 'Next question')`)));
+  await layoutChecks('review question (360px)');
+  await shot('review-question');
+  await tap('Next question');
+  for (let i = 1; i < 10; i++) {
+    const q = answers.get(await prompt());
+    if (!q) {
+      check(`question ${i + 1} is a missed one`, false, await prompt());
+      break;
+    }
+    await tap(q.options[q.answer].text);
+    await tap(i === 9 ? 'Finish the review' : 'Next question');
+  }
+  check('finishing says it counts towards today’s goal', /^Review done\. Today’s goal is done\./.test((await text('.review-box p')) ?? ''), await text('.review-box p'));
+  check('the design exercise is sent back to its lesson', await evaluate(`[...document.querySelectorAll('.review-redo a')].some((a) => a.getAttribute('href') === '#/lesson/composition-inheritance')`));
+  check('and 1 more question waits', /1 more question is due/.test(await evaluate(`document.querySelector('.review-box').textContent`)));
+  await layoutChecks('review done (360px)');
+  await shot('review-done');
+
+  await load();
+  check('after a reload, Home has the 2 left (the waiting question and the exercise)', (await text('.review-card h3')) === '2 questions to review', await text('.review-card h3'));
+  check('the finished review met today’s goal', /^Today: 1 \/ 1\. Today’s goal is done\./.test((await text('.hud-today')) ?? ''), await text('.hud-today'));
+  await tap('Start review');
+  await sleep(800);
+  const q = answers.get(await prompt());
+  await tap(q.options[q.answer].text);
+  await tap('Finish the review');
+  await load(url + '#/review');
+  await sleep(800);
+  check('when nothing is left, it says when the next review is due', (await text('.review-empty')) === 'Nothing to review today. The next review is due tomorrow.', await text('.review-empty'));
+  await layoutChecks('review empty (360px)');
+
+  await viewport(1280, 800, false);
+  await media('no-preference', 'dark');
+  await load();
+  await layoutChecks('home with reviews (desktop)');
+  await shot('review-desktop-dark');
+}
+
 if (mode === 'playground') {
   // The design playground by touch at 360 px: place, connect, label, drag, nudge, undo and redo,
   // delete (taking its arrows), pinch zoom, saving across a reload, several designs; then the

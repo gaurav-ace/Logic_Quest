@@ -7,7 +7,7 @@ import { renderHud } from './hud';
 /** Builds a track's practice drop-down, or null when the track has no practice. */
 export type PracticeSlot = (track: Track) => HTMLDetailsElement | null;
 
-export function renderHome(root: HTMLElement, lessons: Lesson[], progress: Progress, bufferCost: number, open: (id: string) => void, practice?: PracticeSlot): void {
+export function renderHome(root: HTMLElement, lessons: Lesson[], progress: Progress, bufferCost: number, open: (id: string) => void, practice?: PracticeSlot, panels: HTMLElement[] = []): void {
   const byId = new Map(lessons.map((l) => [l.id, l]));
   const groups = groupByTrack(lessons, progress.completed);
   const openTrack = trackToOpen(groups);
@@ -35,7 +35,7 @@ export function renderHome(root: HTMLElement, lessons: Lesson[], progress: Progr
   side.append(renderHud(progress, bufferCost));
   const layout = el('div', { class: 'home' });
   if (next) layout.append(continueCard(next));
-  layout.append(side, main);
+  layout.append(...panels, side, main);
   root.replaceChildren(layout);
 
   /** First unlocked, unfinished lesson in curriculum order: the one to do next. */
