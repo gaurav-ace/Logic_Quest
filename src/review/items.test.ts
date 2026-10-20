@@ -56,7 +56,8 @@ describe('what a scheduled question becomes', () => {
   });
 
   it('practice reviews wait until the practice files are loaded', () => {
-    expect(reviewTarget(st(practiceKey('python-structure-corners'), 0), { ...look, practice: undefined })).toBeNull();
+    const notLoaded: ReviewLookup = { lesson: look.lesson, lessonHref: look.lessonHref, practiceHref: look.practiceHref };
+    expect(reviewTarget(st(practiceKey('python-structure-corners'), 0), notLoaded)).toBeNull();
   });
 
   it('every quiz question in the course can be reviewed', () => {
