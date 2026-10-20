@@ -848,7 +848,7 @@ if (mode === 'profiles') {
   await takeQuiz();
   await tap('The browser, by sending a request');
   await load();
-  check('one learner: progress as before, no learner name in the top bar', (await stats()) === 'Level1XP20 / 30Streak1 dayCoins5' && !(await evaluate(`!!document.querySelector('.who')`)), await stats());
+  check('one learner: progress as before, and the top bar shows the learner, linking to Settings', (await stats()) === 'Level1XP20 / 30Streak1 dayCoins5' && (await text('.who-initial')) === 'L' && (await evaluate(`document.querySelector('a.who').getAttribute('href')`)) === '#/settings', await stats());
 
   await load(url + '#/settings');
   check('settings lists the one learner', (await text('.learner-name')) === 'Learner 1 (you, now)', await text('.learner-name'));
@@ -895,6 +895,7 @@ if (mode === 'profiles') {
   await viewport(1280, 800, false);
   await media('no-preference', 'dark');
   await load(url + '#/settings');
+  check('Settings shows the app version (build commit and date)', /^App version ([0-9a-f]{7}|local), built \d{4}-\d{2}-\d{2}$/.test(await text('.app-version')), await text('.app-version'));
   await shot('profiles-settings-desktop-dark');
 }
 

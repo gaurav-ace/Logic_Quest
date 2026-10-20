@@ -62,7 +62,7 @@ export function renderSettings(root: HTMLElement, tracker: Tracker, store: Progr
   const redraw = () => renderSettings(root, tracker, store, config, persist, learners, workshop);
   const p = tracker.progress();
   const today = localDay(new Date());
-  root.replaceChildren(el('h2', {}, 'Settings'), settings(), ...(learners ? [learners()] : []), backup());
+  root.replaceChildren(el('h2', {}, 'Settings'), settings(), ...(learners ? [learners()] : []), backup(), el('p', { class: 'muted app-version' }, `App version ${__APP_COMMIT__}, built ${__APP_BUILT__}`));
 
   function settings(): HTMLElement {
     const card = el('section', { class: 'card panel', 'aria-label': 'Settings' });

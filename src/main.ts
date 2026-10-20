@@ -113,14 +113,12 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
     }
     const p = tracker.progress();
     chips.replaceChildren(chip('Lv', String(p.level)), chip('Streak', `${p.streak}d`), chip('Coins', String(p.coins)));
-    // With more than one learner on the device, show whose progress this is.
-    if (profiles.all.length > 1) {
-      const who = el('a', { class: 'top-stat who', href: routeHash({ name: 'settings' }), 'aria-label': `Learning as ${profiles.current.name}. Change in Settings.` });
-      // Phones show only the initial, so the top bar still fits at 360 px.
-      const initial = [...profiles.current.name][0]!.toUpperCase();
-      who.append(el('span', { class: 'who-initial', 'aria-hidden': 'true' }, initial), el('small', {}, 'Learner'), el('strong', {}, profiles.current.name));
-      chips.prepend(who);
-    }
+    // Always show whose progress this is (owner's choice, 2026-10-20); it opens Settings > Learners.
+    const who = el('a', { class: 'top-stat who', href: routeHash({ name: 'settings' }), 'aria-label': `Learning as ${profiles.current.name}. Change in Settings.` });
+    // Phones show only the initial, so the top bar still fits at 360 px.
+    const initial = [...profiles.current.name][0]!.toUpperCase();
+    who.append(el('span', { class: 'who-initial', 'aria-hidden': 'true' }, initial), el('small', {}, 'Learner'), el('strong', {}, profiles.current.name));
+    chips.prepend(who);
     if (route.name === 'progress') {
       document.title = 'Progress · Logic Quest';
       renderProgress(view, tracker, REWARDS);
