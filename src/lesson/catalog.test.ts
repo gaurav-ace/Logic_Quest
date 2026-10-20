@@ -121,6 +121,9 @@ describe('lesson catalog', () => {
       'agent-loop-limits',
       'agent-memory',
       'agent-planning',
+      'workflows-vs-agents',
+      'agent-guardrails',
+      'agent-failures',
     ]);
   });
 

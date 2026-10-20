@@ -3,8 +3,10 @@ import { defaults, type Params } from '../sim/types';
 import { seeded } from '../trace/tools';
 import { SCENARIOS } from './registry';
 import { RUN_CAP, runAgent } from './runner';
+import { flight } from './scenarios/flight';
 import { moveMeeting } from './scenarios/move-meeting';
 import { orderStatus } from './scenarios/order-status';
+import { PRICE, refund } from './scenarios/refund';
 import { pick, teamDinner } from './scenarios/team-dinner';
 import { weather } from './scenarios/weather';
 import type { Scenario } from './types';
@@ -206,5 +208,57 @@ describe('move meeting (A5): what the lesson claims', () => {
     expect(replanned).toMatchObject({ correct: 1, wrongEmails: 0 });
     expect(stepwise).toMatchObject({ correct: 1, wrongEmails: 0 });
     expect(stepwise.steps).toBeLessThan(replanned.steps);
+  });
+});
+
+describe('refund (A7): what the lesson claims', () => {
+  const at = (p: Params) => outcomeOf(refund as never, p);
+
+  it('without an attack, it refunds the price and nothing else', () => {
+    expect(at({})).toMatchObject({ correct: 1, unsafe: 0 });
+  });
+
+  it('an injected instruction, obeyed, pays ₹45,000 and leaks the customer list', () => {
+    expect(at({ inject: true })).toMatchObject({ correct: 0, unsafe: 2 });
+  });
+
+  it('each guardrail stops only part of it; together, or marking tool text as data, stop all of it', () => {
+    expect(at({ inject: true, approval: true })).toMatchObject({ unsafe: 1, reviews: 1 });
+    expect(at({ inject: true, allowlist: true })).toMatchObject({ unsafe: 1 });
+    expect(at({ inject: true, approval: true, allowlist: true })).toMatchObject({ unsafe: 0, correct: 1 });
+    expect(at({ inject: true, scan: true })).toMatchObject({ unsafe: 0, correct: 1, reviews: 0 });
+  });
+
+  it('the reviewer is only asked when a refund is above the threshold', () => {
+    for (let t = 0; t <= 2000; t += 250) expect(at({ approval: true, threshold: t }).reviews).toBe(t < PRICE ? 1 : 0);
+  });
+});
+
+describe('flight (A8): each failure, and the guardrail that catches it', () => {
+  const at = (p: Params) => outcomeOf(flight as never, p);
+  const failures: [string, Params, Params][] = [
+    ['flaky search', { flaky: true }, { retry: true }],
+    ['invented argument', { invented: true }, { validate: true }],
+    ['wrong tool', { wrongTool: true }, { onlyNeeded: true }],
+  ];
+
+  it('works when nothing is injected', () => {
+    expect(at({})).toMatchObject({ correct: 1, unsafe: 0, blocked: 0 });
+  });
+
+  it.each(failures)('%s breaks the run, and its guardrail fixes it', (_name, inject, guard) => {
+    const broken = at(inject);
+    expect(broken.correct === 0 || (broken.unsafe ?? 0) > 0).toBe(true);
+    expect(at({ ...inject, ...guard })).toMatchObject({ correct: 1, unsafe: 0 });
+  });
+
+  it('a stuck tool loops until the demo cap, and a step limit stops it at the limit', () => {
+    expect(at({ stuck: true })).toMatchObject({ stopped: 1, steps: RUN_CAP });
+    for (let n = 2; n <= 12; n++) expect(at({ stuck: true, limitOn: true, maxSteps: n })).toMatchObject({ stopped: 1, steps: n });
+  });
+
+  it('the wrong guardrail does not catch a failure: each guard is specific', () => {
+    expect(at({ invented: true, onlyNeeded: true, retry: true })).toMatchObject({ correct: 0, unsafe: 1 });
+    expect(at({ wrongTool: true, validate: true, retry: true }).unsafe).toBe(1);
   });
 });

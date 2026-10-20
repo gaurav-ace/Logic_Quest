@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "kind": "agent",
+  "id": "agent-failures",
+  "title": "Failure modes",
+  "track": "agentic",
+  "level": "hard",
+  "objective": "Inject four ways an agent fails (a flaky tool, a tool stuck on \"try again\", an invented argument, the wrong tool) and find the guardrail that catches each.",
+  "scenario": "flight",
+  "requires": [
+    "agent-guardrails"
+  ],
+  "sources": [
+    {
+      "title": "Anthropic: Building effective agents (Dec 2024): agents use tools in a loop; stopping conditions such as a maximum number of iterations; \"ground truth\" from the environment at each step",
+      "url": "https://www.anthropic.com/engineering/building-effective-agents"
+    },
+    {
+      "title": "OWASP Top 10 for LLM Applications 2025, LLM06 Excessive Agency (excessive functionality, permissions, autonomy; minimise extensions; human approval)",
+      "url": "https://genai.owasp.org/llmrisk/llm062025-excessive-agency/"
+    },
+    {
+      "title": "Claude Platform docs: Tool use with Claude (the model returns a tool_use block; your code runs client tools and sends back a tool_result)",
+      "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview"
+    }
+  ],
+  "simplifies": "The model here is a script with fixed rules, not a real AI: a real model's choices vary between runs, and it might give up, ask for help or retry differently. Each failure is injected on purpose and behaves the same every run; real failures are rarer, messier, and can come together.",
+  "challenges": [
+    {
+      "id": "flaky",
+      "title": "A flaky tool",
+      "prompt": "The flight search fails twice before it works. Get the booking made.",
+      "setup": {
+        "params": {
+          "flaky": true
+        },
+        "lock": [
+          "flaky",
+          "stuck",
+          "invented",
+          "wrongTool"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "correct",
+          "op": ">=",
+          "value": 1
+        }
+      ],
+      "hint": "The model gives up after two failures. Could the app absorb short failures before the model even sees them?",
+      "explain": "Automatic retries in the app hide short, temporary failures. Real apps also wait a little longer between tries.",
+      "solution": {
+        "retry": true
+      }
+    },
+    {
+      "id": "stuck",
+      "title": "Stuck on \"try again\"",
+      "prompt": "Booking always answers \"busy, try again\". Make the run end within 8 turns.",
+      "predict": {
+        "prompt": "The booking tool keeps saying \"try again\". With no step limit, how does the run end?",
+        "options": [
+          {
+            "text": "The model gives up after two tries",
+            "explanation": "Its give-up rule is for errors; \"try again\" invites another try."
+          },
+          {
+            "text": "It doesn't: the model keeps trying until something outside stops it",
+            "explanation": "Right. This demo stops it at 30 turns."
+          },
+          {
+            "text": "The tool recovers",
+            "explanation": "It's stuck for the whole run."
+          }
+        ],
+        "answer": 1
+      },
+      "setup": {
+        "params": {
+          "stuck": true
+        },
+        "lock": [
+          "flaky",
+          "stuck",
+          "invented",
+          "wrongTool"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "steps",
+          "op": "<=",
+          "value": 8
+        }
+      ],
+      "hint": "Retries won't help a tool that never recovers. What stops a loop from outside?",
+      "explain": "A step limit ends the loop however the model reacts; the user is told it couldn't finish.",
+      "solution": {
+        "limitOn": true
+      }
+    },
+    {
+      "id": "invented",
+      "title": "An invented argument",
+      "prompt": "The model books passenger P-71, but the request is for P-17. Prevent the wrong booking and book the right one.",
+      "setup": {
+        "params": {
+          "invented": true
+        },
+        "lock": [
+          "flaky",
+          "stuck",
+          "invented",
+          "wrongTool"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "unsafe",
+          "op": "<=",
+          "value": 0
+        },
+        {
+          "metric": "correct",
+          "op": ">=",
+          "value": 1
+        }
+      ],
+      "hint": "The tool does exactly what it's told. What could check the argument first?",
+      "explain": "Checking arguments before a tool runs catches values the model made up, and the error message tells it what's right.",
+      "solution": {
+        "validate": true
+      }
+    },
+    {
+      "id": "wrong-tool",
+      "title": "The wrong tool",
+      "prompt": "The model calls cancel_booking on someone else's booking. Stop that from happening.",
+      "setup": {
+        "params": {
+          "wrongTool": true
+        },
+        "lock": [
+          "flaky",
+          "stuck",
+          "invented",
+          "wrongTool"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "unsafe",
+          "op": "<=",
+          "value": 0
+        }
+      ],
+      "hint": "Does this task need a cancel tool at all?",
+      "explain": "Offer only the tools a task needs. A tool the agent doesn't have is a mistake it can't make (OWASP: minimise extensions).",
+      "solution": {
+        "onlyNeeded": true
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Which guardrail catches a model that invents an argument?",
+      "options": [
+        {
+          "text": "Checking arguments before the tool runs",
+          "explanation": "Right. A retry or a step limit wouldn't notice a wrong value."
+        },
+        {
+          "text": "Automatic retries",
+          "explanation": "Retrying repeats the same wrong value."
+        },
+        {
+          "text": "A step limit",
+          "explanation": "The wrong booking happens in one step."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "Why do agents need several different guardrails?",
+      "options": [
+        {
+          "text": "One good guardrail covers everything",
+          "explanation": "A step limit doesn't stop a wrong booking; a check doesn't end a loop."
+        },
+        {
+          "text": "To slow the agent down",
+          "explanation": "They're there to catch failures, not to slow it."
+        },
+        {
+          "text": "Each failure needs its own catch: retries for blips, limits for loops, checks for bad arguments, fewer tools for wrong ones",
+          "explanation": "Right. No single guardrail covers them all."
+        }
+      ],
+      "answer": 2
+    }
+  ]
+}

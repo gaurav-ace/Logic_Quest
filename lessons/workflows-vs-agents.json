@@ -1,0 +1,324 @@
+{
+  "schemaVersion": 1,
+  "kind": "diagram",
+  "id": "workflows-vs-agents",
+  "title": "Workflows versus agents",
+  "track": "agentic",
+  "level": "medium",
+  "objective": "Know the common workflow patterns, when a fixed workflow beats an agent, and when an agent is worth its cost.",
+  "requires": [
+    "agent-planning"
+  ],
+  "sources": [
+    {
+      "title": "Anthropic: Building effective agents: workflows (\"orchestrated through predefined code paths\") versus agents; prompt chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer; \"finding the simplest solution possible\"",
+      "url": "https://www.anthropic.com/engineering/building-effective-agents"
+    }
+  ],
+  "simplifies": "Real systems mix these patterns. The diagram shows routing; the other patterns are described in the captions.",
+  "nodes": [
+    {
+      "id": "req",
+      "label": "Request",
+      "x": 60,
+      "y": 100,
+      "width": 110
+    },
+    {
+      "id": "router",
+      "label": "Router",
+      "x": 200,
+      "y": 100,
+      "width": 100
+    },
+    {
+      "id": "a",
+      "label": "Billing",
+      "x": 345,
+      "y": 40,
+      "width": 110
+    },
+    {
+      "id": "b",
+      "label": "Tech help",
+      "x": 345,
+      "y": 160,
+      "width": 130
+    }
+  ],
+  "edges": [
+    [
+      "req",
+      "router"
+    ],
+    [
+      "router",
+      "a"
+    ],
+    [
+      "router",
+      "b"
+    ]
+  ],
+  "steps": [
+    {
+      "caption": "Two kinds of system. Workflows: model calls and tools \"orchestrated through predefined code paths\". Agents: the model directs its own process and tool use.",
+      "highlight": [
+        "router"
+      ],
+      "path": []
+    },
+    {
+      "caption": "Prompt chaining: a fixed sequence, where each call works on the previous one's output. Code checks in between (a \"gate\") keep it on track.",
+      "highlight": [
+        "req",
+        "router"
+      ],
+      "path": [
+        [
+          "req",
+          "router"
+        ]
+      ]
+    },
+    {
+      "caption": "Routing: classify the input, then send it to a specialised follow-up. A billing question and a tech question each get the prompt built for them.",
+      "highlight": [
+        "router",
+        "a",
+        "b"
+      ],
+      "path": [
+        [
+          "req",
+          "router"
+        ],
+        [
+          "router",
+          "a"
+        ]
+      ],
+      "predict": {
+        "prompt": "A billing question and a technical question arrive. With routing, what happens?",
+        "options": [
+          {
+            "text": "Both go to one general prompt",
+            "explanation": "That's what routing replaces."
+          },
+          {
+            "text": "Each is classified, then handled by the prompt made for its kind",
+            "explanation": "Right. Specialised prompts do better than one prompt trying to do everything."
+          },
+          {
+            "text": "An agent decides everything from scratch each time",
+            "explanation": "Routing is a fixed step: classify, then send on."
+          }
+        ],
+        "answer": 1
+      }
+    },
+    {
+      "caption": "Parallelization: split a task into independent parts that run at the same time (sectioning), or run the same task several times and compare (voting).",
+      "highlight": [
+        "a",
+        "b"
+      ],
+      "path": []
+    },
+    {
+      "caption": "Orchestrator-workers: a central model breaks the task down, hands parts to workers, and combines the results. Unlike parallelization, the parts aren't fixed in advance; the orchestrator decides them for each input.",
+      "highlight": [
+        "router",
+        "a",
+        "b"
+      ],
+      "path": [
+        [
+          "router",
+          "a"
+        ],
+        [
+          "router",
+          "b"
+        ]
+      ]
+    },
+    {
+      "caption": "Evaluator-optimizer: one call writes, another evaluates and gives feedback, in a loop, for example a translation polished over a few rounds.",
+      "highlight": [
+        "a"
+      ],
+      "path": []
+    },
+    {
+      "caption": "Agents suit open-ended problems where you can't predict the steps. The price: higher costs, and errors that can compound.",
+      "highlight": [
+        "router"
+      ],
+      "path": [],
+      "predict": {
+        "prompt": "Password resets follow the same three steps every time. Workflow or agent?",
+        "options": [
+          {
+            "text": "A workflow: the steps are known, so fixed code is cheaper and more predictable",
+            "explanation": "Right. An agent's freedom buys nothing here and adds cost and risk."
+          },
+          {
+            "text": "An agent: it's always smarter",
+            "explanation": "Freedom to choose steps only helps when the steps aren't known in advance."
+          },
+          {
+            "text": "Neither: models can't reset passwords",
+            "explanation": "A workflow can call the reset tool at the right step."
+          }
+        ],
+        "answer": 0
+      }
+    },
+    {
+      "caption": "The guide's advice: find the simplest solution possible, and add complexity only when it's needed.",
+      "highlight": [
+        "req"
+      ],
+      "path": []
+    }
+  ],
+  "critique": {
+    "prompt": "A proposal: an autonomous agent with 15 tools handles password resets (always the same 3 steps). It has no step limit, and nobody measures whether its answers are right.",
+    "nodes": [
+      {
+        "id": "user",
+        "label": "User",
+        "x": 60,
+        "y": 100,
+        "width": 100
+      },
+      {
+        "id": "agent",
+        "label": "Agent",
+        "x": 210,
+        "y": 100,
+        "width": 110
+      },
+      {
+        "id": "tools",
+        "label": "15 tools",
+        "x": 350,
+        "y": 100,
+        "width": 120
+      }
+    ],
+    "edges": [
+      [
+        "user",
+        "agent"
+      ],
+      [
+        "agent",
+        "tools"
+      ]
+    ],
+    "risks": [
+      {
+        "text": "An agent for a fixed three-step task adds cost and unpredictability for nothing",
+        "real": true,
+        "why": "A short workflow does the same steps every time, cheaper and easier to test.",
+        "nodes": [
+          "agent"
+        ]
+      },
+      {
+        "text": "15 tools for a password reset gives it far more power than the job needs",
+        "real": true,
+        "why": "Offer only the tools a task needs (OWASP calls the opposite \"excessive agency\").",
+        "nodes": [
+          "tools"
+        ]
+      },
+      {
+        "text": "With no step limit, a confused run can loop and burn money",
+        "real": true,
+        "why": "Add a stopping condition such as a maximum number of steps.",
+        "nodes": [
+          "agent"
+        ]
+      },
+      {
+        "text": "Nobody measures whether its answers are right",
+        "real": true,
+        "why": "Without evaluation, you won't notice when it gets worse.",
+        "nodes": [
+          "agent"
+        ]
+      },
+      {
+        "text": "It uses a model at all",
+        "real": false,
+        "why": "Models are fine here, for example to understand the request; the problem is the open-ended agent."
+      },
+      {
+        "text": "Users type their request in their own words",
+        "real": false,
+        "why": "That's the point of a language model in front."
+      }
+    ],
+    "hint": "Ask what the task needs: how many steps, which tools, and how you'd know it works.",
+    "first": {
+      "prompt": "Which change helps most?",
+      "options": [
+        {
+          "text": "Add a step limit",
+          "explanation": "Useful, but it treats a symptom of using an agent where none is needed."
+        },
+        {
+          "text": "Replace the agent with a fixed three-step workflow",
+          "explanation": "Right. It removes the open-ended loop, most of the tools and most of the risk in one move."
+        },
+        {
+          "text": "Remove some tools",
+          "explanation": "Better, but the task still doesn't need an agent."
+        }
+      ],
+      "answer": 1
+    },
+    "explain": "Match the system to the task: known steps call for a workflow. Then give it only the tools it needs, and measure whether it works."
+  },
+  "quiz": [
+    {
+      "prompt": "What's the difference between orchestrator-workers and parallelization?",
+      "options": [
+        {
+          "text": "Orchestrator-workers runs one step at a time",
+          "explanation": "Workers can run in parallel too; the difference is who decides the subtasks."
+        },
+        {
+          "text": "There is none",
+          "explanation": "They differ in whether the split is fixed or decided per input."
+        },
+        {
+          "text": "In orchestrator-workers, the subtasks aren't fixed in advance: the orchestrator decides them per input",
+          "explanation": "Right. Parallelization splits work in a way decided ahead of time."
+        }
+      ],
+      "answer": 2
+    },
+    {
+      "prompt": "When is an agent worth its extra cost?",
+      "options": [
+        {
+          "text": "Whenever a model is involved",
+          "explanation": "Many model tasks are best as a single call or a workflow."
+        },
+        {
+          "text": "For open-ended problems where you can't predict the steps",
+          "explanation": "Right. Otherwise a workflow is simpler and cheaper."
+        },
+        {
+          "text": "When the task has exactly three steps",
+          "explanation": "Known steps are workflow territory."
+        }
+      ],
+      "answer": 1
+    }
+  ]
+}
