@@ -1,4 +1,5 @@
 import agentLoop from '../../lessons/agent-loop.json';
+import agentLoopLimitsLesson from '../../lessons/agent-loop-limits.json';
 import cache from '../../lessons/cache.json';
 import dryRun from '../../lessons/dry-run.json';
 import hello from '../../lessons/hello.json';
@@ -91,9 +92,10 @@ import articleDiscordMessagesLesson from '../../lessons/article-discord-messages
 import articleStripeRetriesLesson from '../../lessons/article-stripe-retries.json';
 import articleUberH3Lesson from '../../lessons/article-uber-h3.json';
 import capstoneDesignReviewLesson from '../../lessons/capstone-design-review.json';
+import { getScenario } from '../agent/registry';
 import { getModel } from '../sim/registry';
 import { getProgram } from '../trace/registry';
-import type { Lesson, SimLesson } from './schema';
+import type { AgentLesson, Lesson, SimLesson } from './schema';
 import { validateLesson } from './validate';
 
 /** Lesson order on the home screen. Every file in lessons/ must be listed (catalog.test.ts checks). */
@@ -194,6 +196,7 @@ export const LESSON_DATA: unknown[] = [
   articleUberH3Lesson,
   capstoneDesignReviewLesson,
   agentLoop,
+  agentLoopLimitsLesson,
 ];
 
 /** Validates every lesson up front, so bad data fails at load time, not mid-lesson. */
@@ -207,6 +210,7 @@ export function loadCatalog(data: unknown[] = LESSON_DATA, hasProgram: (id: stri
   for (const l of lessons) {
     if (l.kind === 'trace' && !hasProgram(l.program)) throw new Error(`Lesson "${l.id}" names unknown program "${l.program}"`);
     if (l.kind === 'sim') checkSimAgainstModel(l);
+    if (l.kind === 'agent') checkAgentAgainstScenario(l);
     for (const r of l.requires ?? []) if (!byId.has(r)) throw new Error(`Lesson "${l.id}" requires unknown lesson "${r}"`);
   }
   // A cycle of requirements would lock every lesson in it forever.
@@ -239,5 +243,23 @@ function checkSimAgainstModel(l: SimLesson): void {
       if (!settings.has(k)) fail(`challenge "${c.id}" names unknown control "${k}"`);
     }
     for (const a of c.setup?.actions ?? []) if (!actions.has(a.action)) fail(`challenge "${c.id}" names unknown action "${a.action}"`);
+  }
+}
+
+/** An agent lesson may only name settings its scenario has, and goals on numbers a run reports. */
+function checkAgentAgainstScenario(l: AgentLesson): void {
+  const scenario = getScenario(l.scenario);
+  if (!scenario) throw new Error(`Lesson "${l.id}" names unknown scenario "${l.scenario}"`);
+  const settings = new Set(scenario.controls.filter((c) => c.kind !== 'action').map((c) => c.id));
+  const metrics = new Set(scenario.metrics.map((m) => m.id));
+  const fail = (msg: string) => {
+    throw new Error(`Lesson "${l.id}": ${msg}`);
+  };
+  for (const k of Object.keys(l.params ?? {})) if (!settings.has(k)) fail(`params names unknown control "${k}"`);
+  for (const c of l.challenges) {
+    for (const g of c.goals) if (!metrics.has(g.metric)) fail(`challenge "${c.id}" goal uses unknown metric "${g.metric}"`);
+    for (const k of [...Object.keys(c.setup?.params ?? {}), ...(c.setup?.lock ?? []), ...Object.keys(c.solution)]) {
+      if (!settings.has(k)) fail(`challenge "${c.id}" names unknown control "${k}"`);
+    }
   }
 }

@@ -2,7 +2,7 @@
 // No dependencies: talks to Chrome over the DevTools protocol with Node's built-in WebSocket.
 //
 //   npm run build && npm run preview          (in another terminal)
-//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design] [url] [screenshot-dir]
+//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design|agent] [url] [screenshot-dir]
 //   DIST_DIR=dist node scripts/browser-check.mjs update   (edits dist/ to simulate a deploy: rebuild after)
 //   LESSONS=binary-search,heaps node scripts/browser-check.mjs lessons   (walk only those)
 //
@@ -620,6 +620,59 @@ async function simChecks() {
 }
 
 if (mode === 'sim') await simChecks();
+
+// One agent lesson end to end: the scripted run step by step, the outcome, a challenge by touch
+// (predict, start, locked settings, fix, run, XP), a failed attempt's feedback, and no second
+// scoring after a reload.
+async function agentChecks() {
+  await viewport(360, 740, true);
+  await media('reduce');
+  await load(url + '#/lesson/agent-loop-limits');
+  await layoutChecks('agent-360');
+  await shot('agent-360-start');
+  check('the scripted model\'s rules are shown', (await evaluate(`document.querySelectorAll('.stage .rules li').length`)) === 4);
+  let guard = 0;
+  while ((await text('.controls .primary')) !== 'Take the quiz' && guard++ < 40) {
+    await skipPrediction();
+    await tap('Next');
+  }
+  check('the default run steps to its end: right answer in 2 turns', (await text('.caption')).startsWith('Done in 2 turns'), await text('.caption'));
+  check('the transcript shows the tool call and the answer', (await evaluate(`[...document.querySelectorAll('.view-table td')].map((t) => t.textContent).join('|')`)).includes('forecast(Pune, tomorrow)'));
+  const tile = (label) => evaluate(`[...document.querySelectorAll('.agent-panel .metric')].find((m) => m.querySelector('small').textContent === ${JSON.stringify(label)})?.querySelector('strong').textContent ?? null`);
+  check('the outcome tiles show this run', (await tile('Right answer')) === '1' && (await tile('Model turns')) === '2', `${await tile('Right answer')} / ${await tile('Model turns')}`);
+
+  check('a challenge asks for a prediction before it starts', (await text('.agent-panel .challenge h3')).startsWith('Challenge 1 of 3') && !(await evaluate(`[...document.querySelectorAll('button')].some((b) => b.offsetParent && b.textContent === 'Start challenge')`)));
+  await tap("It doesn't: the model retries on every error, forever");
+  await tap('Start challenge');
+  check('starting runs the challenge\'s setup: the loop hits the demo cap', (await tile('Model turns')) === '30', await tile('Model turns'));
+  check('the challenge locks the settings it fixes', await evaluate(`[...document.querySelectorAll('.agent-panel button.toggle')].filter((b) => b.disabled).length === 2`));
+  await layoutChecks('agent-360 challenge');
+  await shot('agent-360-challenge');
+  await tap('Step limit: off');
+  await tap('Run with these settings');
+  check('the fixed run passes the challenge and earns XP', (await text('.agent-panel .challenge .reward')) === 'Challenge done: The loop that never ends. +10 XP', await text('.agent-panel .challenge .reward'));
+  check('the new run stops at the limit', (await tile('Model turns')) === '6', await tile('Model turns'));
+  check('the next challenge follows', (await text('.agent-panel .challenge')).includes('Challenge 2 of 3'));
+
+  await tap('Start challenge');
+  await tap('Run with these settings');
+  check('a run that misses the goal says what was off', (await text('.agent-panel .challenge .feedback')).startsWith('Not yet: Made-up answers was 1, needs at most 0'), await text('.agent-panel .challenge .feedback'));
+  await tap('Hint');
+  check('a hint is there when asked for', (await text('.agent-panel .challenge')).includes('What does the model see when the tool fails?'));
+  await shot('agent-360-not-yet');
+
+  await load(url + '#/lesson/agent-loop-limits');
+  await tap("It doesn't: the model retries on every error, forever");
+  await tap('Start challenge');
+  await tap('Step limit: off');
+  await tap('Run with these settings');
+  check('a challenge solved before is not scored again', (await text('.agent-panel .challenge .reward')).endsWith('Already scored.'), await text('.agent-panel .challenge .reward'));
+  await viewport(1280, 800, false);
+  await load(url + '#/lesson/agent-loop-limits');
+  await layoutChecks('agent-desktop');
+  await shot('agent-desktop');
+}
+if (mode === 'agent') await agentChecks();
 
 // One design lesson end to end: diagrams, code, the exercise with XP and retries, the quiz
 // guard during the exercise, and no second scoring after a reload.

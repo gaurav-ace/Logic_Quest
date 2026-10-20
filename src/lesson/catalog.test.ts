@@ -116,6 +116,7 @@ describe('lesson catalog', () => {
       'article-uber-h3',
       'capstone-design-review',
       'agent-loop',
+      'agent-loop-limits',
     ]);
   });
 
@@ -132,6 +133,18 @@ describe('lesson catalog', () => {
     const trace: Record<string, unknown> = { ...(structuredClone(LESSON_DATA[0]) as Record<string, unknown>), id: 'some-trace', kind: 'trace', program: 'no-such-program' };
     for (const k of ['nodes', 'edges', 'steps']) delete trace[k];
     expect(() => loadCatalog([trace])).toThrow('names unknown program "no-such-program"');
+  });
+
+  it('rejects an agent lesson naming an unknown scenario, control or metric', () => {
+    const agent = LESSON_DATA.find((d) => (d as { kind: string }).kind === 'agent') as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const lesson = (): Record<string, any> => ({ ...structuredClone(agent), requires: [] }); // eslint-disable-line @typescript-eslint/no-explicit-any
+    expect(() => loadCatalog([{ ...lesson(), scenario: 'no-such-scenario' }])).toThrow('names unknown scenario "no-such-scenario"');
+    const badControl = lesson();
+    badControl.challenges[0].solution = { warpDrive: true };
+    expect(() => loadCatalog([badControl])).toThrow('names unknown control "warpDrive"');
+    const badMetric = lesson();
+    badMetric.challenges[0].goals[0].metric = 'happiness';
+    expect(() => loadCatalog([badMetric])).toThrow('goal uses unknown metric "happiness"');
   });
 
   it('rejects unknown and circular requirements', () => {

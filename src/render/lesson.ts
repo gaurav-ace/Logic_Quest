@@ -6,6 +6,7 @@ import type { QuizHooks } from './quiz';
 import { renderStepped, type LessonView, type Stage } from './stepped';
 import { critiquePart } from './critique';
 import { renderDesign } from './design';
+import { renderAgent } from './agent';
 import { renderSim } from './sim';
 import { renderTrace } from './trace';
 
@@ -15,6 +16,7 @@ export function renderLesson(root: HTMLElement, lesson: Lesson, hooks: QuizHooks
   if (lesson.kind === 'trace') return renderTrace(root, lesson, hooks);
   if (lesson.kind === 'sim') return renderSim(root, lesson, hooks);
   if (lesson.kind === 'design') return renderDesign(root, lesson, hooks);
+  if (lesson.kind === 'agent') return renderAgent(root, lesson, hooks);
   return renderStepped(root, lesson, diagramStage(lesson), hooks, lesson.critique ? { beforeQuiz: critiquePart({ title: lesson.title, critique: lesson.critique }, hooks) } : {});
 }
 

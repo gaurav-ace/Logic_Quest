@@ -649,6 +649,26 @@ button.link {
   gap: 10px;
 }
 
+/* Agent lessons: the scripted model's rules sit above the run, compact. */
+.stage.agent h4 {
+  margin: 0;
+}
+
+.stage.agent .rules {
+  margin: 0;
+  padding-left: 22px;
+}
+
+.stage.agent .rules li + li {
+  margin-top: 2px;
+}
+
+.agent-settings {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--mute);
+}
+
 .trace-input {
   margin: 0;
   font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Roboto Mono', monospace;

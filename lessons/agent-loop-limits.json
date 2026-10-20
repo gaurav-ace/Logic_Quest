@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "kind": "agent",
+  "id": "agent-loop-limits",
+  "title": "The agent loop: limits and failures",
+  "track": "agentic",
+  "level": "medium",
+  "objective": "Run a simple agent, then break its tool: see why the app, not the model, must stop a loop, and why tool errors must reach the model.",
+  "scenario": "weather",
+  "requires": [
+    "agent-loop"
+  ],
+  "sources": [
+    {
+      "title": "Anthropic: Building effective agents (Dec 2024): agents use tools in a loop; stopping conditions such as a maximum number of iterations; \"ground truth\" from the environment at each step",
+      "url": "https://www.anthropic.com/engineering/building-effective-agents"
+    },
+    {
+      "title": "Claude Platform docs: Tool use with Claude (the model returns a tool_use block; your code runs client tools and sends back a tool_result)",
+      "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview"
+    }
+  ],
+  "simplifies": "The model here is a script with fixed rules, not a real AI: a real model's choices vary between runs, and it might give up, ask for help or retry differently. Real apps also wait longer between retries and put timeouts on tools. Token counts are illustrative.",
+  "challenges": [
+    {
+      "id": "never-ends",
+      "title": "The loop that never ends",
+      "prompt": "The forecast tool is down and there's no step limit. Make the run end within 6 turns.",
+      "predict": {
+        "prompt": "The tool is down and nothing limits the loop. How does this run end?",
+        "options": [
+          {
+            "text": "It doesn't: the model retries on every error, forever",
+            "explanation": "Right. Rule 2 says try again, and nothing in its rules says stop."
+          },
+          {
+            "text": "After 3 tries the model gives up",
+            "explanation": "None of its rules counts tries; only the app can stop it."
+          },
+          {
+            "text": "The tool comes back up",
+            "explanation": "In this run the tool stays down."
+          }
+        ],
+        "answer": 0
+      },
+      "setup": {
+        "params": {
+          "down": true,
+          "limitOn": false
+        },
+        "lock": [
+          "down",
+          "errors"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "steps",
+          "op": "<=",
+          "value": 6
+        }
+      ],
+      "hint": "The model will retry forever. What could stop it from outside?",
+      "explain": "A step limit is enforced by the app, so it works even when the model would never stop by itself. Anthropic's guide recommends stopping conditions such as a maximum number of iterations.",
+      "solution": {
+        "limitOn": true
+      }
+    },
+    {
+      "id": "silent-failure",
+      "title": "The silent failure",
+      "prompt": "The tool is down, and the app doesn't pass tool errors on. Get the made-up answers to 0.",
+      "setup": {
+        "params": {
+          "down": true,
+          "errors": false
+        },
+        "lock": [
+          "down",
+          "limitOn",
+          "maxSteps"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "madeUp",
+          "op": "<=",
+          "value": 0
+        }
+      ],
+      "hint": "What does the model see when the tool fails? What would it need to see?",
+      "explain": "With the error in its context, the model knows the call failed, and doesn't treat silence as an answer. The run now stops at the limit without an answer: honest, if not helpful.",
+      "solution": {
+        "errors": true
+      }
+    },
+    {
+      "id": "too-tight",
+      "title": "A limit too tight",
+      "prompt": "The tool works, but the step limit is 1. Get a right answer.",
+      "setup": {
+        "params": {
+          "maxSteps": 1
+        },
+        "lock": [
+          "down",
+          "limitOn",
+          "errors"
+        ]
+      },
+      "goals": [
+        {
+          "metric": "correct",
+          "op": ">=",
+          "value": 1
+        }
+      ],
+      "hint": "How many turns does a normal run need?",
+      "explain": "A normal run needs 2 turns: call the tool, then answer. Set the limit above what normal work needs, with some room, but low enough to stop a runaway loop.",
+      "solution": {
+        "maxSteps": 2
+      }
+    }
+  ],
+  "quiz": [
+    {
+      "prompt": "Why does the step limit belong in the app, not in the model's instructions?",
+      "options": [
+        {
+          "text": "Models can't count",
+          "explanation": "Counting isn't the issue; relying on the model to stop is."
+        },
+        {
+          "text": "It makes the model faster",
+          "explanation": "A limit doesn't speed anything up; it stops runaway loops."
+        },
+        {
+          "text": "The app can enforce it whatever the model decides; an instruction can be ignored or never triggered",
+          "explanation": "Right. A loop that never meets its stopping rule needs an outside stop."
+        }
+      ],
+      "answer": 2
+    },
+    {
+      "prompt": "The app hid the tool's error and passed on an empty result. What went wrong?",
+      "options": [
+        {
+          "text": "The model couldn't tell a failure from \"no data\", so it guessed and answered confidently",
+          "explanation": "Right. Agents need ground truth from the environment, errors included."
+        },
+        {
+          "text": "The tool returned the wrong forecast",
+          "explanation": "It returned nothing at all; the app hid why."
+        },
+        {
+          "text": "Nothing: the user got an answer",
+          "explanation": "The answer was made up."
+        }
+      ],
+      "answer": 0
+    },
+    {
+      "prompt": "How should you choose a step limit?",
+      "options": [
+        {
+          "text": "As high as possible, to be safe",
+          "explanation": "A huge limit lets a broken loop burn tokens for a long time."
+        },
+        {
+          "text": "Enough for the normal task with some room, but low enough to stop a runaway loop early",
+          "explanation": "Right. Too low stops good runs; too high wastes time and tokens."
+        },
+        {
+          "text": "Exactly the number of tools",
+          "explanation": "Tasks can call the same tool several times."
+        }
+      ],
+      "answer": 1
+    }
+  ]
+}

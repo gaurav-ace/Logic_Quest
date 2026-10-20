@@ -3,6 +3,7 @@ import hello from '../../lessons/hello.json';
 import objects from '../../lessons/objects-and-responsibilities.json';
 import food from '../../lessons/case-food-delivery.json';
 import payment from '../../lessons/case-payment-gateway.json';
+import agentLimits from '../../lessons/agent-loop-limits.json';
 import { LessonValidationError, validateLesson } from './validate';
 
 // Fresh deep copy per test, so one test's edits never leak into another.
@@ -150,7 +151,7 @@ describe('validateLesson', () => {
   it('requires a known kind', () => {
     const l = lesson();
     delete l.kind;
-    expect(problemsOf(l)).toContain('kind: must be one of diagram, trace, sim, design');
+    expect(problemsOf(l)).toContain('kind: must be one of diagram, trace, sim, design, agent');
   });
 
   it('checks a step prediction like a quiz question', () => {
@@ -324,5 +325,34 @@ describe('real-world lessons: the accuracy rule, critiques and timelines', () =>
     expect(() => validateLesson(l)).not.toThrow();
     l.steps[0].time = 'x'.repeat(30);
     expect(problemsOf(l)).toContain('steps[0].time: must be short text, e.g. "15:39 UTC"');
+  });
+});
+
+describe('agent lessons', () => {
+  const copy = (): Record<string, any> => structuredClone(agentLimits) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+  it('accepts a valid agent lesson', () => {
+    expect(validateLesson(copy()).kind).toBe('agent');
+  });
+
+  it('rejects goals that are missing a part or carry extra ones, and sim-style goals', () => {
+    const l = copy();
+    l.challenges[0].goals = [{ metric: 'steps', op: '<' , value: 6 }];
+    expect(problemsOf(l)).toContain('challenges[0].goals[0]: needs exactly metric, op ("<=" or ">=") and value');
+    l.challenges[0].goals = [{ metric: 'steps', op: '<=', value: 6, forSeconds: 10 }];
+    expect(problemsOf(l)).toContain('challenges[0].goals[0]: needs exactly metric, op ("<=" or ">=") and value');
+    l.challenges[0].goals = [];
+    expect(problemsOf(l)).toContain('challenges[0].goals: must be a non-empty list');
+  });
+
+  it('rejects unknown fields, a bad scenario id and timed setup actions', () => {
+    const l = copy();
+    l.model = 'weather';
+    l.scenario = 'Weather!';
+    l.challenges[0].setup.actions = [{ at: 0, action: 'down' }];
+    const problems = problemsOf(l);
+    expect(problems).toContain('model: unknown field');
+    expect(problems).toContain('scenario: must be a scenario id (lowercase words joined by hyphens)');
+    expect(problems).toContain('challenges[0].setup.actions: unknown field');
   });
 });

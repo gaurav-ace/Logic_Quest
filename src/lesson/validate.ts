@@ -47,7 +47,7 @@ export function validateLesson(data: unknown): Lesson {
 
   // A misspelt optional key (e.g. "simplify") would otherwise vanish silently.
   const common = ['schemaVersion', 'kind', 'id', 'title', 'track', 'level', 'objective', 'sources', 'simplifies', 'requires', 'quiz', 'company', 'basis', 'critique'];
-  const own = kind === 'trace' ? ['program', 'diagrams', 'exercise'] : kind === 'sim' ? ['model', 'params', 'challenges'] : kind === 'design' ? ['diagrams', 'steps', 'exercise'] : ['nodes', 'edges', 'steps'];
+  const own = kind === 'trace' ? ['program', 'diagrams', 'exercise'] : kind === 'sim' ? ['model', 'params', 'challenges'] : kind === 'agent' ? ['scenario', 'params', 'challenges'] : kind === 'design' ? ['diagrams', 'steps', 'exercise'] : ['nodes', 'edges', 'steps'];
   const known = [...common, ...own];
   for (const key of Object.keys(data)) if (!known.includes(key)) bad(key, 'unknown field');
 
@@ -76,6 +76,8 @@ export function validateLesson(data: unknown): Lesson {
     }
   } else if (kind === 'sim') {
     checkSim(data, bad);
+  } else if (kind === 'agent') {
+    checkAgent(data, bad);
   } else if (kind === 'design') {
     checkDesign(data, bad);
   } else {
@@ -195,6 +197,33 @@ function checkSim(data: Obj, bad: Bad): void {
       if (st.actions !== undefined && !(Array.isArray(st.actions) && st.actions.every((a) => isObj(a) && typeof a.at === 'number' && a.at >= 0 && isText(a.action)))) {
         bad(`${p}.setup.actions`, 'must be a list of { at, action }');
       }
+    }
+  });
+}
+
+// Shape only: whether the scenario, its controls and metrics exist is checked by the catalog.
+function checkAgent(data: Obj, bad: Bad): void {
+  if (!isText(data.scenario) || !ID.test(data.scenario)) bad('scenario', 'must be a scenario id (lowercase words joined by hyphens)');
+  if (data.params !== undefined && !isParams(data.params)) bad('params', 'must map control ids to numbers or true/false');
+  const ids = new Set<string>();
+  checkList(data.challenges, 'challenges', bad, (c, p) => {
+    if (!isObj(c)) return void bad(p, 'must be an object');
+    for (const key of Object.keys(c)) if (!['id', 'title', 'prompt', 'predict', 'setup', 'goals', 'hint', 'explain', 'solution'].includes(key)) bad(`${p}.${key}`, 'unknown field');
+    if (!isText(c.id) || !ID.test(c.id)) bad(`${p}.id`, 'must be lowercase words joined by hyphens');
+    else if (ids.has(c.id)) bad(`${p}.id`, `duplicate challenge id "${c.id}"`);
+    else ids.add(c.id);
+    for (const key of ['title', 'prompt', 'hint', 'explain'] as const) if (!isText(c[key])) bad(`${p}.${key}`, 'must be non-empty text');
+    if (c.predict !== undefined) checkQuestion(c.predict, `${p}.predict`, bad);
+    if (!isParams(c.solution)) bad(`${p}.solution`, 'must map control ids to numbers or true/false');
+    checkList(c.goals, `${p}.goals`, bad, (g, gp) => {
+      if (!isObj(g) || !isText(g.metric) || (g.op !== '<=' && g.op !== '>=') || typeof g.value !== 'number' || Object.keys(g).length !== 3) bad(gp, 'needs exactly metric, op ("<=" or ">=") and value');
+    });
+    if (c.setup !== undefined) {
+      const st = c.setup;
+      if (!isObj(st)) return void bad(`${p}.setup`, 'must be an object');
+      for (const key of Object.keys(st)) if (!['params', 'lock'].includes(key)) bad(`${p}.setup.${key}`, 'unknown field');
+      if (st.params !== undefined && !isParams(st.params)) bad(`${p}.setup.params`, 'must map control ids to numbers or true/false');
+      if (st.lock !== undefined && !(Array.isArray(st.lock) && st.lock.every(isText))) bad(`${p}.setup.lock`, 'must be a list of control ids');
     }
   });
 }

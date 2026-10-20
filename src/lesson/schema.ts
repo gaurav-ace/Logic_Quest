@@ -209,6 +209,36 @@ export interface DesignLesson extends LessonBase {
   exercise: DesignExercise;
 }
 
-export type Lesson = DiagramLesson | TraceLesson | SimLesson | DesignLesson;
+/** A goal checked on one agent run's outcome, e.g. { metric: "madeUp", op: "<=", value: 0 }. */
+export interface AgentGoal {
+  metric: string;
+  op: '<=' | '>=';
+  value: number;
+}
 
-export const KINDS = ['diagram', 'trace', 'sim', 'design'] as const;
+/** An agent challenge: change the settings, run, and every goal must hold for that run. */
+export interface AgentChallenge {
+  id: string;
+  title: string;
+  prompt: string;
+  predict?: QuizQuestion;
+  setup?: { params?: Record<string, number | boolean>; lock?: string[] };
+  goals: AgentGoal[];
+  hint: string;
+  explain: string;
+  /** A known winning setting. Never shown; tests use it to prove the challenge can be done. */
+  solution: Record<string, number | boolean>;
+}
+
+/** A scripted agent working through a task, turn by turn (src/agent/scenarios). */
+export interface AgentLesson extends LessonBase {
+  kind: 'agent';
+  /** Id of a registered scenario. */
+  scenario: string;
+  params?: Record<string, number | boolean>;
+  challenges: AgentChallenge[];
+}
+
+export type Lesson = DiagramLesson | TraceLesson | SimLesson | DesignLesson | AgentLesson;
+
+export const KINDS = ['diagram', 'trace', 'sim', 'design', 'agent'] as const;
