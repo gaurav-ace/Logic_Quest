@@ -1,4 +1,5 @@
 import type { QuizQuestion } from '../lesson/schema';
+import { inSeededOrder } from '../lesson/shuffle';
 import { PROGRAMS } from '../practice/programs';
 import type { DebugPractice, PracticeItem, QuizPractice } from '../practice/schema';
 import type { Feedback } from '../progress/tracker';
@@ -78,7 +79,7 @@ export function choiceCheck(question: QuizQuestion, check: number, hooks: Practi
     );
     return b;
   });
-  box.append(...(label ? [el('p', { class: 'quiz-count' }, label)] : []), el('h3', {}, question.prompt), ...options, feedback, reward);
+  box.append(...(label ? [el('p', { class: 'quiz-count' }, label)] : []), el('h3', {}, question.prompt), ...inSeededOrder(options, question.prompt), feedback, reward);
   return box;
 }
 

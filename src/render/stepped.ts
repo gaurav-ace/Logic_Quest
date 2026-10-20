@@ -1,5 +1,6 @@
 import { atEnd, initialState, readingTime, reduce, type PlayerAction, type PlayerConfig } from '../engine/player';
 import type { Lesson, QuizQuestion } from '../lesson/schema';
+import { inSeededOrder } from '../lesson/shuffle';
 import { buildControls } from './controls';
 import { basisNote } from './critique';
 import { button, el, reducedMotion, scrollTo } from './dom';
@@ -150,7 +151,7 @@ export function renderStepped(root: HTMLElement, lesson: Lesson, stage: Stage, h
       firstTry ??= false;
       reveal.click();
     }, { class: 'link' });
-    predictBox.replaceChildren(el('h3', {}, `Predict: ${q.prompt}`), ...opts, feedback, after, skip);
+    predictBox.replaceChildren(el('h3', {}, `Predict: ${q.prompt}`), ...inSeededOrder(opts, q.prompt), feedback, after, skip);
     predictBox.hidden = false;
   }
 

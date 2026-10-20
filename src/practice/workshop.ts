@@ -1,3 +1,4 @@
+import { seededOrder } from '../lesson/shuffle';
 import type { KeyValue } from '../progress/store';
 
 // The workshop's pure parts: the learner's outline of sub-problems, the tap-to-order and
@@ -62,14 +63,7 @@ function groupEnd(outline: OutlineItem[], i: number): number {
 
 /** A stable shuffle for the order check: never the answer itself, so the check is never free. */
 export function shuffledOrder(parts: string[], seedText: string): number[] {
-  let h = 2166136261;
-  for (const c of seedText) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
-  const order = parts.map((_, i) => i);
-  for (let i = order.length - 1; i > 0; i--) {
-    h = Math.imul(h ^ (h >>> 13), 2654435761) >>> 0;
-    const j = h % (i + 1);
-    [order[i], order[j]] = [order[j]!, order[i]!];
-  }
+  const order = seededOrder(parts.length, seedText);
   // A shuffle that lands back on the answer is rotated by one place.
   return order.every((v, i) => v === i) ? [...order.slice(1), order[0]!] : order;
 }

@@ -3,6 +3,7 @@ import { meets } from '../agent/challenge';
 import { runAgent } from '../agent/runner';
 import type { AgentRun, Outcome, Scenario } from '../agent/types';
 import type { AgentLesson, QuizQuestion } from '../lesson/schema';
+import { inSeededOrder } from '../lesson/shuffle';
 import { defaults, type Params } from '../sim/types';
 import type { Frame } from '../trace/types';
 import { button, el, scrollTo } from './dom';
@@ -191,6 +192,6 @@ function predictBlock(q: QuizQuestion, next: HTMLElement): HTMLElement {
   });
   const ask = el('p');
   ask.append(el('strong', {}, `Predict first: ${q.prompt}`));
-  box.append(ask, ...opts, feedback, after);
+  box.append(ask, ...inSeededOrder(opts, q.prompt), feedback, after);
   return box;
 }

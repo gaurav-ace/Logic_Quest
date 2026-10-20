@@ -1,3 +1,4 @@
+import { inSeededOrder } from '../lesson/shuffle';
 import type { Feedback } from '../progress/tracker';
 import type { QuizQuestion } from '../lesson/schema';
 import { button, el, scrollTo } from './dom';
@@ -60,7 +61,7 @@ export function showQuestion(box: HTMLElement, questions: QuizQuestion[], index:
   });
 
   delete box.dataset.done;
-  box.replaceChildren(...(counter ? [counter] : []), heading, ...options, feedback, reward, after);
+  box.replaceChildren(...(counter ? [counter] : []), heading, ...inSeededOrder(options, q.prompt), feedback, reward, after);
   box.hidden = false;
   scrollTo(box, 'nearest');
 }
