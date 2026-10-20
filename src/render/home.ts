@@ -1,13 +1,14 @@
 import type { Lesson, Track } from '../lesson/schema';
 import { groupByTrack, missingRequirements, trackToOpen } from '../lesson/unlock';
+import { FIRST_REASON, type Recommendation } from '../review/recommend';
 import type { Progress } from '../rewards/engine';
-import { el } from './dom';
+import { button, el } from './dom';
 import { renderHud } from './hud';
 
 /** Builds a track's practice drop-down, or null when the track has no practice. */
 export type PracticeSlot = (track: Track) => HTMLDetailsElement | null;
 
-export function renderHome(root: HTMLElement, lessons: Lesson[], progress: Progress, bufferCost: number, open: (id: string) => void, practice?: PracticeSlot, panels: HTMLElement[] = []): void {
+export function renderHome(root: HTMLElement, lessons: Lesson[], progress: Progress, bufferCost: number, open: (id: string) => void, practice?: PracticeSlot, panels: HTMLElement[] = [], rec?: Recommendation, reviewHref = '#/review'): void {
   const byId = new Map(lessons.map((l) => [l.id, l]));
   const groups = groupByTrack(lessons, progress.completed);
   const openTrack = trackToOpen(groups);
@@ -30,11 +31,12 @@ export function renderHome(root: HTMLElement, lessons: Lesson[], progress: Progr
   });
   const main = el('div', { class: 'home-main' });
   main.append(el('h2', {}, 'Lessons'), el('p', { class: 'objective' }, 'Watch a system run, then prove you got it.'), ...sections);
-  const next = nextLesson();
+  const next = rec ? null : nextLesson();
   const side = el('aside', { class: 'home-side', 'aria-label': 'Your progress' });
   side.append(renderHud(progress, bufferCost));
   const layout = el('div', { class: 'home' });
-  if (next) layout.append(continueCard(next));
+  if (rec) layout.append(recommendCard(rec));
+  else if (next) layout.append(continueCard(next));
   layout.append(...panels, side, main);
   root.replaceChildren(layout);
 
@@ -43,13 +45,24 @@ export function renderHome(root: HTMLElement, lessons: Lesson[], progress: Progr
     return groups.flatMap((g) => g.lessons).find((l) => !progress.completed.has(l.id) && missingRequirements(l, progress.completed, byId).length === 0);
   }
 
-  function continueCard(lesson: Lesson): HTMLElement {
-    const started = progress.completed.size > 0;
+  function continueCard(lesson: Lesson, reason?: string): HTMLElement {
+    const started = reason ? reason !== FIRST_REASON : progress.completed.size > 0;
     const c = el('section', { class: 'card continue', 'aria-label': 'Up next' });
     c.dataset.track = lesson.track;
     const go = el('button', { type: 'button', class: 'primary', 'data-id': lesson.id }, started ? 'Continue' : 'Start');
     go.addEventListener('click', () => open(lesson.id));
-    c.append(el('small', {}, started ? 'Up next' : 'Start here'), el('h3', {}, lesson.title), el('p', {}, lesson.objective), go);
+    c.append(el('small', {}, started ? 'Up next' : 'Start here'), el('h3', {}, lesson.title), el('p', {}, lesson.objective), ...(reason ? [el('p', { class: 'up-next-why' }, reason)] : []), go);
+    return c;
+  }
+
+  /** Phase 7: the recommended next step, always with its reason. */
+  function recommendCard(r: Recommendation): HTMLElement {
+    if (r.kind === 'lesson') return continueCard(r.lesson, r.reason);
+    const c = el('section', { class: 'card continue', 'aria-label': 'Up next' });
+    if (r.kind === 'review') {
+      c.dataset.track = r.track;
+      c.append(el('small', {}, 'Up next'), el('h3', {}, `Review ${r.count} ${r.count === 1 ? 'question' : 'questions'}`), el('p', { class: 'up-next-why' }, r.reason), button('Start review', () => (location.hash = reviewHref), { class: 'primary' }));
+    } else c.append(el('small', {}, 'Up next'), el('h3', {}, 'All lessons done'), el('p', { class: 'up-next-why' }, r.reason));
     return c;
   }
 

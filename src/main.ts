@@ -27,6 +27,7 @@ import { tutorPanel } from './render/tutor';
 import { faqPassages, loadFaqs, type FaqFile } from './tutor/faq';
 import { GeminiKeyStore } from './tutor/key';
 import { reviewTarget, type ReviewTarget } from './review/items';
+import { recommend, trackStats } from './review/recommend';
 import { dueReviews, reviewSummary } from './review/schedule';
 import { renderReview } from './render/review';
 import { buildIndex, lessonPassages, type Index } from './tutor/search';
@@ -137,6 +138,8 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
     const n = daysBetween(t, later);
     return n === 1 ? 'tomorrow' : `in ${n} days`;
   };
+  const stats = () => trackStats(lessons, tracker.progress().completed, store.events, reviews(), today());
+  const upNext = () => recommend(lessons, tracker.progress().completed, stats(), today());
   /** Home's review card, when anything is due. Practice reviews are counted before their files load. */
   const reviewCard = (): HTMLElement[] => {
     const due = dueReviews(reviews(), today()).filter((s) => s.lesson.startsWith(practiceKey('')) || reviewTarget(s, reviewLookup));
@@ -223,6 +226,8 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
       showPractice(route.track, route.id);
     } else {
       document.title = 'Logic Quest';
+      // When the advice is itself "review first", the separate review card would repeat it.
+      const rec = upNext();
       renderHome(view, lessons, tracker.progress(), REWARDS.coins.bufferCost, (id) => {
         location.hash = routeHash({ name: 'lesson', id });
       }, (track) => {
@@ -232,7 +237,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
           practiceOpen = track;
           location.hash = routeHash({ name: 'practice', track, id: item.id });
         }, practiceOpen === track);
-      }, reviewCard());
+      }, rec.kind === 'review' ? [] : reviewCard(), rec, routeHash({ name: 'review' }));
       if (store.notice) view.prepend(el('p', { class: 'card notice', role: 'status' }, store.notice));
     }
     window.scrollTo(0, 0);

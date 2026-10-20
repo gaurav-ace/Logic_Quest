@@ -1293,6 +1293,8 @@ if (mode === 'review') {
   await evaluate(`localStorage.setItem('logic-quest:progress', ${JSON.stringify(JSON.stringify({ version: 1, events, settings: {} }))})`);
   await load();
   check('Home shows how many reviews are due', (await text('.review-card h3')) === '12 questions to review', await text('.review-card h3'));
+  // The last miss seeded is in an LLD lesson, so that's where "Up next" picks up, with its reason.
+  check('Up next follows the track worked on last, and says why', (await text('.continue small')) === 'Up next' && /^Next in Low-level design.*, where you left off\.$/.test((await text('.up-next-why')) ?? ''), `${await text('.continue small')} | ${await text('.up-next-why')}`);
   await layoutChecks('home with reviews (360px)');
   await shot('review-home');
   await tap('Start review');
