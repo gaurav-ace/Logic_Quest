@@ -215,5 +215,6 @@ describe('random editing keeps every rule', () => {
         expect(parseBoard(JSON.parse(JSON.stringify(h.present)))).toEqual({ ok: true, board: h.present });
       }
     }
-  });
+    // About 2 s alone; several times that when every test file runs at once.
+  }, 30_000);
 });

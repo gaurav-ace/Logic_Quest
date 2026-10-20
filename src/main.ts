@@ -19,6 +19,9 @@ import { renderLearners, renderPicker } from './render/learners';
 import { renderPractice, type PracticeContext, type PracticeHooks } from './render/practice';
 import { practiceSection } from './render/practice-list';
 import { renderWorkshop } from './render/workshop';
+import { renderPlayground } from './render/playground';
+import { PROMPT_DATA, validatePrompts } from './playground/prompts';
+import { BoardStore } from './playground/store';
 import { tutorPanel } from './render/tutor';
 import { faqPassages, loadFaqs, type FaqFile } from './tutor/faq';
 import { buildIndex, lessonPassages, type Index } from './tutor/search';
@@ -30,6 +33,7 @@ import { HOME, parseRoute, routeHash, sameRoute, type Route } from './router';
 const NAV: { route: Route; label: string; icon: IconName }[] = [
   { route: HOME, label: 'Learn', icon: 'learn' },
   { route: { name: 'progress' }, label: 'Progress', icon: 'progress' },
+  { route: { name: 'playground' }, label: 'Design', icon: 'design' },
   { route: { name: 'settings' }, label: 'Settings', icon: 'settings' },
 ];
 
@@ -42,6 +46,8 @@ function chip(label: string, value: string): HTMLElement {
 function start(root: HTMLElement, lessons: Lesson[]): void {
   const byId = new Map(lessons.map((l) => [l.id, l]));
   const ids = new Set(byId.keys());
+  // Bad prompt data fails loudly at load, like lessons.
+  const prompts = validatePrompts(PROMPT_DATA, ids);
   const kv = browserStorage();
   const profiles = new Profiles(kv);
   const store = new ProgressStore(kv, undefined, profileKey(profiles.current.id, 'progress'));
@@ -122,6 +128,15 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
     if (route.name === 'progress') {
       document.title = 'Progress · Logic Quest';
       renderProgress(view, tracker, REWARDS);
+    } else if (route.name === 'playground') {
+      document.title = 'Design playground · Logic Quest';
+      renderPlayground(view, new BoardStore(kv, profileKey(profiles.current.id, 'boards')), {
+        prompts,
+        lesson: (id) => {
+          const l = byId.get(id);
+          return l ? { title: l.title, href: routeHash({ name: 'lesson', id }) } : null;
+        },
+      });
     } else if (route.name === 'settings') {
       document.title = 'Settings · Logic Quest';
       renderSettings(view, tracker, store, REWARDS, persistState, () => renderLearners(profiles, switchTo), new WorkshopStore(kv, profileKey(profiles.current.id, 'workshop')));

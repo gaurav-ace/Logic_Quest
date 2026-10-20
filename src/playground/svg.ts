@@ -64,7 +64,7 @@ export function boardSvg(board: Board): string {
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${WORLD.width} ${WORLD.height}" width="${WORLD.width}" height="${WORLD.height}" font-family="system-ui, sans-serif">`,
     `<title>${escapeXml(board.name)}</title>`,
-    '<defs><marker id="head" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#334"/></marker></defs>',
+    '<defs><marker id="head" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#334"/></marker></defs>',
     '<rect width="100%" height="100%" fill="#fff"/>',
     ...parts,
     '</svg>',

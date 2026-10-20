@@ -1,0 +1,105 @@
+[
+  {
+    "id": "url-shortener",
+    "title": "A URL shortener",
+    "requirements": [
+      "Anyone can turn a long link into a short one.",
+      "Opening a short link sends the browser to the long one, fast.",
+      "Short links keep working for years.",
+      "Far more people open links than create them."
+    ],
+    "checklist": [
+      "Where is each short code stored, and how do two servers avoid making the same code?",
+      "Which path is the busy one (opening links), and what makes it fast?",
+      "What happens to opening links if the database is slow or down?",
+      "What stops one person creating millions of links?",
+      "If you add a cache, what goes in it, and when does an entry go stale?"
+    ],
+    "compare": ["design-url-shortener", "cache", "rate-limiting"]
+  },
+  {
+    "id": "chat",
+    "title": "A chat app",
+    "requirements": [
+      "People send messages to each other and to groups.",
+      "Messages appear for the other person within a moment, while they're online.",
+      "Messages sent while someone is offline are there when they come back.",
+      "Every conversation stays in order, and no message is lost."
+    ],
+    "checklist": [
+      "How does a server push a new message to a phone that's waiting?",
+      "Where is a message saved before you tell the sender it was sent?",
+      "How is the order of messages in one conversation decided?",
+      "What happens to a message for someone who is offline?",
+      "What happens when the server holding someone's connection crashes?"
+    ],
+    "compare": ["case-chat", "message-queues"]
+  },
+  {
+    "id": "news-feed",
+    "title": "A news feed",
+    "requirements": [
+      "People follow other people and see their recent posts, newest first.",
+      "Opening the feed is fast, even for someone who follows thousands.",
+      "A few accounts have millions of followers."
+    ],
+    "checklist": [
+      "When someone posts, is it copied into followers' feeds at once, or gathered when a feed opens?",
+      "What does your choice cost when an account with millions of followers posts?",
+      "Where are finished feeds kept, and what happens if that store loses them?",
+      "Which work happens in the background, through a queue?"
+    ],
+    "compare": ["case-news-feed", "message-queues"]
+  },
+  {
+    "id": "payments",
+    "title": "Taking payments",
+    "requirements": [
+      "Shoppers pay for orders with a card, through an outside payment provider.",
+      "A shopper is never charged twice for one order, even when the network fails.",
+      "The shop always knows which orders are paid."
+    ],
+    "checklist": [
+      "If a reply from the payment provider is lost, how does a retry avoid a second charge?",
+      "How does your system learn about a payment that finished after a timeout?",
+      "What happens when the same webhook event arrives twice?",
+      "Where is the record of each payment kept, and can it be changed afterwards?",
+      "What does the shopper see while a payment's result is still unknown?"
+    ],
+    "compare": ["case-payment-gateway", "idempotency"]
+  },
+  {
+    "id": "ai-chat",
+    "title": "An AI chat assistant",
+    "requirements": [
+      "People chat with an assistant that calls a language model.",
+      "Replies start appearing quickly instead of all at once at the end.",
+      "Each conversation remembers what was said earlier.",
+      "The model provider limits how many requests the service may send."
+    ],
+    "checklist": [
+      "Where is the conversation history kept, given the model doesn't remember between requests?",
+      "What happens when the provider's rate limit is reached?",
+      "What happens to a reply if the user's connection drops halfway?",
+      "Which actions, if any, can the assistant take, and who approves them?",
+      "How would you know a new version answers worse than the old one?"
+    ],
+    "compare": ["design-ai-chat", "agent-guardrails", "agent-evals"]
+  },
+  {
+    "id": "notifications",
+    "title": "A notification system",
+    "requirements": [
+      "Other services ask it to tell a user something, by push, email or SMS.",
+      "Each user's settings decide which channels they get, and quiet hours.",
+      "A slow email provider must not hold up push notifications."
+    ],
+    "checklist": [
+      "Where are user settings checked, before or after a notification is queued?",
+      "Does each channel have its own queue? What happens if one backs up?",
+      "What happens to a notification whose provider keeps failing?",
+      "How do you avoid sending the same notification twice after a retry?"
+    ],
+    "compare": ["case-notifications", "message-queues"]
+  }
+]

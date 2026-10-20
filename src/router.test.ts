@@ -15,6 +15,13 @@ describe('parseRoute', () => {
     expect(parseRoute('#/progressx', ids)).toEqual(HOME);
   });
 
+  it('reads the playground', () => {
+    expect(parseRoute('#/playground', ids)).toEqual({ name: 'playground' });
+    expect(parseRoute('#/playground/', ids)).toEqual({ name: 'playground' });
+    expect(routeHash({ name: 'playground' })).toBe('#/playground');
+    expect(parseRoute('#/playgroundx', ids)).toEqual(HOME);
+  });
+
   it('reads the settings screen', () => {
     expect(parseRoute('#/settings', ids)).toEqual({ name: 'settings' });
     expect(parseRoute('#/settings/', ids)).toEqual({ name: 'settings' });

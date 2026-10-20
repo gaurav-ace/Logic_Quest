@@ -5,7 +5,7 @@ import type { Tracker } from '../progress/tracker';
 import type { RewardsConfig } from '../rewards/config';
 import { addDays, localDay, type Day } from '../rewards/days';
 import type { DayStatus } from '../rewards/engine';
-import { button, el } from './dom';
+import { button, download, el } from './dom';
 import { renderHud } from './hud';
 
 const DAY_LABEL: Record<DayStatus | 'none', [mark: string, text: string]> = {
@@ -142,15 +142,6 @@ export function renderSettings(root: HTMLElement, tracker: Tracker, store: Progr
     );
     return card;
   }
-}
-
-function download(text: string, name: string): void {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-  const a = el('a', { href: url, download: name });
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 const weekday = (day: Day) => new Date(`${day}T12:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', timeZone: 'UTC' });
