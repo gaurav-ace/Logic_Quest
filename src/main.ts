@@ -1,8 +1,11 @@
 import './styles.css';
 import { loadCatalog } from './lesson/catalog';
-import type { Lesson } from './lesson/schema';
+import { TRACKS, type Lesson, type Track } from './lesson/schema';
 import { LessonValidationError } from './lesson/validate';
 import { persistMessage, requestPersistentStorage, type PersistState } from './progress/persist';
+import { loadPractice, practiceTracks } from './practice/catalog';
+import { practiceKey, type PracticeItem } from './practice/schema';
+import { practiceStatus } from './practice/status';
 import { Profiles, profileKey } from './progress/profiles';
 import { ProgressStore, browserStorage } from './progress/store';
 import { Tracker } from './progress/tracker';
@@ -12,6 +15,8 @@ import { button, el } from './render/dom';
 import { icon, type IconName } from './render/icons';
 import { renderHome } from './render/home';
 import { renderLearners, renderPicker } from './render/learners';
+import { renderPractice, type PracticeContext, type PracticeHooks } from './render/practice';
+import { practiceSection } from './render/practice-list';
 import { renderLesson, type LessonView } from './render/lesson';
 import { renderProgress, renderSettings } from './render/progress';
 import { celebrate, clearToast } from './render/toast';
@@ -70,6 +75,9 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
 
   let current: Route = HOME;
   let lessonView: LessonView | undefined;
+  const withPractice = new Set(practiceTracks(TRACKS));
+  // The track whose practice list was last used, so coming back reopens it.
+  let practiceOpen: Track | null = null;
   let leaving = false;
 
   function show(route: Route): void {
@@ -78,7 +86,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
     guard.hidden = true;
     clearToast();
     current = route;
-    backToList.hidden = route.name !== 'lesson';
+    backToList.hidden = route.name !== 'lesson' && route.name !== 'practice';
     document.body.dataset.route = route.name;
     for (const { route: r, a } of navLinks) {
       if (r.name === route.name) a.setAttribute('aria-current', 'page');
@@ -108,15 +116,62 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
         complete: () => tracker.complete(lesson.id),
         celebrate: (f) => celebrate(f, store.settings.calm),
       });
+    } else if (route.name === 'practice') {
+      showPractice(route.track, route.id);
     } else {
       document.title = 'Logic Quest';
       renderHome(view, lessons, tracker.progress(), REWARDS.coins.bufferCost, (id) => {
         location.hash = routeHash({ name: 'lesson', id });
+      }, (track) => {
+        if (!withPractice.has(track)) return null;
+        const load = () => loadPractice(track, ids).then((items) => ({ items, status: practiceStatus(items, store.events) }));
+        return practiceSection(load, (item) => {
+          practiceOpen = track;
+          location.hash = routeHash({ name: 'practice', track, id: item.id });
+        }, practiceOpen === track);
       });
       if (store.notice) view.prepend(el('p', { class: 'card notice', role: 'status' }, store.notice));
     }
     window.scrollTo(0, 0);
     view.focus({ preventScroll: true });
+  }
+
+  function showPractice(track: Track, id: string): void {
+    view.replaceChildren(el('p', { class: 'muted' }, 'Loading…'));
+    loadPractice(track, ids).then(
+      (items) => {
+        if (current.name !== 'practice' || current.id !== id) return; // moved on while loading
+        const item = items.find((i) => i.id === id);
+        if (!item) {
+          view.replaceChildren(el('h2', {}, 'Not found'), el('p', {}, 'That practice problem doesn’t exist (any more).'), button('Back to lessons', () => history.back(), { class: 'primary' }));
+          return;
+        }
+        document.title = `${item.title} · Logic Quest`;
+        lessonView = renderPracticeItem(item);
+      },
+      (e: unknown) => view.replaceChildren(el('p', { class: 'card bad' }, `Practice couldn't load: ${e instanceof Error ? e.message : String(e)}`)),
+    );
+  }
+
+  function renderPracticeItem(item: PracticeItem): LessonView {
+    const hooks: PracticeHooks = {
+      answer: (check, option, correct) => {
+        const f = tracker.answer(practiceKey(item.id), check, option, correct);
+        // Practice doesn't count towards the daily goal, so the lesson wording would mislead.
+        return f.outcome === 'already-scored' ? { ...f, text: 'Already scored.' } : f;
+      },
+      celebrate: (f) => celebrate(f, store.settings.calm),
+    };
+    const related = item.related ? byId.get(item.related) : undefined;
+    const ctx: PracticeContext = {
+      back: () => history.back(),
+      ...(related ? { related: { title: related.title, open: () => (location.hash = routeHash({ name: 'lesson', id: related.id })) } } : {}),
+    };
+    if (item.kind === 'guided') {
+      view.replaceChildren(el('h2', {}, item.title), el('p', {}, 'Guided problems open in the workshop, which is still being built.'));
+      return { inQuiz: () => false, destroy: () => {} };
+    }
+    return renderPractice(view, item, hooks, ctx);
   }
 
   // The Android back button (and "← Lessons") pops history. Leaving mid-quiz asks first

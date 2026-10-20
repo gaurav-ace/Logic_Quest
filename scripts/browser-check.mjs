@@ -2,7 +2,7 @@
 // No dependencies: talks to Chrome over the DevTools protocol with Node's built-in WebSocket.
 //
 //   npm run build && npm run preview          (in another terminal)
-//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design|agent|profiles] [url] [screenshot-dir]
+//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design|agent|profiles|practice] [url] [screenshot-dir]
 //   DIST_DIR=dist node scripts/browser-check.mjs update   (edits dist/ to simulate a deploy: rebuild after)
 //   LESSONS=binary-search,heaps node scripts/browser-check.mjs lessons   (walk only those)
 //
@@ -896,6 +896,99 @@ if (mode === 'profiles') {
   await media('no-preference', 'dark');
   await load(url + '#/settings');
   await shot('profiles-settings-desktop-dark');
+}
+
+if (mode === 'practice') {
+  // Practice under a track: the drop-down, filters, the hard lock, a quiz item and a debug item by
+  // touch, XP that only counts once, the leave check, and statuses after a reload.
+  await viewport(360, 740, true);
+  await media('reduce');
+  // A plain tap on the n-th match (no folding logic: used for <summary> elements themselves).
+  const tapOnly = async (selector, n = 0) => {
+    const box = await evaluate(`(() => { const b = document.querySelectorAll(${JSON.stringify(selector)})[${n}]; if (!b) return null; b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+    if (!box) throw new Error(`nothing to tap: ${selector} #${n}`);
+    await sleep(150);
+    await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x, y: box.y }] });
+    await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await sleep(300);
+  };
+  const openLogicPractice = async () => {
+    if (!(await evaluate(`document.querySelector('.track[data-track="logic"]').open`))) await tapOnly('.track[data-track="logic"] > summary');
+    if (!(await evaluate(`document.querySelector('.track[data-track="logic"] .practice').open`))) await tapOnly('.track[data-track="logic"] .practice > summary');
+    await sleep(800);
+  };
+  const cards = () => evaluate(`[...document.querySelectorAll('.track[data-track="logic"] .practice-card')].map((c) => c.dataset.id + (c.classList.contains('locked') ? ':locked' : '') + (c.classList.contains('done') ? ':done' : ''))`);
+  await load();
+  await openLogicPractice();
+  const first = await cards();
+  check('the logic track has a practice drop-down with 6 problems, hard ones locked', first.length === 6 && first.filter((c) => c.endsWith(':locked')).length === 2, JSON.stringify(first));
+  check('it says how many are done', (await text('.track[data-track="logic"] .practice-count')) === '0 of 6 done', await text('.track[data-track="logic"] .practice-count'));
+  await layoutChecks('practice list (360px)');
+  await shot('practice-list');
+  await evaluate(`(() => { const s = document.querySelectorAll('.track[data-track="logic"] .practice-filter')[1]; s.value = 'debug'; s.dispatchEvent(new Event('change')); })()`);
+  check('filtering by type shows only debug problems', (await cards()).length === 3 && (await text('.track[data-track="logic"] .practice-count')) === '0 of 6 done · showing 3', await text('.track[data-track="logic"] .practice-count'));
+  await evaluate(`(() => { const s = document.querySelectorAll('.track[data-track="logic"] .practice-filter')[1]; s.value = 'all'; s.dispatchEvent(new Event('change')); })()`);
+  await tapSel('.practice-card[data-id="merge-meetings"]');
+  check('a locked hard problem explains itself', (await evaluate(`document.querySelector('.practice-card[data-id="merge-meetings"] .lesson-lock').textContent`)) === 'Finish the medium problems in this track first.');
+
+  await tapSel('.practice-card[data-id="python-arithmetic-corners"]');
+  await sleep(600);
+  check('a quiz problem opens with its goal and level', (await text('h2')) === 'Arithmetic that surprises' && (await text('.practice-meta')) === 'Medium · Corner cases', await text('.practice-meta'));
+  await tap('-3');
+  check('a wrong answer explains itself and costs nothing', /rounds down/.test(await text('.practice-check .feedback')) && (await text('.practice-check .reward')) === 'Not quite. Try another option.');
+  await tap('-4');
+  check('then the right one earns retry XP', (await text('.practice-check .reward')) === '+5 XP, after a retry', await text('.practice-check .reward'));
+  await layoutChecks('practice quiz (360px)');
+  for (const answer of ['1', '2', '2.67']) {
+    await tap('Next question');
+    await tap(answer);
+  }
+  check('finishing shows Done', (await text('.practice-done h3')) === 'Done ✓');
+  await shot('practice-quiz-done');
+  await tap('Back to practice');
+  await sleep(800);
+  check('Back returns to the list, still open, with the problem marked done', (await cards()).includes('python-arithmetic-corners:done') && (await text('.track[data-track="logic"] .practice-count')) === '1 of 6 done', JSON.stringify(await cards()));
+
+  await tapSel('.practice-card[data-id="fence-posts-debug"]');
+  await sleep(600);
+  await tapSel('.code-line', 0);
+  check('debug: a wrong line gets a hint', /trace it line by line/.test(await text('.debug-lines .feedback')));
+  await tapSel('.code-line', 2);
+  check('debug: the right line explains why', /one more post than gaps/.test(await text('.debug-lines .feedback')), await text('.debug-lines .feedback'));
+  await tap('5');
+  check('debug: the predicted output is shown as the app computed it', (await evaluate(`[...document.querySelectorAll('.run-rows p')].map((p) => p.textContent).join(' | ')`)) === 'Buggy code gives: 5', await evaluate(`[...document.querySelectorAll('.run-rows p')].map((p) => p.textContent).join(' | ')`));
+  await tap('return length // gap + 1');
+  const runText = () => evaluate(`[...document.querySelectorAll('.run-panel')].at(-1).textContent`);
+  check('debug: after the fix, both versions are run', /Buggy code gives: 5Fixed code gives: 6Different/.test(await runText()), await runText());
+  const before = await runText();
+  await tap('Try another input');
+  check('debug: "Try another input" runs both versions on a new input', (await runText()) !== before && /Fixed code gives: \d+/.test(await runText()), await runText());
+  await layoutChecks('debug problem (360px)');
+  await shot('practice-debug-done');
+  await tap('Back to practice');
+  await sleep(600);
+
+  await tapSel('.practice-card[data-id="last-item-never-checked"]');
+  await sleep(600);
+  await tapSel('.code-line', 0);
+  await browserBack();
+  check('leaving a started problem asks first', (await evaluate(`!document.querySelector('.guard').hidden`)) && (await text('h2')) === 'The last item is never checked');
+  await tap('Stay');
+  await load();
+  // Quiz 5 + 10 + 10 + 10, debug 5 + 10 + 10. Practice adds XP but isn't a finished lesson.
+  check('practice XP counts once, towards the level, but not towards the daily goal', (await text('.hud-stats')) === 'Level2XP60 / 80Streak0 daysCoins0', await text('.hud-stats'));
+  await openLogicPractice();
+  check('after a reload, the done problems are still done', (await text('.track[data-track="logic"] .practice-count')) === '2 of 6 done', await text('.track[data-track="logic"] .practice-count'));
+  await tapSel('.practice-card[data-id="python-arithmetic-corners"]');
+  await sleep(600);
+  await tap('-4');
+  check('replaying earns nothing new', (await text('.practice-check .reward')) === 'Already scored.', await text('.practice-check .reward'));
+  await viewport(1280, 800, false);
+  await media('no-preference', 'dark');
+  await load(url + '#/practice/logic/remove-while-looping');
+  await sleep(800);
+  await shot('practice-debug-desktop-dark');
+  await layoutChecks('debug problem (desktop)');
 }
 
 if (mode === 'update') {

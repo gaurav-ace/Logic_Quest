@@ -233,7 +233,7 @@ export function renderStepped(root: HTMLElement, lesson: Lesson, stage: Stage, h
   };
 }
 
-export function notes(lesson: Lesson): HTMLElement {
+export function notes(lesson: Pick<Lesson, 'sources' | 'simplifies'>): HTMLElement {
   const details = el('details', { class: 'notes' });
   details.append(el('summary', {}, 'Sources and simplifications'));
   if (lesson.simplifies) {

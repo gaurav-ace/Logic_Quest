@@ -1936,3 +1936,144 @@ a.top-stat.who strong {
     font-weight: 800;
   }
 }
+
+/* Practice: a drop-down at the end of each track. */
+.practice {
+  margin: 4px 12px 12px;
+  border: 1px dashed var(--stroke);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.practice > summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: var(--tap);
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.practice > summary::before {
+  content: '▸';
+  margin-right: -4px;
+}
+
+.practice[open] > summary::before {
+  content: '▾';
+}
+
+.practice-title {
+  flex: 1;
+}
+
+.practice-panel {
+  padding: 0 12px 12px;
+}
+
+.practice-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.practice-filter {
+  flex: 1 1 9rem;
+  min-height: var(--tap);
+  padding: 0 10px;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+}
+
+.practice-meta {
+  margin: -4px 0 8px;
+  color: var(--mute);
+  font-weight: 700;
+}
+
+button.related {
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.practice-body {
+  display: grid;
+  gap: 12px;
+}
+
+/* Grid items default to their content's width; long code must scroll inside its card instead. */
+.practice-body > * {
+  min-width: 0;
+}
+
+.symptom {
+  margin: 0;
+}
+
+/* Each code line is a button, so finding the bug works by tap. */
+.debug-code li {
+  padding: 0;
+}
+
+.debug-code li::before {
+  vertical-align: middle;
+}
+
+button.code-line {
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 4px 10px 4px 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  font: inherit;
+  font-weight: 400;
+  text-align: left;
+  white-space: pre;
+}
+
+/* Once the bug is found the lines lock, but the code must stay readable. */
+button.code-line:disabled {
+  color: inherit;
+  opacity: 1;
+}
+
+button.code-line.right {
+  background: color-mix(in srgb, var(--ok) 22%, transparent);
+}
+
+button.code-line.wrong {
+  background: color-mix(in srgb, var(--bad) 18%, transparent);
+  text-decoration: line-through;
+}
+
+.run-panel {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.run-title {
+  margin: 0 0 6px;
+  font-weight: 700;
+}
+
+.run-rows p {
+  margin: 4px 0;
+}
+
+.run-rows code {
+  overflow-wrap: anywhere;
+}
+
+.practice-done h3 {
+  margin-top: 0;
+}

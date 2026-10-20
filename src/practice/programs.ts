@@ -252,7 +252,7 @@ function binarySearch([xs, target]: Args, correct: boolean): string {
   return '-1';
 }
 
-/** Python's default recursion limit is 1000 (sys.getrecursionlimit). */
+/** Deeper than CPython 3.12's default limit (sys.getrecursionlimit() gives 1000), so the copy gives up where Python would. */
 const RECURSION_LIMIT = 1000;
 function factorial(n: number, base: 0 | 1): string {
   let result = 1;
