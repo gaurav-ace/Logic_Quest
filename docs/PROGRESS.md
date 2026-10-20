@@ -4,11 +4,20 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 ## Current phase
 
-Phase 5b, Low-level design: **done**, pushed, and approved by the owner on 2026-10-19 ("site shows LLD now, proceed"); a phone check was not mentioned. Phase 5c plan approved 2026-10-19 ("Approve, build all of it"). **Phase 5c, Real-world systems: done, pushed, and approved by the owner on 2026-10-19.** Phase 6 plan written (`docs/PHASE6_PLAN.md`), awaiting approval.
+Phase 5b, Low-level design: **done**, pushed, and approved by the owner on 2026-10-19 ("site shows LLD now, proceed"); a phone check was not mentioned. Phase 5c plan approved 2026-10-19 ("Approve, build all of it"). **Phase 5c, Real-world systems: done, pushed, and approved by the owner on 2026-10-19.** Phase 6 plan approved 2026-10-19 ("go ahead"). **Phase 6, Agentic AI: all 10 lessons built and checked, awaiting the owner's review.** Not pushed.
 
 Phase 5, System design (HLD): **done**, pushed and approved by the owner on 2026-10-19.
 
 Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19 without a line-by-line content review; the owner will report any content problems they find later). Live at https://gaurav-ace.github.io/Logic_Quest/.
+
+## Done (Phase 6, awaiting review)
+
+- 6.1 Agent runs (`src/agent/`): a scripted model (rules shown on screen, no real AI, no API calls), guardrails before tools, step limit, context budget with compaction and notes, illustrative tokens; frames in the trace format with predictions computed from the run; settings, outcome and challenges in a panel. Runner invariants on 300 random settings per scenario; blocked or rejected calls never reach a tool (spy test); mutations (no limit, guard ignored, no budget) each failed tests.
+- 6.2–6.4 Ten lessons: A1 one model call (diagram), A2 tool use, A3 the agent loop, A4 memory, A5 planning, A6 workflows versus agents (diagram with critique), A7 guardrails (indirect prompt injection), A8 failure modes, A9 multi-agent, A10 evaluating agents (computed regression eval). Each scenario has claim tests (e.g. each A8 guardrail fixes its own failure and not the others; dropping each guardrail fails exactly one eval task). 103 lessons in all.
+- Checks run on the final build: `npm run check` 725/725; browser `ui` 1325/1325 (every lesson walked to its quiz at 360 px), `design` 29/29, `sim` 24/24, `agent` 20/20 (challenge by touch, XP, a miss explained, no second scoring after reload), `pwa` 7/7, `persist` 11/11.
+- Found and fixed: the context list overlapped long text (now a table); A1's line ran under a box; A4's compaction did nothing (summary skipped when it didn't fit; now it folds older entries in until it fits); A8's stuck tool was secretly exempt from the give-up rule (now it honestly answers "try again", with a stated rule).
+- Sources checked 2026-10-19/20: Anthropic (Building effective agents; Effective context engineering; Multi-agent research system; Demystifying evals), Claude docs (tool use; Messages API is stateless; models overview knowledge cutoff), OWASP LLM01 and LLM06 (2025). No `TODO-VERIFY`.
+- Differences from the plan: none in scope. The new lesson kind is `agent`, as planned; A10 is a computed trace, as planned.
 
 ## Done (Phase 5c)
 
@@ -79,12 +88,13 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 
 ## Next step
 
-1. Owner approves (or changes) the Phase 6 plan; then build 6.1 (agent runner and tests, then renderer and A3).
+1. Owner pushes and reviews Phase 6 (10 lessons) on the site.
+2. Then Phase 7 (adaptive learning) needs a plan. `docs/UI_REVAMP_PLAN.md` (written in another session, untracked) also awaits the owner.
 
 ## Blockers and questions for the owner
 
 - **Answer order (an earlier mistake, found 2026-10-19):** in 149 of 168 quiz questions written before 5c.4 the right answer is first, and options are shown in file order, so tapping the first option scores well. Proposed fix: shuffle options deterministically when shown (quiz, predictions, critique), with a test. Owner chose to leave it for now (2026-10-19).
-- The main script is now 575 kB (181 kB gzipped), past Vite's 500 kB warning, because lesson data is bundled. Parked in `docs/IDEAS.md` (load lessons per track).
+- The main script is now 660 kB (205 kB gzipped; 575 kB after 5c), past Vite's 500 kB warning, because lesson data is bundled. Parked in `docs/IDEAS.md` (load lessons per track).
 - Wikipedia is cited for a few facts (square numbers, off-by-one, prefix sums, cycle detection, Big O, space–time tradeoff, topological sorting); the owner may veto it.
 
 ## Not tested yet
@@ -134,3 +144,4 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 - 2026-10-19 (new session): Browser checks now walk the critique; full suite green on 5c.2. Built 5c.3 (8 case studies and the autocomplete trace) and 5c.4 (8 incident/article lessons and the capstone), from sources fetched this session. Added the box-spacing rule. Found the answer-order problem across earlier lessons and raised it. (Pushed by the owner afterwards: GitHub main was at 4901d0d.)
 - 2026-10-19: Owner asked to check 5c.4. Re-fetched all 8 company sources and checked every time, number and quote in the incident and article lessons against them. Fixed: GitHub's restore was dated 00:05, when the write-up says it was planned then and "initiated" by 00:41; Slack's "usual 99.999%" (write-up: "usually over 99.999%") and a quote ("around 7:00am") not in the write-up; the capstone's "no hints" message gave a hint. Everything else matched. npm run check 609/609; browser `lessons` on the 3 edited lessons 51/51. Not pushed.
 - 2026-10-19: Owner approved Phase 5c, asked to continue with Phase 6, and chose to leave the answer order as it is for now. Checked that the Phase 6 sources load (Anthropic engineering posts, Claude tool-use docs, OWASP LLM Top 10 2025) and wrote `docs/PHASE6_PLAN.md`.
+- 2026-10-19/20: Owner approved the Phase 6 plan. Built 6.1 (runner, agent lesson kind, A3), 6.2 (A1, A2, A4, A5), 6.3 (A6, A7, A8) and 6.4 (A9, A10), one commit per batch. Full browser suite green. Not pushed.

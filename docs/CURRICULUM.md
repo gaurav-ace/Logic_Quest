@@ -1,6 +1,6 @@
 # Curriculum
 
-Status: **approved by the owner** (2026-10-19), with Phase 5c (real-world systems) added at the owner's request. **Built so far:** Phases 3, 4, 5 and 5b, and Phase 5c awaiting review: 93 lessons in the app.
+Status: **approved by the owner** (2026-10-19), with Phase 5c (real-world systems) added at the owner's request. **Built so far:** Phases 3 to 5c, and Phase 6 awaiting review: 103 lessons in the app.
 
 **Goal of the whole curriculum:** after finishing it, the learner is confident working as a senior SDE: they can break down unfamiliar problems, choose and justify data structures and algorithms, and lead a design discussion for a large real-world system. Edit freely: reorder, cut, add. Once approved, each phase builds the lessons in its section.
 
@@ -191,15 +191,15 @@ More articles can be added on request. Netflix and Swiggy engineering blogs are 
 | # | Lesson | Goal | Level | Animates |
 |---|---|---|---|---|
 | A1 | Prompt in, text out | What a single model call can and cannot do | E | Diagram |
-| A2 | Tool use | How a model asks for a tool, and who actually runs it | E | Sim |
-| A3 | The agent loop (sim) | Decide, act, observe, repeat; set a step limit and break it | M | Sim |
-| A4 | Memory | Context window versus stored notes; what to keep | M | Sim |
-| A5 | Planning | Plan first versus act step by step; when plans go stale | M | Sim |
+| A2 | Tool use | How a model asks for a tool, and who actually runs it | E | Agent run |
+| A3 | The agent loop (sim) | Decide, act, observe, repeat; set a step limit and break it | M | Agent run |
+| A4 | Memory | Context window versus stored notes; what to keep | M | Agent run |
+| A5 | Planning | Plan first versus act step by step; when plans go stale | M | Agent run |
 | A6 | Workflows versus agents | Fixed chains, routing, parallel steps, and when an agent is overkill | M | Diagram |
-| A7 | Guardrails | Input and output checks, permissions, human approval | M | Sim |
-| A8 | Failure modes | Tool errors, loops, wrong tool, hallucinated arguments: inject each one | H | Sim |
-| A9 | Multi-agent systems | Orchestrator and workers; hand-offs and their costs | H | Sim |
-| A10 | Evaluating agents | Test sets, success criteria, and catching regressions | H | Diagram |
+| A7 | Guardrails | Input and output checks, permissions, human approval | M | Agent run |
+| A8 | Failure modes | Tool errors, loops, wrong tool, hallucinated arguments: inject each one | H | Agent run |
+| A9 | Multi-agent systems | Orchestrator and workers; hand-offs and their costs | H | Agent run |
+| A10 | Evaluating agents | Test sets, success criteria, and catching regressions | H | Computed (a regression eval of the A8 agent) |
 
 ## Phase 8 (stretch): lesson from a codebase
 
