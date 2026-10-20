@@ -1437,6 +1437,7 @@ button.action {
   text-decoration: none;
   margin-right: auto;
   min-height: var(--tap);
+  min-width: var(--tap);
 }
 
 .brand-mark {
