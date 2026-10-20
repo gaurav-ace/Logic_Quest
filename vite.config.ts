@@ -39,5 +39,9 @@ export default defineConfig({
   plugins: [serviceWorker()],
   test: {
     include: ['src/**/*.test.ts'],
+    // Vitest 5 caches transformed files on disk keyed by their own content, so a file using
+    // import.meta.glob kept its old file list: a new practice/*.json was silently left out of the
+    // per-item tests. A cold transform costs a few seconds; a skipped test costs more.
+    fsModuleCache: false,
   },
 });
