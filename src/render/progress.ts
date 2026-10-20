@@ -2,6 +2,7 @@ import { persistMessage, type PersistState } from '../progress/persist';
 import type { WorkshopStore } from '../practice/workshop';
 import type { ProgressStore } from '../progress/store';
 import type { Tracker } from '../progress/tracker';
+import { MIN_ASKED, type TrackStats } from '../review/recommend';
 import type { RewardsConfig } from '../rewards/config';
 import { keyProblem } from '../tutor/gemini';
 import type { GeminiKeyStore } from '../tutor/key';
@@ -19,7 +20,7 @@ const DAY_LABEL: Record<DayStatus | 'none', [mark: string, text: string]> = {
   none: ['·', 'before you started'],
 };
 
-export function renderProgress(root: HTMLElement, tracker: Tracker, config: RewardsConfig): void {
+export function renderProgress(root: HTMLElement, tracker: Tracker, config: RewardsConfig, tracks?: TrackStats[], lessonHref: (id: string) => string = (id) => `#/lesson/${id}`): void {
   const p = tracker.progress();
   const today = localDay(new Date());
 
@@ -56,8 +57,38 @@ export function renderProgress(root: HTMLElement, tracker: Tracker, config: Rewa
   badgeCard.append(el('h3', {}, `Badges: ${earned.length} of ${config.badges.length}`), grid);
 
   const layout = el('div', { class: 'progress-grid' });
-  layout.append(renderHud(p, config.coins.bufferCost), streakCard, badgeCard);
+  // By track comes before the badges: it's what says what to work on.
+  layout.append(renderHud(p, config.coins.bufferCost), streakCard, ...(tracks ? [trackCards(tracks, lessonHref)] : []), badgeCard);
   root.replaceChildren(el('h2', {}, 'Your progress'), layout);
+}
+
+/** Phase 7 dashboard: how each track is going, in plain numbers. Bars are decoration; the text says it all. */
+function trackCards(tracks: TrackStats[], lessonHref: (id: string) => string): HTMLElement {
+  const section = el('section', { class: 'track-stats', 'aria-label': 'By track' });
+  section.append(el('h3', {}, 'By track'));
+  const list = el('ul', { class: 'track-stat-list' });
+  for (const t of tracks) {
+    const li = el('li', { class: 'card panel track-stat', 'data-track': t.track });
+    const bar = el('div', { class: 'stat-bar', 'aria-hidden': 'true' });
+    const fill = el('span');
+    fill.style.width = `${t.total ? Math.round((100 * t.done) / t.total) : 0}%`;
+    bar.append(fill);
+    const firstTry = t.asked >= MIN_ASKED ? `First try right: ${Math.round((100 * t.firstTry) / t.asked)}% (${t.firstTry} of ${t.asked})` : t.asked ? `First try right: ${t.firstTry} of ${t.asked} (too few to judge yet)` : 'No questions answered yet';
+    li.append(el('h4', {}, t.name), el('p', {}, `${t.done} of ${t.total} ${t.total === 1 ? 'lesson' : 'lessons'} done`), bar, el('p', {}, firstTry));
+    if (t.inReview || t.mastered) li.append(el('p', {}, `In review: ${t.inReview}${t.due ? ` (${t.due} due today)` : ''} · Mastered: ${t.mastered}`));
+    if (t.mostMissed.length) {
+      const missed = el('ul', { class: 'most-missed' });
+      for (const m of t.mostMissed) {
+        const item = el('li');
+        item.append(el('a', { href: lessonHref(m.lesson.id), class: 'tutor-open' }, `${m.lesson.title} (${m.misses} missed)`));
+        missed.append(item);
+      }
+      li.append(el('p', { class: 'small' }, 'Missed most:'), missed);
+    }
+    list.append(li);
+  }
+  section.append(list);
+  return section;
 }
 
 export function renderSettings(root: HTMLElement, tracker: Tracker, store: ProgressStore, config: RewardsConfig, persist: PersistState, learners?: () => HTMLElement, workshop?: WorkshopStore, aiKey?: GeminiKeyStore): void {

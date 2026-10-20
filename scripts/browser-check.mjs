@@ -1343,6 +1343,16 @@ if (mode === 'review') {
   check('when nothing is left, it says when the next review is due', (await text('.review-empty')) === 'Nothing to review today. The next review is due tomorrow.', await text('.review-empty'));
   await layoutChecks('review empty (360px)');
 
+  await load(url + '#/progress');
+  await sleep(500);
+  const cards = await evaluate(`[...document.querySelectorAll('.track-stat')].map((c) => c.querySelector('h4').textContent + ': ' + [...c.querySelectorAll('p')].map((p) => p.textContent).join(' | '))`);
+  check('Progress shows every track', cards.length === 7, JSON.stringify(cards));
+  check('a track lists its most-missed lessons as links', await evaluate(`[...document.querySelectorAll('.most-missed a')].length > 0`));
+  check('first-try share and reviews are stated in words', cards.some((c) => /First try right: \d+% \(\d+ of \d+\)/.test(c)) && cards.some((c) => /In review: \d+ · Mastered: \d+/.test(c)), JSON.stringify(cards));
+  await layoutChecks('progress by track (360px)');
+  await evaluate(`document.querySelector('.track-stats').scrollIntoView()`);
+  await shot('review-progress');
+
   await viewport(1280, 800, false);
   await media('no-preference', 'dark');
   await load();

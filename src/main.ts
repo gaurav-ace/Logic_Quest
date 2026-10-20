@@ -175,7 +175,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
     chips.prepend(who);
     if (route.name === 'progress') {
       document.title = 'Progress · Logic Quest';
-      renderProgress(view, tracker, REWARDS);
+      renderProgress(view, tracker, REWARDS, stats(), (id) => routeHash({ name: 'lesson', id }));
     } else if (route.name === 'playground') {
       document.title = 'Design playground · Logic Quest';
       renderPlayground(view, new BoardStore(kv, profileKey(profiles.current.id, 'boards')), {

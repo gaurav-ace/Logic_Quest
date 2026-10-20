@@ -73,7 +73,7 @@
 - 6.3 A6 Workflows versus agents (diagram with a critique); A7 Guardrails (indirect prompt injection; marking tool text as data, human approval above a threshold, an email allow-list); A8 Failure modes (flaky tool, stuck tool, invented argument, wrong tool, each with the guardrail that catches it).
 - 6.4 A9 Multi-agent systems (parallel workers: speed, token cost, duplicated work, too many workers); A10 Evaluating agents (a computed regression eval of the A8 agent). 103 lessons in all.
 
-## Phase 6b, Practice and tools (in progress, branch `claude/ai_integration`)
+## Phase 6b, Practice and tools (done 2026-10-20; owner reported it tested and working)
 
 - 6b.0 Plan (`docs/AI_INTEGRATION_PLAN.md`) and scope updates in CLAUDE.md (local profiles, Discord reminders, practice, workshop, HLD playground, AI tutor tiers).
 - 6b.1–6b.2 Local learner profiles: a profile list, each profile's progress under its own key (the first keeps the original key, so nothing is copied); Settings > Learners (add, rename, switch, delete), a "Who's learning?" picker on launch, the learner's initial in the top bar. Also fixed an older race that could wipe half-typed text in Settings. Browser mode `profiles`.
@@ -92,4 +92,13 @@
 - 6b.20 Gemini spike, with the owner's key (2026-10-20): the API accepts calls from the site's origin (CORS), with the key in the `x-goog-api-key` header. New keys can't use gemini-2.5-flash or 2.5-flash-lite, the only models whose free tier included Google Search grounding, and newer models have no free search. So answers are grounded in the lesson's text only.
 - 6b.21–6b.22 Gemini chat (M8, tier 2): Settings > AI tutor saves the learner's own key (format-checked, kept only in that learner's storage, never shown again, not in backups, removed with the learner; a Remove key button; the privacy terms stated). In a lesson's tutor panel, "Ask Gemini" sends the lesson's text and the question (never progress or names) to `gemini-3.5-flash-lite`, keeps follow-ups for the visit, leaves out the model's thinking, and shows the answer as plain text labelled "AI-generated (Gemini), not checked" with the lesson's sources. No key, offline, wrong key, quota, busy, blocked: each says why in plain words and offers "Ask Claude instead". Browser mode `tutor-ai` (Gemini mocked).
 - 6b.23 Ask Claude (M9, tier 3): builds a prompt with the lesson's title, goal, sources, the question and answering rules (capped at 3,000 characters); shares it (Android share sheet), or copies it and offers an "Open Claude" link, or shows the text to copy by hand when copying is blocked. Needs no key; says so when offline.
+
+## Phase 7, Adaptive learning (built 2026-10-20, awaiting the owner's review; plan `docs/PHASE7_PLAN.md`)
+
+- Answer options are shown in a stable shuffled order everywhere (quiz, predict, critique, design, agent, simulation, practice), seeded by the question; answers are still recorded by the option's original index, so saved progress keeps its meaning. Fixes the old "right answer usually first" problem.
+- 7.1 Review schedule (`src/review/schedule.ts`): Leitner boxes computed from the answer log (a miss goes to box 1; right once due moves it up; a miss sends it back; right in the last box masters it). Intervals 1, 3, 7, 14, 30 days, session size and the goal rule in `rewards.config.json`. Lesson and practice quiz questions are asked again; design, critique, debug and guided checks are sent back to their lesson.
+- 7.2–7.3 Review screen (`#/review`): today's due questions (up to 10), options shuffled by day, wrong taps explained with another try, "Stop here" after 5. A finished session is a `review` event that counts as one lesson towards the daily goal (no XP of its own; the answers inside are scored by the usual rules, so a mistake put right counts towards the existing badges). Home shows "N questions to review". Cites Roediger and Karpicke (2006).
+- 7.4 Recommended next step (`src/review/recommend.ts`), shown with its reason on Home's Up next card: first lesson; a started track idle for 7+ days; the track worked on last, with its due reviews first when first-try accuracy is under 60%; the next open track; all done.
+- 7.5 Progress by track: lessons done, first-try share, in review, due, mastered, and the most-missed lessons as links.
+- Browser mode `review` (seeded history, by touch at 360 px).
 

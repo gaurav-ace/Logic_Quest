@@ -1,6 +1,8 @@
 # Phase 7 plan: adaptive learning
 
-Status: draft, awaiting the owner's approval (2026-10-20). Branch: `claude/adaptive` from `main` once 6b is merged.
+Status: approved by the owner on 2026-10-20 ("proceed with phase 7"), built on branch `claude/adaptive`. The three questions in section 5 weren't answered, so my recommendations were used: a review session counts towards the goal, options are shuffled everywhere, intervals 1, 3, 7, 14, 30.
+
+**Differences from the plan, as built:** no separate "Today" card (the HUD already shows today's goal, and Home has the review card and the reasoned Up next card, so a third card would repeat them); no question fingerprints (section 6): a changed quiz question just asks the new question from the same lesson; the review source is Roediger and Karpicke (2006) only, since the Cepeda et al. abstract couldn't be read to check it; practice questions aren't in the per-track stats (their track isn't known without loading the practice files).
 
 Exit criteria (CLAUDE.md section 9): spaced repetition of past mistakes, daily goals, a recommended next lesson and a progress dashboard; **the review queue and the recommendations are tested with sample histories.**
 
