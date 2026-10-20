@@ -1,0 +1,731 @@
+[
+  {
+    "id": "python-class-corners",
+    "title": "Class rules Python enforces",
+    "track": "lld",
+    "level": "medium",
+    "kind": "quiz",
+    "objective": "Predict how Python treats abstract classes, equality, read-only properties and substitutable subclasses.",
+    "sources": [
+      {
+        "title": "Python docs: abc, Abstract Base Classes (cannot be instantiated unless all abstract methods are overridden)",
+        "url": "https://docs.python.org/3/library/abc.html"
+      },
+      {
+        "title": "Python reference: Data model, object.__hash__ (overriding __eq__ alone sets __hash__ to None)",
+        "url": "https://docs.python.org/3/reference/datamodel.html#object.__hash__"
+      },
+      {
+        "title": "Python docs: property()",
+        "url": "https://docs.python.org/3/builtins/functions.html#property"
+      },
+      {
+        "title": "Robert C. Martin, Solid Relevance (Clean Coder Blog, 2020): one-line definitions of all five SOLID principles",
+        "url": "https://blog.cleancoder.com/uncle-bob/2020/10/18/Solid-Relevance.html"
+      }
+    ],
+    "related": "interfaces-polymorphism",
+    "intro": "Four small class designs. Each shows a rule that either Python or good design enforces, and where it bites.",
+    "questions": [
+      {
+        "prompt": "Shape is an ABC with an @abstractmethod area(). Square(Shape) defines __init__ but forgets area(). What happens at Square(2)?",
+        "options": [
+          {
+            "text": "It works; the error only comes when area() is called",
+            "explanation": "That's how a plain base class behaves. An ABC checks earlier, when you create the object."
+          },
+          {
+            "text": "TypeError: it can't create a Square without an implementation of area",
+            "explanation": "Right. A class with unimplemented abstract methods can't be instantiated, so the mistake shows up at once, not deep in some later call."
+          },
+          {
+            "text": "area() quietly returns None",
+            "explanation": "No object is created at all, so there's nothing to call area() on."
+          },
+          {
+            "text": "SyntaxError when the file is loaded",
+            "explanation": "The class definition is valid Python. The check happens when you try to create an instance."
+          }
+        ],
+        "answer": 1
+      },
+      {
+        "prompt": "Money defines __eq__ (equal when the cents match) and nothing else. What does {Money(5)} (a set) do?",
+        "options": [
+          {
+            "text": "Makes a set with one Money in it",
+            "explanation": "It would, if Money were hashable. Defining __eq__ alone takes that away."
+          },
+          {
+            "text": "Makes an empty set",
+            "explanation": "A set literal either holds its items or fails; it never drops them."
+          },
+          {
+            "text": "TypeError: unhashable type: 'Money'",
+            "explanation": "Right. A class that overrides __eq__ without defining __hash__ gets __hash__ set to None, so its objects can't go in sets or be dict keys. Define __hash__ too (from the same fields), for example with @dataclass(frozen=True)."
+          },
+          {
+            "text": "It works, but two equal Money objects both end up in the set",
+            "explanation": "That's the bug Python prevents: equal objects with different hashes. Instead it refuses to hash them at all."
+          }
+        ],
+        "answer": 2
+      },
+      {
+        "prompt": "Account has `@property def balance(self): return self._balance` and no setter. What does acct.balance = 100 do?",
+        "options": [
+          {
+            "text": "AttributeError: the property has no setter",
+            "explanation": "Right. A property without a setter is read-only, so outside code has to go through methods like deposit(), which can enforce the rules."
+          },
+          {
+            "text": "Sets _balance to 100",
+            "explanation": "Nothing connects assignment to _balance unless you write a setter."
+          },
+          {
+            "text": "Replaces the property with a plain attribute holding 100",
+            "explanation": "On an instance, assigning to a property name goes through the property, which has no setter."
+          },
+          {
+            "text": "Nothing, silently",
+            "explanation": "Python raises an error rather than ignore the assignment."
+          }
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "ReadOnlyFile subclasses File and makes write() raise an error. Code that accepts any File and writes to it now crashes. Which principle is broken?",
+        "options": [
+          {
+            "text": "Single responsibility",
+            "explanation": "That's about how many reasons a class has to change, not whether a subclass keeps its parent's promises."
+          },
+          {
+            "text": "Interface segregation",
+            "explanation": "Related (a smaller Readable interface would help), but the failure here is a subclass breaking callers."
+          },
+          {
+            "text": "Open-closed",
+            "explanation": "Open-closed is about adding behaviour without editing working code. Nothing was edited here; a caller was surprised."
+          },
+          {
+            "text": "Liskov substitution",
+            "explanation": "Right. In Martin's words, a program that uses an interface must not be confused by an implementation of it. A File that can't be written breaks that."
+          }
+        ],
+        "answer": 3
+      }
+    ]
+  },
+  {
+    "id": "mutable-default-argument",
+    "title": "The list that remembers",
+    "track": "lld",
+    "level": "medium",
+    "kind": "debug",
+    "objective": "Spot Python's shared default list, a bug that only shows on the second call.",
+    "sources": [
+      {
+        "title": "Python tutorial: Default argument values (“The default value is evaluated only once”)",
+        "url": "https://docs.python.org/3/tutorial/controlflow.html#default-argument-values"
+      }
+    ],
+    "related": "encapsulation",
+    "language": "python",
+    "code": [
+      "def add_item(item, items=[]):",
+      "    items.append(item)",
+      "    return items"
+    ],
+    "symptom": "Each order should start with an empty list. The first order is fine. The second order arrives already holding the first order's items.",
+    "bugLine": 0,
+    "lineWhy": "The default [] is made once, when the function is defined, not on every call. Every call that uses the default gets that same list, so items pile up across calls.",
+    "program": "mutable-default",
+    "input": ["tea", "milk"],
+    "predict": {
+      "prompt": "add_item('tea'), then add_item('milk'). What does the second call return?",
+      "options": [
+        {
+          "text": "['milk']",
+          "explanation": "That's what you'd expect if the default were new each time. It isn't."
+        },
+        {
+          "text": "['milk', 'tea']",
+          "explanation": "append adds to the end, so 'tea' stays first."
+        },
+        {
+          "text": "['tea', 'milk']",
+          "explanation": "Right. Both calls use the one default list: 'tea' is still in it when 'milk' is added."
+        },
+        {
+          "text": "A TypeError: a list can't be a default value",
+          "explanation": "Python allows it, which is exactly why this bug is common."
+        }
+      ],
+      "answer": 2
+    },
+    "fix": {
+      "prompt": "Which fix is right?",
+      "options": [
+        {
+          "text": "Default to None, and make a new list inside: if items is None: items = []",
+          "explanation": "Right. None is created once too, but it can't be changed, and each call that needs a list makes its own. The Python tutorial shows this fix."
+        },
+        {
+          "text": "Call items.clear() at the start of the function",
+          "explanation": "That also wipes a list the caller passed in on purpose."
+        },
+        {
+          "text": "Use items=() (a tuple) as the default",
+          "explanation": "Tuples have no append, so the first call raises AttributeError."
+        },
+        {
+          "text": "Return a copy: return list(items)",
+          "explanation": "The caller gets a copy, but the shared default still grows on every call."
+        }
+      ],
+      "answer": 0
+    }
+  },
+  {
+    "id": "shared-class-attribute",
+    "title": "Every cart has the same items",
+    "track": "lld",
+    "level": "medium",
+    "kind": "debug",
+    "objective": "Tell class attributes (shared by every object) from instance attributes (one per object).",
+    "sources": [
+      {
+        "title": "Python tutorial: Class and instance variables (the shared tricks list)",
+        "url": "https://docs.python.org/3/tutorial/classes.html#class-and-instance-variables"
+      }
+    ],
+    "related": "objects-and-responsibilities",
+    "language": "python",
+    "code": [
+      "class Cart:",
+      "    items = []",
+      "",
+      "    def add(self, item):",
+      "        self.items.append(item)"
+    ],
+    "symptom": "Two shoppers, two carts. The second shopper's cart shows everything the first one added.",
+    "bugLine": 1,
+    "lineWhy": "items = [] in the class body runs once and belongs to the class. self.items finds no instance attribute, so it falls back to that one class list, which every Cart shares.",
+    "program": "shared-class-list",
+    "input": [["pen"], ["cup"]],
+    "predict": {
+      "prompt": "a, b = Cart(), Cart(). a.add('pen'), then b.add('cup'). What is b.items?",
+      "options": [
+        {
+          "text": "['cup']",
+          "explanation": "That's the intent, but both carts share one list."
+        },
+        {
+          "text": "['pen', 'cup']",
+          "explanation": "Right. Both carts read and change Cart.items, the single class list."
+        },
+        {
+          "text": "['cup', 'pen']",
+          "explanation": "'pen' was added first, so it comes first."
+        },
+        {
+          "text": "AttributeError: 'Cart' object has no attribute 'items'",
+          "explanation": "Lookup falls back from the object to its class, and the class has items."
+        }
+      ],
+      "answer": 1
+    },
+    "fix": {
+      "prompt": "Which fix is right?",
+      "options": [
+        {
+          "text": "Rename items to _items",
+          "explanation": "The underscore is only a naming convention. It's still one list on the class."
+        },
+        {
+          "text": "Use Cart.items.append(item) in add()",
+          "explanation": "That makes the sharing explicit, not gone."
+        },
+        {
+          "text": "Make items a tuple",
+          "explanation": "Tuples can't be appended to, so add() breaks instead."
+        },
+        {
+          "text": "Create the list per object: def __init__(self): self.items = []",
+          "explanation": "Right. __init__ runs once per Cart, so each object gets its own list. The Python tutorial makes the same fix for its Dog class."
+        }
+      ],
+      "answer": 3
+    }
+  },
+  {
+    "id": "snack-machine-states",
+    "title": "Snack machine",
+    "track": "lld",
+    "level": "medium",
+    "kind": "guided",
+    "objective": "Turn a device's behaviour into states and allowed moves, so every impossible action is refused in one place.",
+    "sources": [
+      {
+        "title": "Gamma, Helm, Johnson and Vlissides, Design Patterns (Addison-Wesley, 1994): the State pattern"
+      },
+      {
+        "title": "Robert C. Martin, The Single Responsibility Principle (Clean Coder Blog, 2014)",
+        "url": "https://blog.cleancoder.com/uncle-bob/2014/05/08/SingleReponsibilityPrinciple.html"
+      }
+    ],
+    "related": "state-machines",
+    "simplifies": "Ignores hardware faults (a jammed coil, a coin stuck in the slot). A real machine needs states for those too.",
+    "problem": "Design the logic of a snack machine. A customer inserts coins, picks a snack, and gets the snack plus change, or presses Cancel and gets their money back. Actions that make no sense right now must be refused politely, and no money may ever be lost.",
+    "steps": [
+      {
+        "stage": "understand",
+        "prompt": "In your own words: what can the customer do, and what must always be true?",
+        "hints": [
+          "List the buttons and slots first.",
+          "Then the promise about money."
+        ],
+        "model": "Actions: insert coin, pick snack, cancel. Promises: a snack is given only when paid for and in stock; any money not spent comes back; actions that don't fit the moment are refused with a message, never ignored or half-done.",
+        "check": {
+          "type": "choice",
+          "prompt": "Which rule matters most for the design?",
+          "options": [
+            {
+              "text": "Every button must work at every moment",
+              "explanation": "Pick before paying can't work. The design must refuse it, clearly."
+            },
+            {
+              "text": "Snacks should come out as fast as possible",
+              "explanation": "Speed is nice, but the hard part is never giving a free snack or keeping money."
+            },
+            {
+              "text": "What's allowed depends on what has happened so far, and money is never lost",
+              "explanation": "Right. “What has happened so far” is the state. That's why this is a state machine."
+            },
+            {
+              "text": "The machine only needs to track how many snacks are left",
+              "explanation": "It also needs to know how much the customer has put in and what it's doing now."
+            }
+          ],
+          "answer": 2
+        }
+      },
+      {
+        "stage": "shrink",
+        "prompt": "Shrink it: one snack, exact coins only, no cancel. What states does the machine pass through?",
+        "hints": [
+          "Before any coin, after paying, while the snack drops.",
+          "What should “pick snack” do before any coin is in?"
+        ],
+        "model": "Idle (waiting for money) → Paid (enough money in) → Dispensing (snack dropping) → back to Idle. In Idle, picking a snack is refused: “Insert money first”.",
+        "check": {
+          "type": "choice",
+          "prompt": "The machine is Idle (no money in). The customer presses a snack button. What should happen?",
+          "options": [
+            {
+              "text": "Refuse it with a message such as “Insert money first”, and stay Idle",
+              "explanation": "Right. The move isn't allowed from this state, so it's refused and nothing changes."
+            },
+            {
+              "text": "Give the snack and wait for payment",
+              "explanation": "A free snack: the machine can't make the customer pay afterwards."
+            },
+            {
+              "text": "Ignore the press silently",
+              "explanation": "The customer can't tell whether the machine is broken. Refuse with a reason instead."
+            },
+            {
+              "text": "Move to Dispensing",
+              "explanation": "Idle can't move to Dispensing; that would skip payment."
+            }
+          ],
+          "answer": 0
+        }
+      },
+      {
+        "stage": "breakdown",
+        "prompt": "Break the design into pieces you'd write in order. Where do the rules about allowed moves live?",
+        "hints": [
+          "List the states and the events before writing any rule.",
+          "Coins and stock are separate jobs from deciding what's allowed."
+        ],
+        "model": "List the states (Idle, HasMoney, Dispensing); list the events (coin, pick, cancel, snack dropped); write one table of allowed moves (state + event → next state and action); one Machine class holds the current state and applies the table; CoinBox (holds money, makes change) and Inventory (stock per snack) each do their own job.",
+        "check": {
+          "type": "order",
+          "parts": [
+            "List the states: Idle, HasMoney, Dispensing",
+            "List the events: coin, pick, cancel, snack dropped",
+            "Write the table: for each state and event, the next state and action (or a refusal)",
+            "Give the money and the stock their own classes: CoinBox and Inventory",
+            "The Machine class keeps the current state and applies the table"
+          ],
+          "explain": "The table needs the states and events; the classes that act on it need the table. Keeping all moves in one table means an impossible move is refused in one place."
+        }
+      },
+      {
+        "stage": "logic",
+        "prompt": "Write the rule for one tricky move: HasMoney (₹30 in), and the customer picks a ₹25 snack that just sold out.",
+        "hints": [
+          "Has the customer lost anything yet?",
+          "Which state lets them choose again or cancel?"
+        ],
+        "model": "Refuse the pick with “Sold out”, keep the ₹30 and stay in HasMoney, so they can pick something else or cancel for a full refund. Check stock before moving to Dispensing, never after.",
+        "check": {
+          "type": "choice",
+          "prompt": "HasMoney, ₹30 in, the chosen ₹25 snack is sold out. What should happen?",
+          "options": [
+            {
+              "text": "Keep the money and go back to Idle",
+              "explanation": "That loses the customer's ₹30."
+            },
+            {
+              "text": "Move to Dispensing, then notice there's nothing to drop",
+              "explanation": "Stock must be checked before dispensing starts, or the machine gets stuck mid-move."
+            },
+            {
+              "text": "Say “Sold out”, stay in HasMoney, and let them choose again or cancel",
+              "explanation": "Right. Nothing is lost and the customer still has every reasonable choice."
+            },
+            {
+              "text": "Give a different snack of the same price",
+              "explanation": "The customer didn't choose it. Let them decide."
+            }
+          ],
+          "answer": 2
+        }
+      },
+      {
+        "stage": "edges",
+        "prompt": "Your table covers the happy path. Which situations need their own rule?",
+        "hints": [
+          "Go through each state and press every button in it.",
+          "Think about change, too."
+        ],
+        "model": "Cancel with money in (refund, back to Idle), a sold-out pick (refuse, stay), not enough money for the chosen snack (refuse, say how much more), no coins to give change (refuse before taking the money, or offer exact change only), and a second pick while dispensing (refuse). Paying exactly for an in-stock snack, and reading the price list, need nothing new.",
+        "check": {
+          "type": "select",
+          "prompt": "Tap every situation that needs its own rule in the table.",
+          "cases": [
+            {
+              "text": "Cancel pressed after inserting ₹20",
+              "pick": true,
+              "why": "HasMoney + cancel: refund the ₹20 and go back to Idle."
+            },
+            {
+              "text": "₹10 in, and a ₹25 snack is picked",
+              "pick": true,
+              "why": "Refuse and say ₹15 more is needed; stay in HasMoney."
+            },
+            {
+              "text": "₹50 in for a ₹25 snack, but the coin box can't make ₹25 change",
+              "pick": true,
+              "why": "Refuse the sale (or ask for exact money) rather than keep the customer's change."
+            },
+            {
+              "text": "A second pick while the first snack is still dropping",
+              "pick": true,
+              "why": "Dispensing + pick: refuse until the machine is back to a state that accepts it."
+            },
+            {
+              "text": "Exactly ₹25 in for an in-stock ₹25 snack",
+              "pick": false,
+              "why": "The normal path, already in the table."
+            },
+            {
+              "text": "Reading the prices on the display",
+              "pick": false,
+              "why": "Looking changes nothing, so no state or rule is involved."
+            }
+          ]
+        }
+      },
+      {
+        "stage": "combine",
+        "prompt": "Describe the whole design in plain words, then compare. What would adding a “card payment” option change?",
+        "hints": [
+          "Which piece knows the allowed moves? Which pieces only do one job?"
+        ],
+        "model": "Machine holds the current state (Idle, HasMoney, Dispensing) and one table of allowed moves; every event goes through that table, so anything not listed is refused with a message. CoinBox takes money and makes change; Inventory tracks stock; Machine asks them before moving on (stock and change are checked before Dispensing). Card payment adds a few events and rows (card approved, card declined) and perhaps a Payment interface that CoinBox and a card reader both implement; the rest is unchanged."
+      }
+    ]
+  },
+  {
+    "id": "lru-get-forgets",
+    "title": "The cache that evicts the wrong key",
+    "track": "lld",
+    "level": "hard",
+    "kind": "debug",
+    "objective": "Find why an LRU cache throws out a key that was just used, by tracing the order it keeps.",
+    "sources": [
+      {
+        "title": "Python docs: collections.OrderedDict (move_to_end, popitem(last=False); suited to LRU caches)",
+        "url": "https://docs.python.org/3/library/collections.html#collections.OrderedDict"
+      },
+      {
+        "title": "Python docs: functools.lru_cache (an LRU cache works best when recent calls predict upcoming ones)",
+        "url": "https://docs.python.org/3/library/functools.html#functools.lru_cache"
+      }
+    ],
+    "related": "design-lru-cache",
+    "language": "python",
+    "code": [
+      "class LRU:",
+      "    def __init__(self, capacity):",
+      "        self.cap = capacity",
+      "        self.data = OrderedDict()",
+      "",
+      "    def get(self, key):",
+      "        if key not in self.data:",
+      "            return None",
+      "        return self.data[key]",
+      "",
+      "    def put(self, key, value):",
+      "        if key in self.data:",
+      "            self.data.move_to_end(key)",
+      "        self.data[key] = value",
+      "        if len(self.data) > self.cap:",
+      "            self.data.popitem(last=False)"
+    ],
+    "symptom": "The page read most often keeps dropping out of the cache, while pages read once stay in. The hit rate is far lower than expected.",
+    "bugLine": 8,
+    "lineWhy": "The OrderedDict's order is supposed to mean “least recently used first”. get() reads the key but never moves it to the end, so a key that's read all the time still looks old, and put() evicts it.",
+    "program": "lru-get-no-touch",
+    "input": {
+      "capacity": 2,
+      "ops": [["put", "a"], ["put", "b"], ["get", "a"], ["put", "c"]]
+    },
+    "predict": {
+      "prompt": "c = LRU(2); c.put('a', 1); c.put('b', 2); c.get('a'); c.put('c', 3). Which keys are left, as list(c.data)?",
+      "options": [
+        {
+          "text": "['a', 'c']",
+          "explanation": "That's a correct LRU: 'a' was used after 'b', so 'b' should go. This code never records that use."
+        },
+        {
+          "text": "['a', 'b', 'c']",
+          "explanation": "Capacity is 2, so put('c') evicts one key."
+        },
+        {
+          "text": "['b', 'c']",
+          "explanation": "Right. The order is still a, b after get('a'), so popitem(last=False) removes 'a', the key that was just read."
+        },
+        {
+          "text": "['a', 'b']",
+          "explanation": "put('c', 3) always stores 'c'; the eviction removes an older key."
+        }
+      ],
+      "answer": 2
+    },
+    "fix": {
+      "prompt": "Which fix is right?",
+      "options": [
+        {
+          "text": "In put(), evict with popitem() (last=True)",
+          "explanation": "That throws out the newest key, often the one just added."
+        },
+        {
+          "text": "In get(), call self.data.move_to_end(key) before returning",
+          "explanation": "Right. Reading counts as using, so the key moves to the most-recent end. Then the front really is the least recently used."
+        },
+        {
+          "text": "Make the capacity bigger",
+          "explanation": "The wrong key is still evicted, just later."
+        },
+        {
+          "text": "Use a plain dict instead of OrderedDict",
+          "explanation": "Plain dicts keep insertion order too, but have no move_to_end, so the bug stays and the fix gets harder."
+        }
+      ],
+      "answer": 1
+    }
+  },
+  {
+    "id": "pluggable-discounts",
+    "title": "Discounts that keep coming",
+    "track": "lld",
+    "level": "hard",
+    "kind": "guided",
+    "objective": "Design an extensible discount system with Strategy, and find where an if/elif version gives wrong totals.",
+    "sources": [
+      {
+        "title": "Gamma, Helm, Johnson and Vlissides, Design Patterns (Addison-Wesley, 1994): the Strategy pattern"
+      },
+      {
+        "title": "Robert C. Martin, The Open Closed Principle (Clean Coder Blog, 2014)",
+        "url": "https://blog.cleancoder.com/uncle-bob/2014/05/12/TheOpenClosedPrinciple.html"
+      }
+    ],
+    "related": "strategy-factory",
+    "simplifies": "Prices are plain numbers. Real checkouts use exact money types (whole paise or Decimal), round in a stated way, and apply tax rules too.",
+    "problem": "A shop's checkout applies coupons: percentage off and a flat amount off today, with new kinds (buy 2 get 1, free delivery) added most months. Design it so a new kind doesn't mean editing checkout, and the total is always right.",
+    "example": {
+      "input": "₹500 cart, 10% off, then ₹50 off",
+      "output": "₹400"
+    },
+    "steps": [
+      {
+        "stage": "understand",
+        "prompt": "In your own words: what are the two goals, and what does “always right” rule out?",
+        "hints": [
+          "One goal is about change over time.",
+          "Can a total ever be below zero? Can the same coupons give two different totals?"
+        ],
+        "model": "Goal 1: adding a coupon kind adds a class, without editing checkout. Goal 2: the total follows a stated rule: coupons apply in a defined order, it never goes below zero, and an unknown kind fails loudly instead of being skipped.",
+        "check": {
+          "type": "choice",
+          "prompt": "Which statement captures the job?",
+          "options": [
+            {
+              "text": "Support the two coupon kinds we have today",
+              "explanation": "New kinds arrive monthly; designing only for today means editing checkout every month."
+            },
+            {
+              "text": "New kinds plug in without editing checkout, and totals follow one stated rule (order, never negative)",
+              "explanation": "Right. One goal is about change, the other about correctness."
+            },
+            {
+              "text": "Apply coupons in whatever order the customer added them",
+              "explanation": "Then the same coupons can give two prices, which is hard to explain to a customer."
+            },
+            {
+              "text": "Let each coupon edit the cart however it likes",
+              "explanation": "Without a shared contract, nothing guarantees a sensible total."
+            }
+          ],
+          "answer": 1
+        }
+      },
+      {
+        "stage": "shrink",
+        "prompt": "Shrink it: one cart, one coupon. Work out ₹500 with 10% off.",
+        "hints": [
+          "10% of 500 is 50."
+        ],
+        "model": "₹500 × 90% = ₹450. With one coupon there's no order to decide and nothing can go negative, which is why the hard parts only appear with several coupons or small carts.",
+        "check": {
+          "type": "choice",
+          "prompt": "₹500 cart, one 10%-off coupon. New total?",
+          "options": [
+            {
+              "text": "₹490",
+              "explanation": "That takes off ₹10, not 10%."
+            },
+            {
+              "text": "₹50",
+              "explanation": "That's the discount, not the total."
+            },
+            {
+              "text": "₹550",
+              "explanation": "A discount lowers the total."
+            },
+            {
+              "text": "₹450",
+              "explanation": "Right. 10% of ₹500 is ₹50 off."
+            }
+          ],
+          "answer": 3
+        }
+      },
+      {
+        "stage": "breakdown",
+        "prompt": "Break the design into pieces, in the order you'd build them. Where does knowledge of each coupon kind live?",
+        "hints": [
+          "Start with what every coupon has in common.",
+          "Checkout should only know that common part."
+        ],
+        "model": "A Discount interface with apply(total) returning the new total and a priority; one class per kind (PercentOff, FlatOff…); a factory that turns stored coupon data into objects and rejects unknown kinds; checkout sorts the discounts by priority, applies each, and never lets the total go below zero.",
+        "check": {
+          "type": "order",
+          "parts": [
+            "Define the Discount interface: apply(total) and a priority",
+            "Write one class per kind: PercentOff, FlatOff",
+            "A factory builds Discount objects from coupon data, and rejects unknown kinds",
+            "Checkout sorts by priority, applies each, and keeps the total at 0 or above"
+          ],
+          "explain": "The classes implement the interface, the factory creates the classes, and checkout uses what the factory makes. Checkout only knows the interface, so new kinds don't touch it."
+        }
+      },
+      {
+        "stage": "logic",
+        "prompt": "₹500 cart, a 10%-off coupon and a ₹50-off coupon. Work it out both ways round. What does that tell you about the design?",
+        "hints": [
+          "Percentage first: 500 → 450 → ?",
+          "Flat first: 500 → 450 → ?"
+        ],
+        "model": "Percentage first: 450, then 400. Flat first: 450, then 405. Same coupons, two prices, so the order must be a stated rule (a priority on each kind), not whatever order the coupons arrived in.",
+        "check": {
+          "type": "choice",
+          "prompt": "₹500 cart with 10% off and ₹50 off. What are the totals for “percentage first” and “flat first”?",
+          "options": [
+            {
+              "text": "₹400 both ways: order doesn't matter",
+              "explanation": "Work out flat first: 500 − 50 = 450, then 10% off gives 405."
+            },
+            {
+              "text": "₹400 percentage first, ₹405 flat first, so the order must be a fixed rule",
+              "explanation": "Right. 10% of a bigger total is a bigger discount, so applying it first saves the customer more."
+            },
+            {
+              "text": "₹405 percentage first, ₹400 flat first",
+              "explanation": "Swapped: percentage first is 450 − 50 = 400."
+            },
+            {
+              "text": "₹395 either way",
+              "explanation": "Neither order gives 395: the coupons take off at most 50 + 50."
+            }
+          ],
+          "answer": 1
+        }
+      },
+      {
+        "stage": "edges",
+        "prompt": "Here's the quick version: loop over coupons; if kind == 'percent': t = t * (100 - value) / 100; elif kind == 'flat': t = t - value. Which inputs does it get wrong?",
+        "hints": [
+          "What if the flat amount is bigger than the cart?",
+          "What does the loop do with a kind it doesn't know?"
+        ],
+        "model": "A ₹50 coupon on a ₹30 cart gives −20. A new kind like buy-2-get-1 falls through both branches and is silently ignored. And the total depends on the order the coupons were given: [flat 50, 10%] gives 405 but [10%, flat 50] gives 400. One 10% coupon, or no coupons, come out right.",
+        "check": {
+          "type": "select",
+          "prompt": "Tap every input the quick version gets wrong.",
+          "cases": [
+            {
+              "text": "₹30 cart, ₹50-off coupon",
+              "pick": true,
+              "why": "30 − 50 = −20: the shop would owe the customer. The total needs a floor of 0."
+            },
+            {
+              "text": "₹500 cart, a new “buy 2 get 1” coupon",
+              "pick": true,
+              "why": "Neither branch matches, so it's skipped without a word and the total stays 500."
+            },
+            {
+              "text": "₹500 cart, coupons given as [₹50 off, 10% off]",
+              "pick": true,
+              "why": "It gives 405, but the same coupons given the other way round give 400. The price depends on the order they were added."
+            },
+            {
+              "text": "₹500 cart, one 10%-off coupon",
+              "pick": false,
+              "why": "500 × 90 / 100 = 450, which is right."
+            },
+            {
+              "text": "₹500 cart, no coupons",
+              "pick": false,
+              "why": "The loop doesn't run, and 500 is right."
+            }
+          ]
+        }
+      },
+      {
+        "stage": "combine",
+        "prompt": "Describe the whole design in plain words, then compare. What does adding “free delivery” take?",
+        "hints": [
+          "Count the files you'd touch."
+        ],
+        "model": "Each coupon kind is a Strategy: a class with apply(total) and a priority. A factory turns stored coupon data into these objects and raises an error for an unknown kind. Checkout sorts by priority (for example, percentages before flat amounts), applies each, clamps at 0, and lists each discount on the receipt. Adding free delivery means one new class and one line in the factory; checkout is closed for modification and open for extension."
+      }
+    ]
+  }
+]

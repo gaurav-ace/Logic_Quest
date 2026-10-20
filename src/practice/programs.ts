@@ -171,7 +171,10 @@ export const PROGRAMS: Record<string, DebugProgram> = {
     },
     show: (i) => {
       const { capacity, ops } = i as LruInput;
-      return `LRU(${capacity}): ${ops.map(([op, k]) => `${op}(${pyStr(k)})`).join(', ')}; print(keys)`;
+      // Values don't affect which keys stay, so puts just number them 1, 2, 3 …
+      let n = 0;
+      const calls = ops.map(([op, k]) => (op === 'put' ? `c.put(${pyStr(k)}, ${++n})` : `c.get(${pyStr(k)})`));
+      return `c = LRU(${capacity}); ${calls.join('; ')}; list(c.data)`;
     },
   },
 
