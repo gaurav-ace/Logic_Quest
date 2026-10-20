@@ -109,7 +109,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
       renderProgress(view, tracker, REWARDS);
     } else if (route.name === 'settings') {
       document.title = 'Settings · Logic Quest';
-      renderSettings(view, tracker, store, REWARDS, persistState, () => renderLearners(profiles, switchTo));
+      renderSettings(view, tracker, store, REWARDS, persistState, () => renderLearners(profiles, switchTo), new WorkshopStore(kv, profileKey(profiles.current.id, 'workshop')));
     } else if (route.name === 'lesson') {
       const lesson = byId.get(route.id)!;
       document.title = `${lesson.title} · Logic Quest`;

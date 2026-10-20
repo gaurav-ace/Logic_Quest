@@ -445,9 +445,9 @@ if (mode === 'ui') {
     const merged = join(downloads, 'with-extra.json');
     writeFileSync(merged, JSON.stringify({ ...backup, events: [...backup.events, extra] }));
     await importFile(merged);
-    check('import previews only what is new', (await text('.backup-status')).startsWith('This file has 1 new item.'), await text('.backup-status'));
-    await tap('Merge 1 item');
-    check('merge adds it once: +10 XP for the newly completed lesson', (await text('.backup-status')) === 'Merged 1 item into your progress.');
+    check('import previews only what is new', (await text('.backup-status')).startsWith('This file has 1 new item of progress.'), await text('.backup-status'));
+    await tap('Merge');
+    check('merge adds it once: +10 XP for the newly completed lesson', (await text('.backup-status')) === 'Merged 1 new item of progress.');
     const xpAfter = await progressStats();
     await importFile(merged);
     const again = await text('.backup-status');
@@ -1129,6 +1129,35 @@ if (mode === 'workshop') {
   await load();
   // Retry 5 + 10 + retry 5 + 10 + retry 5.
   check('XP from the graded checks only', (await text('.hud-stats')) === 'Level2XP35 / 80Streak0 daysCoins0', await text('.hud-stats'));
+
+  // Backups carry the workshop: export, lose the notes on this device, import, and they're back.
+  const downloads = join(outDir, 'workshop-downloads');
+  rmSync(downloads, { recursive: true, force: true });
+  mkdirSync(downloads, { recursive: true });
+  await send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloads });
+  await load(url + '#/settings');
+  await tap('Export backup');
+  await sleep(1500);
+  const file = readdirSync(downloads).find((f) => f.endsWith('.json'));
+  const backup = file ? JSON.parse(readFileSync(join(downloads, file), 'utf8')) : {};
+  check('the backup file holds the workshop notes and outline', backup.workshop?.['second-largest']?.notes?.['0'] === 'In: numbers. Out: biggest value below the max.' && backup.workshop['second-largest'].outline.length === 3, JSON.stringify(backup.workshop ?? null).slice(0, 120));
+  await evaluate(`localStorage.removeItem('logic-quest:p:p1:workshop')`);
+  await load(url + '#/settings');
+  const importFile = async () => {
+    const { result } = await send('Runtime.evaluate', { expression: `document.querySelector('input[type=file]')` });
+    await send('DOM.setFileInputFiles', { files: [join(downloads, file)], objectId: result.objectId });
+    await sleep(500);
+  };
+  if (file) {
+    await importFile();
+    check('import offers the workshop notes back, and no progress twice', (await text('.backup-status')).startsWith('This file has workshop notes for 1 problem.'), await text('.backup-status'));
+    await tap('Merge');
+    await importFile();
+    check('importing it again adds nothing', (await text('.backup-status')) === 'Everything in that file is already here. Nothing to add.', await text('.backup-status'));
+    await load(url + '#/practice/logic/second-largest');
+    await sleep(800);
+    check('the problem resumes with the imported notes and outline', (await evaluate(`document.querySelector('.workshop-step textarea').value`)) === 'In: numbers. Out: biggest value below the max.' && (await outline()) === '0:Loop over the list | 0:Remember best and second | 1:Update best and second', await outline());
+  }
   await viewport(1280, 800, false);
   await media('no-preference', 'dark');
   await load(url + '#/practice/logic/second-largest');
