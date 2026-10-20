@@ -19,13 +19,36 @@ export function renderHome(root: HTMLElement, lessons: Lesson[], progress: Progr
     section.append(summary, list);
     return section;
   });
-  root.replaceChildren(renderHud(progress, bufferCost), el('h2', {}, 'Lessons'), el('p', { class: 'objective' }, 'Watch a system run, then prove you got it.'), ...sections);
+  const main = el('div', { class: 'home-main' });
+  main.append(el('h2', {}, 'Lessons'), el('p', { class: 'objective' }, 'Watch a system run, then prove you got it.'), ...sections);
+  const next = nextLesson();
+  const side = el('aside', { class: 'home-side', 'aria-label': 'Your progress' });
+  side.append(renderHud(progress, bufferCost));
+  const layout = el('div', { class: 'home' });
+  if (next) layout.append(continueCard(next));
+  layout.append(side, main);
+  root.replaceChildren(layout);
+
+  /** First unlocked, unfinished lesson in curriculum order: the one to do next. */
+  function nextLesson(): Lesson | undefined {
+    return groups.flatMap((g) => g.lessons).find((l) => !progress.completed.has(l.id) && missingRequirements(l, progress.completed, byId).length === 0);
+  }
+
+  function continueCard(lesson: Lesson): HTMLElement {
+    const started = progress.completed.size > 0;
+    const c = el('section', { class: 'card continue', 'aria-label': 'Up next' });
+    c.dataset.track = lesson.track;
+    const go = el('button', { type: 'button', class: 'primary', 'data-id': lesson.id }, started ? 'Continue' : 'Start');
+    go.addEventListener('click', () => open(lesson.id));
+    c.append(el('small', {}, started ? 'Up next' : 'Start here'), el('h3', {}, lesson.title), el('p', {}, lesson.objective), go);
+    return c;
+  }
 
   function card(lesson: Lesson): HTMLElement {
     const done = progress.completed.has(lesson.id);
     const missing = missingRequirements(lesson, progress.completed, byId);
     const locked = missing.length > 0;
-    const b = el('button', { type: 'button', class: `lesson-card${done ? ' done' : ''}${locked ? ' locked' : ''}`, 'data-id': lesson.id });
+    const b = el('button', { type: 'button', class: `lesson-card${done ? ' done' : ''}${locked ? ' locked' : ''}`, 'data-id': lesson.id, 'data-level': lesson.level });
     const questions = lesson.quiz.length === 1 ? '1 question' : `${lesson.quiz.length} questions`;
     const kind = lesson.kind === 'trace' ? 'Trace' : lesson.kind === 'sim' ? `Simulation · ${lesson.challenges.length} challenge${lesson.challenges.length === 1 ? '' : 's'}` : lesson.kind === 'design' ? `${lesson.steps.length} steps · fix a design` : lesson.kind === 'agent' ? `Agent run · ${lesson.challenges.length} challenge${lesson.challenges.length === 1 ? '' : 's'}` : `${lesson.steps.length} steps`;
     const status = done ? '✓ Done · ' : locked ? '🔒 ' : '';

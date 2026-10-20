@@ -15,6 +15,12 @@ describe('parseRoute', () => {
     expect(parseRoute('#/progressx', ids)).toEqual(HOME);
   });
 
+  it('reads the settings screen', () => {
+    expect(parseRoute('#/settings', ids)).toEqual({ name: 'settings' });
+    expect(parseRoute('#/settings/', ids)).toEqual({ name: 'settings' });
+    expect(routeHash({ name: 'settings' })).toBe('#/settings');
+  });
+
   it('treats empty and root hashes as home', () => {
     for (const h of ['', '#', '#/']) expect(parseRoute(h, ids)).toEqual(HOME);
   });

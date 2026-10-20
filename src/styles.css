@@ -1,29 +1,44 @@
 /* Mobile first: designed at 360 px, scaled up. Touch targets are at least 48 px (CLAUDE.md section 8). */
 :root {
-  --bg: #eef3f1;
-  --grid: #d9e3df;
-  --ink: #16224a;
-  --mute: #4f5b7c;
+  --bg: #f5f6fa;
+  --surface: #eceef5;
   --card: #ffffff;
-  --line: #16224a;
-  --hi: #ffe14d;
-  --hi-ink: #16224a;
-  --ok: #17804f;
-  --bad: #c22f40;
-  --blue: #2a4bd7;
+  --ink: #1a2040;
+  --mute: #5a6384;
+  --line: #dde1ee;
+  --stroke: #3d4670;
+  --accent: #3b5bdb;
+  --accent-ink: #ffffff;
+  --accent-soft: #e6ebff;
+  --hi: #ffe8a3;
+  --hi-ink: #1a2040;
+  --ok: #178a55;
+  --bad: #c9334a;
+  --blue: #3b5bdb;
+  --radius: 14px;
+  --shadow: 0 1px 2px rgb(26 32 64 / 0.06), 0 4px 14px rgb(26 32 64 / 0.06);
   --tap: 48px;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0f1530;
-    --grid: #1a2248;
-    --ink: #e8ecff;
-    --mute: #a9b3da;
-    --card: #18204a;
-    --line: #e8ecff;
+    --bg: #0e1220;
+    --surface: #161b30;
+    --card: #1a2038;
+    --ink: #e9ecfa;
+    --mute: #a3acd0;
+    --line: #2b3354;
+    --stroke: #9aa6d6;
+    --accent: #7c93ff;
+    --accent-ink: #0e1220;
+    --accent-soft: #232c55;
+    --hi: #5c4a12;
+    --hi-ink: #fff3c9;
+    --ok: #2fb67a;
+    --bad: #ff7a8c;
     --blue: #8aa0ff;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 14px rgb(0 0 0 / 0.3);
     color-scheme: dark;
   }
 }
@@ -35,21 +50,10 @@
 body {
   margin: 0;
   min-height: 100dvh;
-  background-color: var(--bg);
-  background-image:
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background: var(--bg);
   color: var(--ink);
   font: 16px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
   -webkit-tap-highlight-color: transparent;
-}
-
-main {
-  max-width: 560px;
-  margin: 0 auto;
-  padding: calc(12px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px))
-    calc(24px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px));
 }
 
 h1 {
@@ -57,15 +61,6 @@ h1 {
   font-weight: 800;
   margin: 0;
   letter-spacing: -0.2px;
-}
-
-.app-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: var(--tap);
-  margin-bottom: 12px;
 }
 
 .lesson-list {
@@ -105,7 +100,7 @@ h1 {
   right: 0;
   bottom: 0;
   background: var(--card);
-  border-top: 2px solid var(--line);
+  border-top: 1px solid var(--line);
   padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px));
   box-shadow: 0 -6px 24px rgb(0 0 0 / 0.18);
 }
@@ -138,8 +133,9 @@ h2 {
 
 .card {
   background: var(--card);
-  border: 2px solid var(--line);
-  border-radius: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
   padding: 8px;
 }
 
@@ -157,7 +153,7 @@ h2 {
 
 .node rect {
   fill: var(--card);
-  stroke: var(--line);
+  stroke: var(--stroke);
   stroke-width: 2.5;
   transition: fill 0.25s;
 }
@@ -224,7 +220,7 @@ button.dot::before {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  border: 2px solid var(--line);
+  border: 2px solid var(--stroke);
   background: var(--card);
 }
 
@@ -246,7 +242,7 @@ button.dot:disabled {
 .step-bar {
   flex: 1;
   height: 12px;
-  border: 2px solid var(--line);
+  border: 1px solid var(--line);
   border-radius: 8px;
   overflow: hidden;
   background: var(--card);
@@ -282,7 +278,7 @@ button.play {
   margin: 12px -16px 0;
   padding: 6px 16px calc(8px + env(safe-area-inset-bottom, 0px));
   background: var(--bg);
-  border-top: 2px solid var(--line);
+  border-top: 1px solid var(--line);
 }
 
 button {
@@ -293,16 +289,20 @@ button {
   padding: 10px 16px;
   color: var(--ink);
   background: var(--card);
-  border: 2px solid var(--line);
+  border: 1px solid var(--line);
   border-radius: 12px;
-  box-shadow: 3px 3px 0 var(--line);
+  box-shadow: 0 1px 2px rgb(26 32 64 / 0.08);
   cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
   touch-action: manipulation;
 }
 
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
 button:active {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 var(--line);
+  transform: scale(0.98);
 }
 
 button:focus-visible {
@@ -314,12 +314,12 @@ button:disabled {
   opacity: 0.45;
   cursor: default;
   transform: none;
-  box-shadow: 3px 3px 0 var(--line);
 }
 
 button.primary {
-  background: var(--hi);
-  color: var(--hi-ink);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
   flex: 1;
 }
 
@@ -427,7 +427,7 @@ button.primary {
 .xp-bar {
   height: 10px;
   margin: 10px 0 8px;
-  border: 2px solid var(--line);
+  border: 1px solid var(--line);
   border-radius: 8px;
   overflow: hidden;
   background: var(--card);
@@ -436,7 +436,8 @@ button.primary {
 .xp-bar i {
   display: block;
   height: 100%;
-  background: var(--hi);
+  background: var(--accent);
+  border-radius: 8px;
 }
 
 .hud-today {
@@ -473,12 +474,11 @@ button.primary {
   max-width: calc(100% - 32px);
   text-align: center;
   padding: 10px 18px;
-  background: var(--hi);
-  color: var(--hi-ink);
-  border: 2px solid #16224a;
-  border-radius: 14px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-radius: 999px;
   font-weight: 800;
-  box-shadow: 3px 3px 0 #16224a;
+  box-shadow: 0 6px 24px rgb(26 32 64 / 0.3);
   pointer-events: none;
   animation: toast 2.4s forwards;
 }
@@ -530,7 +530,7 @@ button.primary {
   display: grid;
   place-items: center;
   height: 36px;
-  border: 2px solid var(--line);
+  border: 1px solid var(--line);
   border-radius: 10px;
   font-weight: 800;
   background: var(--card);
@@ -603,8 +603,9 @@ button.primary {
 }
 
 button[aria-pressed='true'] {
-  background: var(--hi);
-  color: var(--hi-ink);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .backup-status {
@@ -755,7 +756,7 @@ button.link {
 }
 
 .cell .val {
-  border: 2px solid var(--line);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 6px 2px;
   font-weight: 800;
@@ -811,7 +812,7 @@ button.link {
   display: flex;
   gap: 6px;
   align-items: baseline;
-  border: 2px solid var(--line);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 2px 8px;
   font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Roboto Mono', monospace;
@@ -843,9 +844,10 @@ button.link {
 
 .track {
   margin-top: 12px;
-  border: 2px solid var(--line);
-  border-radius: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   background: var(--card);
+  box-shadow: var(--shadow);
 }
 
 .track > summary {
@@ -923,7 +925,7 @@ button.link {
   gap: 8px;
   min-width: 48px;
   padding: 6px 10px;
-  border: 2px solid var(--line);
+  border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--card);
   font-weight: 800;
@@ -981,7 +983,7 @@ button.link {
   place-items: center;
   min-width: 28px;
   height: 28px;
-  border: 2px solid var(--line);
+  border: 1px solid var(--line);
   border-radius: 6px;
   font-weight: 800;
   font-size: 0.875rem;
@@ -989,7 +991,7 @@ button.link {
 
 .chain {
   padding: 3px 8px;
-  border: 2px solid var(--line);
+  border: 1px solid var(--line);
   border-radius: 6px;
   font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Roboto Mono', monospace;
   font-size: 0.875rem;
@@ -1058,7 +1060,7 @@ button.link {
 .svg-view rect,
 .svg-view circle {
   fill: var(--card);
-  stroke: var(--line);
+  stroke: var(--stroke);
   stroke-width: 2.5;
 }
 
@@ -1108,7 +1110,7 @@ button.link {
   gap: 12px;
   padding: 8px 16px;
   background: var(--card);
-  border-bottom: 2px solid var(--line);
+  border-bottom: 1px solid var(--line);
   font-weight: 700;
 }
 
@@ -1141,7 +1143,7 @@ button.link {
 }
 
 .metric {
-  border: 2px solid var(--line);
+  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 6px 8px;
   display: grid;
@@ -1215,7 +1217,7 @@ button.action {
 
 .sim-diagram .snode rect:first-child {
   fill: var(--card);
-  stroke: var(--line);
+  stroke: var(--stroke);
   stroke-width: 2.5;
 }
 
@@ -1255,7 +1257,7 @@ button.action {
 /* Class and sequence diagrams (Phase 5b). */
 .svg-view.uml .uclass rect {
   fill: var(--card);
-  stroke: var(--line);
+  stroke: var(--stroke);
   stroke-width: 2;
 }
 
@@ -1282,7 +1284,7 @@ button.action {
 }
 
 .svg-view.uml .divider {
-  stroke: var(--line);
+  stroke: var(--stroke);
   stroke-width: 1.5;
 }
 
@@ -1313,7 +1315,7 @@ button.action {
 
 .svg-view.uml .rel,
 .svg-view.uml .msg {
-  stroke: var(--line);
+  stroke: var(--stroke);
   stroke-width: 2;
 }
 
@@ -1340,17 +1342,17 @@ button.action {
 
 .svg-view.uml .mk-hollow {
   fill: var(--card);
-  stroke: var(--line);
+  stroke: var(--stroke);
   stroke-width: 1.5;
 }
 
 .svg-view.uml .mk-solid {
-  fill: var(--line);
+  fill: var(--stroke);
 }
 
 .svg-view.uml .mk-line {
   fill: none;
-  stroke: var(--line);
+  stroke: var(--stroke);
   stroke-width: 1.5;
 }
 
@@ -1403,4 +1405,388 @@ button.action {
 
 .critique-diagram {
   margin: 8px 0 12px;
+}
+
+/* ---- App shell: phone first. Bottom tabs on a phone, a left rail from 900 px. ---- */
+#app {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: calc(6px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) 6px calc(16px + env(safe-area-inset-left, 0px));
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+  margin-right: auto;
+  min-height: var(--tap);
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.nav-back {
+  order: 3;
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+  order: 4;
+}
+
+.chip {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 0.875rem;
+}
+
+.chip small {
+  color: var(--mute);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.chip strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.nav-item {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 0;
+  min-height: 56px;
+  color: var(--mute);
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.nav-icon {
+  display: grid;
+  place-items: center;
+  height: 26px;
+}
+
+.nav-item[aria-current='page'] {
+  color: var(--accent);
+}
+
+.page {
+  min-width: 0;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px calc(16px + env(safe-area-inset-right, 0px)) calc(88px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px));
+}
+
+/* Inside a lesson the tab bar steps aside, so the player owns the bottom of the screen. */
+body[data-route='lesson'] .nav {
+  display: none;
+}
+
+body[data-route='lesson'] .page {
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+body:not([data-route='lesson']) .nav-back {
+  display: none;
+}
+
+@media (max-width: 479px) {
+  /* Keep the name for screen readers; the mark alone is enough for sighted users at 360 px. */
+  .brand h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  body[data-route='lesson'] .chips {
+    display: none;
+  }
+}
+
+@media (min-width: 900px) {
+  #app {
+    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+
+  .topbar {
+    grid-column: 1 / -1;
+  }
+
+  .nav {
+    position: sticky;
+    top: 57px;
+    align-self: start;
+    grid-column: 1;
+    grid-row: 2;
+    grid-template-columns: 1fr;
+    grid-auto-rows: var(--tap);
+    align-content: start;
+    gap: 4px;
+    padding: 16px 12px;
+    height: calc(100dvh - 57px);
+    border-top: 0;
+    border-right: 1px solid var(--line);
+    background: transparent;
+  }
+
+  .nav-item {
+    grid-template-columns: auto 1fr;
+    justify-items: start;
+    gap: 12px;
+    padding: 0 14px;
+    min-height: var(--tap);
+    border-radius: 12px;
+    font-size: 0.9375rem;
+  }
+
+  .nav-item:hover {
+    background: var(--surface);
+  }
+
+  .nav-item[aria-current='page'] {
+    background: var(--accent-soft);
+  }
+
+  .page {
+    grid-column: 2;
+    grid-row: 2;
+    padding: 28px 32px 48px;
+  }
+
+  body[data-route='lesson'] .nav {
+    display: grid;
+  }
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* ---- Learn page ---- */
+.home {
+  display: grid;
+  gap: 16px;
+}
+
+.home-main > h2 {
+  margin-top: 8px;
+}
+
+.continue {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  padding: 18px;
+  background: linear-gradient(135deg, var(--accent-soft), var(--card));
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+.continue small {
+  color: var(--accent);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.continue h3 {
+  margin: 0;
+  font-size: 1.375rem;
+}
+
+.continue p {
+  margin: 0 0 10px;
+  color: var(--mute);
+}
+
+.continue button {
+  flex: none;
+  min-width: 140px;
+}
+
+.lesson-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--stroke);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-weight: 500;
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+}
+
+.lesson-title {
+  font-weight: 800;
+}
+
+.lesson-card[data-level='easy'] {
+  border-left-color: var(--ok);
+}
+
+.lesson-card[data-level='medium'] {
+  border-left-color: #d98f00;
+}
+
+.lesson-card[data-level='hard'] {
+  border-left-color: var(--bad);
+}
+
+.lesson-card.locked {
+  background: var(--surface);
+  box-shadow: none;
+}
+
+@media (min-width: 640px) {
+  .lesson-list {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+
+  .lesson-card:hover:not(.locked) {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+  }
+}
+
+@media (min-width: 1100px) {
+  .home {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    grid-template-areas: 'next side' 'lessons side';
+    grid-template-rows: auto 1fr;
+    gap: 16px 28px;
+    align-items: start;
+  }
+
+  .home > .continue {
+    grid-area: next;
+  }
+
+  .home-main {
+    grid-area: lessons;
+  }
+
+  .home-side {
+    grid-area: side;
+    position: sticky;
+    top: 85px;
+  }
+}
+
+/* ---- Lesson page: stage left, caption and controls right, once there is room ---- */
+@media (min-width: 1360px) {
+  .lesson-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    grid-template-rows: auto 1fr;
+    gap: 0 24px;
+    align-items: start;
+  }
+
+  .lesson-split > .stage {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  .lesson-split > .predict {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0;
+  }
+
+  .lesson-split > .player {
+    grid-column: 2;
+    grid-row: 2;
+    position: sticky;
+    top: 72px;
+    margin: 12px 0 0;
+    padding: 14px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .lesson-split > .predict:not([hidden]) + .player {
+    grid-row: 2;
+  }
+}
+
+/* ---- Simulation lessons: stage left, controls and challenges right ---- */
+.sim-metrics {
+  align-items: start;
+}
+
+.sim-side {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+@media (min-width: 640px) {
+  .sim-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1360px) {
+  .sim-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .sim-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

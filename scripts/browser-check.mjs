@@ -386,8 +386,14 @@ if (mode === 'ui') {
   await shot('progress-360');
   check('today shows as goal met in the 7-day view', await evaluate(`[...document.querySelectorAll('.week .day')].at(-1).classList.contains('met')`));
   check('badges count what was earned', (await text('.panel[aria-label="Badges"] h3')) === 'Badges: 2 of 18', await text('.panel[aria-label="Badges"] h3'));
+  // Settings and backup have their own screen, reached from the nav.
+  await tap('Settings');
+  check('Settings opens its own screen', (await hash()) === '#/settings' && (await text('h2')) === 'Settings');
   await tap('2 lessons a day', 'label');
-  check('daily goal can be raised', (await evaluate(`document.querySelector('[aria-label="2 lessons a day"]').getAttribute('aria-pressed')`)) === 'true' && (await text('.hud-today')).startsWith('Today: 1 / 2'));
+  check('daily goal can be raised', (await evaluate(`document.querySelector('[aria-label="2 lessons a day"]').getAttribute('aria-pressed')`)) === 'true');
+  await tap('Progress');
+  check('the new goal shows on the progress screen', (await text('.hud-today')).startsWith('Today: 1 / 2'), await text('.hud-today'));
+  await tap('Settings');
   await tap('1 lesson a day', 'label');
   await tap('Calm mode: off');
   check('calm mode turns on', (await evaluate(`!!document.querySelector('[aria-pressed="true"]') && [...document.querySelectorAll('button')].some((b) => b.textContent === 'Calm mode: on')`)));
@@ -398,7 +404,7 @@ if (mode === 'ui') {
   const calmLines = await evaluate(`[...document.querySelectorAll('.reward span')].map((s) => s.textContent)`);
   // 20 + 5 XP so far, +10 here crosses the level-2 threshold (30).
   check('calm mode: reward as text (with the level-up), no pop-up', JSON.stringify(calmLines) === JSON.stringify(['+10 XP, first try', 'Level up!']) && !(await evaluate(`!!document.querySelector('.toast')`)), JSON.stringify(calmLines));
-  await load(url + '#/progress');
+  await load(url + '#/settings');
   await tap('Calm mode: on');
 
   // Export: a real download through Chrome's download flow.
@@ -412,7 +418,14 @@ if (mode === 'ui') {
   const exported = join(downloads, `logic-quest-progress-${today}.json`);
   const backupOk = existsSync(exported);
   check('export downloads a backup file', backupOk, exported);
-  const xpBefore = await text('.hud-stats');
+  // The stats live on the progress screen; read them there and come back (the backup message is read first).
+  const progressStats = async () => {
+    await tap('Progress');
+    const t = await text('.hud-stats');
+    await tap('Settings');
+    return t;
+  };
+  const xpBefore = await progressStats();
   const importFile = async (path) => {
     const { result } = await send('Runtime.evaluate', { expression: `document.querySelector('input[type=file]')` });
     await send('DOM.setFileInputFiles', { files: [path], objectId: result.objectId });
@@ -422,7 +435,8 @@ if (mode === 'ui') {
     const backup = JSON.parse(readFileSync(exported, 'utf8'));
     check('backup holds the events and settings', backup.app === 'logic-quest' && backup.version === 1 && backup.events.length > 0);
     await importFile(exported);
-    check('importing the same backup adds nothing', (await text('.backup-status')) === 'Everything in that file is already here. Nothing to add.' && (await text('.hud-stats')) === xpBefore);
+    const same = await text('.backup-status');
+    check('importing the same backup adds nothing', same === 'Everything in that file is already here. Nothing to add.' && (await progressStats()) === xpBefore, same);
     const extra = { id: 'imported-1', type: 'complete', at: new Date().toISOString(), day: today, lesson: 'agent-loop' };
     const merged = join(downloads, 'with-extra.json');
     writeFileSync(merged, JSON.stringify({ ...backup, events: [...backup.events, extra] }));
@@ -430,17 +444,19 @@ if (mode === 'ui') {
     check('import previews only what is new', (await text('.backup-status')).startsWith('This file has 1 new item.'), await text('.backup-status'));
     await tap('Merge 1 item');
     check('merge adds it once: +10 XP for the newly completed lesson', (await text('.backup-status')) === 'Merged 1 item into your progress.');
-    const xpAfter = await text('.hud-stats');
+    const xpAfter = await progressStats();
     await importFile(merged);
-    check('importing the merged file again adds nothing', (await text('.backup-status')) === 'Everything in that file is already here. Nothing to add.' && (await text('.hud-stats')) === xpAfter, `${xpBefore} -> ${xpAfter}`);
+    const again = await text('.backup-status');
+    check('importing the merged file again adds nothing', again === 'Everything in that file is already here. Nothing to add.' && (await progressStats()) === xpAfter, `${xpBefore} -> ${xpAfter}`);
     const bad = join(downloads, 'bad.json');
     writeFileSync(bad, '{"version": 1, "events": [{"id": "x"}]}');
     await importFile(bad);
     check('a bad file is rejected with a reason', (await text('.backup-status')).startsWith("That file can't be imported: event 1 is invalid"), await text('.backup-status'));
   }
   await layoutChecks('progress-360 after import');
+  await load(url + '#/settings');
   await browserBack();
-  check('back from progress returns to the list', (await text('h2')) === 'Lessons');
+  check('back from a settings deep link goes to the list', (await text('h2')) === 'Lessons');
   await load(url + '#/progress');
   await browserBack();
   check('back from a progress deep link goes to the list', (await text('h2')) === 'Lessons');
@@ -788,8 +804,8 @@ if (mode === 'persist') {
   check('day 2, after closing the app: XP, streak and coins resume', (await stats()) === 'Level1XP20 / 30Streak1 dayCoins5', await stats());
   check('day 2: today starts fresh', (await text('.hud-today')) === 'Today: 0 / 1. Finish 1 lesson today to grow your streak. Missing today uses your buffer (−15 coins).', await text('.hud-today'));
   check('day 2: finished lesson still marked done', (await evaluate(`document.querySelectorAll('.lesson-card.done').length`)) === 1);
-  await load(url + '#/progress');
-  check('progress screen reports the storage protection state', /keep your progress|may clear it/.test(await text('.persist-state')), await text('.persist-state'));
+  await load(url + '#/settings');
+  check('settings screen reports the storage protection state', /keep your progress|may clear it/.test(await text('.persist-state')), await text('.persist-state'));
   await load(url + '#/lesson/cache');
   await tap('Go to step 5', 'label');
   await takeQuiz();

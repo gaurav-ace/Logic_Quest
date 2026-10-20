@@ -74,7 +74,12 @@ export function renderSim(root: HTMLElement, lesson: SimLesson, hooks: QuizHooks
   player.append(status, bar);
 
   const basis = basisNote(lesson);
-  root.replaceChildren(title, objective, ...(basis ? [basis] : []), stage, controlsBox, challengeBox, quizStart, ...(review ? [review.element] : []), quiz, player, notes(lesson));
+  // Stage beside the controls and challenges on wide screens (CSS only; DOM order is the phone order).
+  const split = el('div', { class: 'sim-split' });
+  const side = el('div', { class: 'sim-side' });
+  side.append(controlsBox, challengeBox);
+  split.append(stage, side);
+  root.replaceChildren(title, objective, ...(basis ? [basis] : []), split, quizStart, ...(review ? [review.element] : []), quiz, player, notes(lesson));
 
   // ---- controls -------------------------------------------------------------------------
   function drawControls(): void {

@@ -16,8 +16,7 @@ const DAY_LABEL: Record<DayStatus | 'none', [mark: string, text: string]> = {
   none: ['·', 'before you started'],
 };
 
-export function renderProgress(root: HTMLElement, tracker: Tracker, store: ProgressStore, config: RewardsConfig, persist: PersistState): void {
-  const redraw = () => renderProgress(root, tracker, store, config, persist);
+export function renderProgress(root: HTMLElement, tracker: Tracker, config: RewardsConfig): void {
   const p = tracker.progress();
   const today = localDay(new Date());
 
@@ -53,7 +52,14 @@ export function renderProgress(root: HTMLElement, tracker: Tracker, store: Progr
   const badgeCard = el('section', { class: 'card panel', 'aria-label': 'Badges' });
   badgeCard.append(el('h3', {}, `Badges: ${earned.length} of ${config.badges.length}`), grid);
 
-  root.replaceChildren(el('h2', {}, 'Your progress'), renderHud(p, config.coins.bufferCost), streakCard, badgeCard, settings(), backup());
+  root.replaceChildren(el('h2', {}, 'Your progress'), renderHud(p, config.coins.bufferCost), streakCard, badgeCard);
+}
+
+export function renderSettings(root: HTMLElement, tracker: Tracker, store: ProgressStore, config: RewardsConfig, persist: PersistState): void {
+  const redraw = () => renderSettings(root, tracker, store, config, persist);
+  const p = tracker.progress();
+  const today = localDay(new Date());
+  root.replaceChildren(el('h2', {}, 'Settings'), settings(), backup());
 
   function settings(): HTMLElement {
     const card = el('section', { class: 'card panel', 'aria-label': 'Settings' });
@@ -74,8 +80,7 @@ export function renderProgress(root: HTMLElement, tracker: Tracker, store: Progr
       redraw();
     }, { 'aria-pressed': String(calm) });
     card.append(
-      el('h3', {}, 'Settings'),
-      el('p', {}, 'Daily goal (lessons a day). A change applies from today; past days keep the goal they had.'),
+            el('p', {}, 'Daily goal (lessons a day). A change applies from today; past days keep the goal they had.'),
       goals,
       el('p', {}, 'Calm mode turns off reward pop-ups. Rewards still show as text.'),
       calmBtn,
