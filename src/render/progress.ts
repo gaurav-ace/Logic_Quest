@@ -3,6 +3,8 @@ import type { WorkshopStore } from '../practice/workshop';
 import type { ProgressStore } from '../progress/store';
 import type { Tracker } from '../progress/tracker';
 import type { RewardsConfig } from '../rewards/config';
+import { keyProblem } from '../tutor/gemini';
+import type { GeminiKeyStore } from '../tutor/key';
 import { addDays, localDay, type Day } from '../rewards/days';
 import type { DayStatus } from '../rewards/engine';
 import { button, download, el } from './dom';
@@ -58,11 +60,11 @@ export function renderProgress(root: HTMLElement, tracker: Tracker, config: Rewa
   root.replaceChildren(el('h2', {}, 'Your progress'), layout);
 }
 
-export function renderSettings(root: HTMLElement, tracker: Tracker, store: ProgressStore, config: RewardsConfig, persist: PersistState, learners?: () => HTMLElement, workshop?: WorkshopStore): void {
-  const redraw = () => renderSettings(root, tracker, store, config, persist, learners, workshop);
+export function renderSettings(root: HTMLElement, tracker: Tracker, store: ProgressStore, config: RewardsConfig, persist: PersistState, learners?: () => HTMLElement, workshop?: WorkshopStore, aiKey?: GeminiKeyStore): void {
+  const redraw = () => renderSettings(root, tracker, store, config, persist, learners, workshop, aiKey);
   const p = tracker.progress();
   const today = localDay(new Date());
-  root.replaceChildren(el('h2', {}, 'Settings'), settings(), ...(learners ? [learners()] : []), backup(), el('p', { class: 'muted app-version' }, `App version ${__APP_COMMIT__}, built ${__APP_BUILT__}`));
+  root.replaceChildren(el('h2', {}, 'Settings'), settings(), ...(learners ? [learners()] : []), ...(aiKey ? [aiTutor(aiKey)] : []), backup(), el('p', { class: 'muted app-version' }, `App version ${__APP_COMMIT__}, built ${__APP_BUILT__}`));
 
   function settings(): HTMLElement {
     const card = el('section', { class: 'card panel', 'aria-label': 'Settings' });
@@ -87,6 +89,59 @@ export function renderSettings(root: HTMLElement, tracker: Tracker, store: Progr
       goals,
       el('p', {}, 'Calm mode turns off reward pop-ups. Rewards still show as text.'),
       calmBtn,
+    );
+    return card;
+  }
+
+  /** The learner's own Gemini key (CLAUDE.md 4.7 exception (a)): optional, on this device only, never shown again once saved. */
+  function aiTutor(keys: GeminiKeyStore): HTMLElement {
+    const card = el('section', { class: 'card panel ai-tutor', 'aria-label': 'AI tutor' });
+    const status = el('p', { class: 'ai-key-status', 'aria-live': 'polite' });
+    card.append(
+      el('h3', {}, 'AI tutor (optional)'),
+      el('p', {}, 'Suggested answers and search work offline with no key, and “Ask Claude” needs none either. To also get AI answers inside lessons, add your own free Gemini API key.'),
+    );
+    if (keys.get()) {
+      card.append(el('p', {}, 'A Gemini key is saved for this learner on this device. It isn’t shown again and isn’t in backups.'));
+      const remove = button('Remove key', () => {
+        keys.remove();
+        redraw();
+        root.querySelector('.ai-key-status')?.replaceChildren('Key removed. Gemini is off for this learner.');
+      });
+      const row = el('div', { class: 'controls' });
+      row.append(remove);
+      card.append(row);
+    } else {
+      const steps = el('ol', { class: 'ai-steps' });
+      const studio = el('li');
+      studio.append(el('a', { href: 'https://aistudio.google.com/apikey', target: '_blank', rel: 'noopener', class: 'tutor-open' }, 'Open Google AI Studio'), ' and sign in.');
+      steps.append(studio, el('li', {}, 'Create an API key there and copy it.'), el('li', {}, 'Paste it here and tap Save key.'));
+      const form = el('form', { class: 'outline-add ai-key-form' });
+      const input = el('input', { type: 'password', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Gemini API key', placeholder: 'Paste your key', class: 'learner-input' });
+      form.append(input, el('button', { type: 'submit', class: 'primary' }, 'Save key'));
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const problem = keyProblem(input.value);
+        if (problem) {
+          status.className = 'ai-key-status bad';
+          status.textContent = problem;
+          return;
+        }
+        if (!keys.set(input.value)) {
+          status.className = 'ai-key-status bad';
+          status.textContent = "The key couldn't be saved on this device (storage is full or blocked).";
+          return;
+        }
+        input.value = '';
+        redraw();
+        root.querySelector('.ai-key-status')?.replaceChildren('Key saved. Open a lesson, then “Ask about this lesson” → Ask Gemini.');
+      });
+      card.append(steps, form);
+    }
+    card.append(
+      status,
+      el('p', { class: 'small' }, 'Privacy: on the free tier, Google says the content you send is “used to improve our products”. Logic Quest sends Gemini only the lesson’s text and your question, never your progress, name or other data. The key stays in this learner’s storage on this device, so anyone using this device as this learner can use it. Remove it any time.'),
+      el('p', { class: 'small' }, 'Answers are grounded in the lesson’s text only: on the free tier, Gemini’s Google Search can’t be used, so it can’t look things up. Check what it says against the lesson’s sources.'),
     );
     return card;
   }

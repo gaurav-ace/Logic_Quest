@@ -158,6 +158,14 @@ The requirement is "the response should be authentic from some good source". A l
 - **No dependency, no key, nothing stored.**
 - **Tests:** the prompt builder (lesson context, sources and question; length cap; no progress or personal data); share when available, otherwise copy and open; disabled with a message when offline.
 
+**What the spike found (task 6b.20, 2026-10-20, with the owner's key), and what changed:**
+- CORS works: the preflight from `https://gaurav-ace.github.io` allows `content-type` and `x-goog-api-key`, and replies carry `access-control-allow-origin`. One real question through the built app in Chromium got an answer.
+- `gemini-2.5-flash` and `2.5-flash-lite` answer 404 "no longer available to new users". They were the only models whose free tier had Search grounding; for the newer ones the pricing page says "Not available" on the free tier (a grounded call to 3.8 Flash got 429). **So Search grounding is dropped:** answers are grounded in the lesson's text only, and the sources listed are the lesson's own. The settings page says so.
+- Model: `gemini-3.5-flash-lite` (answered; `gemini-3.8-flash` answered 503 "high demand" at the time). One config value in `src/tutor/gemini.ts`.
+- Errors seen: 400 `API_KEY_INVALID` (wrong key), 403 (no key), 429 `RESOURCE_EXHAUSTED`, 503. Follow-up turns work with the earlier answer sent back as plain text.
+- The owner's key has a newer format (it contains dots), so the format check allows them.
+- Ask Claude: opening claude.ai after an async copy can be blocked as a pop-up, so the panel shows an "Open Claude" link instead. The pre-filled claude.ai link was not checked, so it isn't used.
+
 ### 3.7 M7: HLD playground
 
 - **New tab `#/playground`.**

@@ -24,6 +24,7 @@ import { PROMPT_DATA, validatePrompts } from './playground/prompts';
 import { BoardStore } from './playground/store';
 import { tutorPanel } from './render/tutor';
 import { faqPassages, loadFaqs, type FaqFile } from './tutor/faq';
+import { GeminiKeyStore } from './tutor/key';
 import { buildIndex, lessonPassages, type Index } from './tutor/search';
 import { renderLesson, type LessonView } from './render/lesson';
 import { renderProgress, renderSettings } from './render/progress';
@@ -53,6 +54,8 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
   const store = new ProgressStore(kv, undefined, profileKey(profiles.current.id, 'progress'));
   const tracker = new Tracker(store, Tracker.lessonInfo(lessons), REWARDS);
   let persistState: PersistState = 'unsupported';
+  const geminiKey = () => new GeminiKeyStore(kv, profileKey(profiles.current.id, 'gemini-key'));
+  const settingsHref = routeHash({ name: 'settings' });
 
   // The tutor's search covers every lesson plus the open track's suggested answers; built once per track.
   const tutorData = new Map<Track, Promise<{ faqs: FaqFile; index: Index }>>();
@@ -139,7 +142,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
       });
     } else if (route.name === 'settings') {
       document.title = 'Settings · Logic Quest';
-      renderSettings(view, tracker, store, REWARDS, persistState, () => renderLearners(profiles, switchTo), new WorkshopStore(kv, profileKey(profiles.current.id, 'workshop')));
+      renderSettings(view, tracker, store, REWARDS, persistState, () => renderLearners(profiles, switchTo), new WorkshopStore(kv, profileKey(profiles.current.id, 'workshop')), geminiKey());
     } else if (route.name === 'lesson') {
       const lesson = byId.get(route.id)!;
       document.title = `${lesson.title} · Logic Quest`;
@@ -147,7 +150,19 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
         answer: (q, option, correct) => tracker.answer(lesson.id, q, option, correct),
         complete: () => tracker.complete(lesson.id),
         celebrate: (f) => celebrate(f, store.settings.calm),
-        tutor: tutorPanel(lesson, { load: () => loadTutor(lesson.track), href: (id) => routeHash({ name: 'lesson', id }) }),
+        tutor: tutorPanel(lesson, {
+          load: () => loadTutor(lesson.track),
+          href: (id) => routeHash({ name: 'lesson', id }),
+          ai: {
+            geminiKey: () => geminiKey().get(),
+            // Wrapped, since fetch and the clipboard throw when called detached from their objects.
+            fetch: (input, init) => fetch(input, init),
+            online: () => navigator.onLine,
+            ...(navigator.share ? { share: (data: ShareData) => navigator.share(data) } : {}),
+            ...(navigator.clipboard ? { copy: (text: string) => navigator.clipboard.writeText(text) } : {}),
+            settingsHref,
+          },
+        }),
       });
     } else if (route.name === 'practice') {
       showPractice(route.track, route.id);
