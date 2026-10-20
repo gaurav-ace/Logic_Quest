@@ -79,7 +79,7 @@ export function renderSim(root: HTMLElement, lesson: SimLesson, hooks: QuizHooks
   const side = el('div', { class: 'sim-side' });
   side.append(controlsBox, challengeBox);
   split.append(stage, side);
-  root.replaceChildren(title, objective, ...(basis ? [basis] : []), split, quizStart, ...(review ? [review.element] : []), quiz, player, notes(lesson));
+  root.replaceChildren(title, objective, ...(hooks.tutor ? [hooks.tutor] : []), ...(basis ? [basis] : []), split, quizStart, ...(review ? [review.element] : []), quiz, player, notes(lesson));
 
   // ---- controls -------------------------------------------------------------------------
   function drawControls(): void {

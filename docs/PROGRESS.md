@@ -6,7 +6,7 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 Phase 5b, Low-level design: **done**, pushed, and approved by the owner on 2026-10-19 ("site shows LLD now, proceed"); a phone check was not mentioned. Phase 5c plan approved 2026-10-19 ("Approve, build all of it"). **Phase 5c, Real-world systems: done, pushed, and approved by the owner on 2026-10-19.** Phase 6 plan approved 2026-10-19 ("go ahead"). **Phase 6, Agentic AI: all 10 lessons built and checked, awaiting the owner's review.** Not pushed.
 
-**Phase 6b, Practice and tools (plan approved 2026-10-20): in progress on branch `claude/ai_integration`, not pushed.** M1–M5 done; M6–M9 not started.
+**Phase 6b, Practice and tools (plan approved 2026-10-20): in progress on branch `claude/ai_integration`, not pushed.** M1–M6 done (main has M1–M5, merged as PR #3); M7–M9 not started.
 
 Phase 5, System design (HLD): **done**, pushed and approved by the owner on 2026-10-19.
 
@@ -22,7 +22,10 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 - New browser mode `practice-walk` solves every item by touch at 360 px: 126/126. It found blank code lines drawn as 18 px disabled buttons (now plain spacing).
 - Found and fixed: Vitest's on-disk transform cache kept an old `import.meta.glob` list, so new practice files were left out of the per-item tests locally (797 tests instead of 800). Now off in `vite.config.ts`; CI was not affected.
 - Checks on the final build: `npm run check` 816/816; browser `practice-walk` 126/126, `practice` 27/27, `workshop` 24/24, `profiles` 20/20 (Linux Chromium with Windows fonts, at 360 px, touch only, reduced motion). Not re-run this session: `ui`, `design`, `sim`, `agent`, `pwa`, `persist` (the only shared change was the debug runner's blank-line rendering).
-- Not done from the plan: workshop notes are not yet in export/import.
+- 6b.9 Workshop notes in backups (owed from M4): export/import with a merge that never loses local text; unit tests with 3 mutation checks; browser `workshop` 28/28 (export, delete, import, resume).
+- M6 Offline tutor (6b.15–6b.16): "Ask about this lesson" under every lesson's goal; suggested questions with answers from the lesson's sources (26 answers for 12 lessons, in `tutor/hld.json`, `agentic.json`, `dsa.json`; **drafted by Claude, awaiting the owner's review**); typed questions search the course's own text (never generated). Unit tests include "every lesson is the top hit for its own goal". Browser `tutor` 22/22. Found by it: source links under 48 px, the Search label clipped at 360 px, no fold markers (all fixed).
+- Also corrected: the DSA heap explanation now mentions Python 3.14's max-heap functions.
+- Full browser run on the final build (2026-10-20): `ui` 1341/1341, `sim` 24/24, `agent` 20/20, `design` 29/29, `pwa` 7/7, `persist` 11/11, `practice-walk` 126/126, `practice` 27/27, `workshop` 28/28, `profiles` 20/20, `tutor` 22/22. `npm run check` 832/832.
 
 ## Done (Phase 6, awaiting review)
 
@@ -103,7 +106,7 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 ## Next step
 
 1. Owner reviews the 36 practice items (Phase 6b, M5) and Phase 6 when convenient.
-2. Next build step: M6, offline tutor (tier 1). Also owed: workshop notes in export/import.
+2. Next build step: M7, HLD playground. Owner to choose: a learner icon always in the top bar, and a version line in Settings (offered 2026-10-20, not yet answered).
 3. Owner, when ready: add the `DISCORD_WEBHOOK_URL` secret (README has the steps). Gemini (M8) needs the owner's key later; ask before then.
 4. Then Phase 7 (adaptive learning) needs a plan. `docs/UI_REVAMP_PLAN.md` (written in another session, untracked) also awaits the owner.
 
@@ -169,3 +172,4 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 - 2026-10-20: Owner has Google AI Pro and asked whether it helps. Checked Google's pages: the Gemini API has a free tier (2.5 Flash with Search grounding up to 500 requests/day; free-tier content is used to improve Google's products); AI Pro adds higher AI Studio limits and $10/month Cloud credit (not confirmed to cover Gemini API). Owner chose an in-app Gemini chat on a free key (M8), with the Claude hand-off kept as the fallback (M9). Plan updated; CORS for direct browser calls still to be checked (task 6b.20).
 - 2026-10-20 (Phase 6b, before this entry; recorded afterwards from the commits): owner approved the plan; built M1 profiles, M2 reminders, M3 practice engine with the logic set, M4 workshop (commits 1010b14 to 29f91b2).
 - 2026-10-20: Owner said to proceed. Built M5: DSA, HLD, LLD, real-world and agentic practice sets (one commit each), five debug programs, the `practice-walk` browser mode, the blank-line fix, and the Vitest cache fix. OWASP pages now sit behind a JavaScript check, so they were read through the headless Chromium. CHANGELOG got its missing Phase 6b section. Not pushed. Not checked on a phone.
+- 2026-10-20: Owner reported no login screen, profile icon or new features after merging PR #3. Checked: the deploy ran and the live site has profiles and practice; a single learner sees no picker or icon by design (plan 3.1), and their device was likely showing the cached old version. Explained; offered an always-visible learner icon and a version line. Owner said to proceed with the next implementation: built 6b.9 (workshop notes in backups) and M6 (offline tutor). Not pushed. Not checked on a phone.

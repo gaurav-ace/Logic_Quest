@@ -76,7 +76,7 @@
         "options": [
           {
             "text": "1",
-            "explanation": "Right. heapq is a min-heap: heap[0] is always the smallest item, and heappop removes it. For the largest first, push negated values."
+            "explanation": "Right. heapq is a min-heap: heap[0] is always the smallest item, and heappop removes it. For the largest first, push negated values (or, from Python 3.14, use heappush_max and heappop_max)."
           },
           {
             "text": "8",

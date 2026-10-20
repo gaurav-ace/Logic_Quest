@@ -1,0 +1,85 @@
+{
+  "load-balancer": [
+    {
+      "q": "Why not always use round robin?",
+      "a": "Round robin is nginx's default, and it works well when requests cost about the same. When some requests take much longer, the servers that got them fall behind while others sit idle. nginx's least-connected method sends the next request to the server with the fewest active connections, which evens that out.",
+      "sources": [{ "title": "NGINX docs: Using nginx as HTTP load balancer (methods; default round-robin)", "url": "https://nginx.org/en/docs/http/load_balancing.html" }]
+    },
+    {
+      "q": "What happens to requests sent to a server that just died?",
+      "a": "With nginx's built-in (passive) health checks, a real request to that server fails, and nginx marks the server failed and avoids it for a while (fail_timeout). By default one failure is enough (max_fails = 1). After fail_timeout, nginx tries the server again with live requests and puts it back if they succeed. The request that hit the dead server still failed, so clients need sensible retries.",
+      "sources": [{ "title": "NGINX docs: Using nginx as HTTP load balancer (health checks)", "url": "https://nginx.org/en/docs/http/load_balancing.html" }]
+    },
+    {
+      "q": "How can one user keep going to the same server?",
+      "a": "With round robin or least-connected, each request from a client can land on a different server. If a client must stick to one server (a “sticky” or “persistent” session), nginx's ip-hash method picks the server from a hash of the client's IP address. Often it's simpler to keep session data in a shared store, so any server can answer.",
+      "sources": [{ "title": "NGINX docs: Using nginx as HTTP load balancer (session persistence, ip-hash)", "url": "https://nginx.org/en/docs/http/load_balancing.html" }]
+    }
+  ],
+  "cache": [
+    {
+      "q": "Should I update the database or remove the cached copy first?",
+      "a": "Update the database first, then remove the cached copy. Azure's cache-aside guidance explains why: if you remove the copy first, another request can miss in the gap, read the old value from the database, and put it back in the cache, so the stale value survives the update.",
+      "sources": [{ "title": "Microsoft Azure Architecture Center: Cache-Aside pattern", "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside" }]
+    },
+    {
+      "q": "How long should cached data live?",
+      "a": "Long enough to save work, short enough to stay fresh. Azure's guidance: don't make the expiry too short, or the app keeps fetching the data again; don't make it so long that the cached data goes stale. Match it to how often the data is read and how often it changes.",
+      "sources": [{ "title": "Microsoft Azure Architecture Center: Cache-Aside pattern (lifetime of cached data)", "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside" }]
+    },
+    {
+      "q": "What if the database is down: can the cache keep the app running?",
+      "a": "Only partly. Azure says cache-aside can, in limited ways, keep frequently read data available while the data store is temporarily unavailable. Anything not already cached still needs the database, and writes can't be saved, so plan for the database being down rather than relying on the cache.",
+      "sources": [{ "title": "Microsoft Azure Architecture Center: Cache-Aside pattern (reliability)", "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside" }]
+    }
+  ],
+  "idempotency": [
+    {
+      "q": "Which HTTP methods are safe to repeat?",
+      "a": "The HTTP standard (RFC 9110) defines PUT, DELETE and the safe methods (such as GET) as idempotent: sending one twice has the same intended effect as sending it once. POST isn't, which is why payment APIs add idempotency keys to make POST safe to retry.",
+      "sources": [{ "title": "IETF RFC 9110, HTTP Semantics, section 9.2.2: Idempotent Methods", "url": "https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2" }]
+    },
+    {
+      "q": "What should an idempotency key be?",
+      "a": "A unique value the client creates for one operation and sends again, unchanged, with every retry of it. Stripe describes the client generating a unique ID for just that operation and sending it in the Idempotency-Key header. A new key per retry would defeat the purpose: the server would see a new operation each time.",
+      "sources": [{ "title": "Stripe: Designing robust and predictable APIs with idempotency", "url": "https://stripe.com/blog/idempotency" }]
+    },
+    {
+      "q": "Why wait longer between each retry, and add randomness?",
+      "a": "Backing off exponentially stops clients hammering a server that's already struggling. Randomness (“jitter”) stops many clients that failed at the same moment from all retrying at the same moment again, the thundering herd Stripe describes. Its own client library retries with an idempotency key, increasing backoff and jitter.",
+      "sources": [{ "title": "Stripe: Designing robust and predictable APIs with idempotency", "url": "https://stripe.com/blog/idempotency" }]
+    }
+  ],
+  "rate-limiting": [
+    {
+      "q": "What should a server send when a client goes over the limit?",
+      "a": "HTTP status 429 Too Many Requests, defined in RFC 6585 for a user who has sent too many requests in a given amount of time. The response may include a Retry-After header saying how long to wait before trying again, which well-behaved clients respect.",
+      "sources": [{ "title": "IETF RFC 6585: HTTP status code 429 Too Many Requests", "url": "https://www.rfc-editor.org/rfc/rfc6585" }]
+    },
+    {
+      "q": "How do several servers share one limit?",
+      "a": "Keep the count in one store they all use, not in each server's memory, or each server allows the full limit. Redis's INCR command increments a key atomically and returns the new value, and Redis's docs show a rate limiter built on it: one counter per client per time period, with an expiry.",
+      "sources": [{ "title": "Redis documentation: INCR (pattern: rate limiter)", "url": "https://redis.io/docs/latest/commands/incr/" }]
+    },
+    {
+      "q": "Do real APIs use a token bucket?",
+      "a": "Some do. The Claude API's documentation, for example, says it uses the token bucket algorithm for rate limiting. A token bucket allows short bursts while holding the average rate down, which avoids the fixed window's double burst at the window's edge.",
+      "sources": [{ "title": "Claude Platform docs: Rate limits", "url": "https://platform.claude.com/docs/en/api/rate-limits" }]
+    }
+  ],
+  "replication": [
+    {
+      "q": "Why might a user not see their own change straight away?",
+      "a": "If reads go to a replica and replication is asynchronous, the replica gets the change a little after the primary does. PostgreSQL's streaming replication is asynchronous by default. A common fix is to read a user's own recent changes from the primary (“read your own writes”).",
+      "sources": [
+        { "title": "PostgreSQL documentation: Log-Shipping Standby Servers", "url": "https://www.postgresql.org/docs/current/warm-standby.html" },
+        { "title": "Kleppmann, Designing Data-Intensive Applications (O'Reilly, 2017): replication lag" }
+      ]
+    },
+    {
+      "q": "Can a failover lose data?",
+      "a": "With asynchronous replication, yes. PostgreSQL's docs say that if the primary crashes, some transactions that were committed may not have reached the standby yet, so they are lost when the standby takes over. Synchronous replication avoids that, at the cost of waiting for the standby on every commit.",
+      "sources": [{ "title": "PostgreSQL documentation: Log-Shipping Standby Servers (synchronous replication)", "url": "https://www.postgresql.org/docs/current/warm-standby.html" }]
+    }
+  ]
+}

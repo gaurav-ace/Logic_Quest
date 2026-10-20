@@ -1,0 +1,58 @@
+{
+  "tool-use": [
+    {
+      "q": "Who runs the tool, the model or my code?",
+      "a": "Your code. For tools you define, Claude replies with stop_reason \"tool_use\" and a tool_use block naming the tool and its inputs. Your code runs it and sends the result back in a tool_result block in a new request, and only then can Claude use the result in its answer.",
+      "sources": [{ "title": "Claude Platform docs: Tool use with Claude", "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview" }]
+    },
+    {
+      "q": "Does the model remember my earlier requests?",
+      "a": "No. The Messages API is stateless: you always send the full conversation history with each request. Anything the model should “remember”, including earlier tool calls and results, has to be in what your code sends.",
+      "sources": [{ "title": "Claude Platform docs: Using the Messages API", "url": "https://platform.claude.com/docs/en/build-with-claude/working-with-messages" }]
+    }
+  ],
+  "agent-loop-limits": [
+    {
+      "q": "Why put the step limit in code instead of in the prompt?",
+      "a": "Because code runs the loop. Anthropic's guide says it's common to add stopping conditions, such as a maximum number of iterations, “to maintain control”. A limit written only in the prompt depends on the model following it; a limit in the loop holds whatever the model does.",
+      "sources": [{ "title": "Anthropic: Building effective agents", "url": "https://www.anthropic.com/engineering/building-effective-agents" }]
+    },
+    {
+      "q": "Should tool errors be shown to the model?",
+      "a": "Yes, as the tool's result. Anthropic's guide says agents need “ground truth” from the environment at each step, such as tool call results, to judge their progress. An error is ground truth: with it, the model can try something else or report the problem; without it, it's guessing.",
+      "sources": [{ "title": "Anthropic: Building effective agents", "url": "https://www.anthropic.com/engineering/building-effective-agents" }]
+    }
+  ],
+  "agent-guardrails": [
+    {
+      "q": "What is indirect prompt injection?",
+      "a": "Instructions hidden in content the model reads from outside, such as a web page, a file or an email that a tool returns. OWASP's LLM01 describes it as happening when an LLM accepts input from external sources. The model may treat that text as instructions instead of data.",
+      "sources": [{ "title": "OWASP Top 10 for LLM Applications 2025, LLM01 Prompt Injection", "url": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/" }]
+    },
+    {
+      "q": "Can a system prompt alone stop prompt injection?",
+      "a": "Not reliably. OWASP lists clear instructions in the system prompt as one mitigation, but also says that it's unclear whether there are fool-proof ways to prevent prompt injection. So add guardrails that hold even when the model is fooled: least privilege, and human approval for high-risk actions.",
+      "sources": [{ "title": "OWASP Top 10 for LLM Applications 2025, LLM01 Prompt Injection", "url": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/" }]
+    },
+    {
+      "q": "Which guardrails still work if the model is fooled?",
+      "a": "The ones enforced outside the model. OWASP recommends least privilege (only the tools and permissions the task needs, handled in code) and human approval for high-risk actions. A tool the agent doesn't have can't be misused, and an action waiting for approval can't happen on its own.",
+      "sources": [
+        { "title": "OWASP Top 10 for LLM Applications 2025, LLM01 Prompt Injection", "url": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/" },
+        { "title": "OWASP Top 10 for LLM Applications 2025, LLM06 Excessive Agency", "url": "https://genai.owasp.org/llmrisk/llm062025-excessive-agency/" }
+      ]
+    }
+  ],
+  "agent-evals": [
+    {
+      "q": "Should a grader check what the agent said, or what it did?",
+      "a": "What it did. Anthropic's evals guide defines the outcome as the final state of the environment at the end of a trial: a booking agent may say “Your flight has been booked”, but the outcome is whether a reservation exists in the database. Graders that only read the transcript can pass false claims.",
+      "sources": [{ "title": "Anthropic: Demystifying evals for AI agents", "url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents" }]
+    },
+    {
+      "q": "What pass rate should a regression eval have?",
+      "a": "Nearly 100%. Anthropic's guide says regression evals ask whether the agent still handles everything it used to, so they should almost always pass; a drop means a change broke something. Capability evals are different: they should start with a low pass rate, giving a hill to climb.",
+      "sources": [{ "title": "Anthropic: Demystifying evals for AI agents", "url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents" }]
+    }
+  ]
+}

@@ -383,7 +383,8 @@ button.primary {
   cursor: pointer;
 }
 
-.notes a {
+.notes a,
+.tutor-sources a {
   color: var(--blue);
   /* Source links sit alone on their line, so they can be full-size tap targets. */
   display: inline-flex;
@@ -2260,4 +2261,100 @@ button.code-line.wrong {
 
 .save-state:empty {
   display: none;
+}
+
+/* The offline tutor ("Ask about this lesson"): suggested questions, a search box, and the answers, newest first. */
+.tutor > summary,
+.tutor-sources > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap);
+  cursor: pointer;
+}
+
+.tutor > summary {
+  font-weight: 700;
+}
+
+/* display: flex drops the browser's fold marker, so draw one, as the practice drop-down does. */
+.tutor > summary::before,
+.tutor-sources > summary::before {
+  content: '▸';
+}
+
+.tutor[open] > summary::before,
+.tutor-sources[open] > summary::before {
+  content: '▾';
+}
+
+/* The input takes the spare width; the button keeps its whole label at 360 px. */
+.tutor-ask .learner-input {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.tutor-ask button {
+  flex: none;
+}
+
+.tutor-suggested {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.tutor-suggested h3 {
+  margin: 4px 0;
+  font-size: 1rem;
+}
+
+button.tutor-q {
+  text-align: left;
+  font-weight: 500;
+}
+
+.tutor-log {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tutor-you {
+  margin: 0 0 6px;
+  font-weight: 700;
+}
+
+.tutor-answer {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  overflow-wrap: anywhere;
+}
+
+.tutor-answer > p,
+.tutor-hit > p {
+  margin: 0 0 6px;
+}
+
+.tutor-hit {
+  padding: 8px 0;
+  border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+}
+
+.tutor-where {
+  font-size: 0.875rem;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+a.tutor-open {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  min-width: var(--tap);
 }

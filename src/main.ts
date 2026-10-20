@@ -19,6 +19,9 @@ import { renderLearners, renderPicker } from './render/learners';
 import { renderPractice, type PracticeContext, type PracticeHooks } from './render/practice';
 import { practiceSection } from './render/practice-list';
 import { renderWorkshop } from './render/workshop';
+import { tutorPanel } from './render/tutor';
+import { faqPassages, loadFaqs, type FaqFile } from './tutor/faq';
+import { buildIndex, lessonPassages, type Index } from './tutor/search';
 import { renderLesson, type LessonView } from './render/lesson';
 import { renderProgress, renderSettings } from './render/progress';
 import { celebrate, clearToast } from './render/toast';
@@ -44,6 +47,20 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
   const store = new ProgressStore(kv, undefined, profileKey(profiles.current.id, 'progress'));
   const tracker = new Tracker(store, Tracker.lessonInfo(lessons), REWARDS);
   let persistState: PersistState = 'unsupported';
+
+  // The tutor's search covers every lesson plus the open track's suggested answers; built once per track.
+  const tutorData = new Map<Track, Promise<{ faqs: FaqFile; index: Index }>>();
+  const lessonTracks = new Map(lessons.map((l) => [l.id, l.track] as const));
+  const titles = new Map(lessons.map((l) => [l.id, l.title] as const));
+  const loadTutor = (track: Track) => {
+    let p = tutorData.get(track);
+    if (!p) {
+      p = loadFaqs(track, lessonTracks).then((faqs) => ({ faqs, index: buildIndex([...lessons.flatMap(lessonPassages), ...faqPassages(faqs, titles)]) }));
+      p.catch(() => tutorData.delete(track));
+      tutorData.set(track, p);
+    }
+    return p;
+  };
 
   // Shell: top bar (brand, back, stats), a nav that is a bottom tab bar on phones and a left
   // rail on wide screens, and the page itself.
@@ -117,6 +134,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
         answer: (q, option, correct) => tracker.answer(lesson.id, q, option, correct),
         complete: () => tracker.complete(lesson.id),
         celebrate: (f) => celebrate(f, store.settings.calm),
+        tutor: tutorPanel(lesson, { load: () => loadTutor(lesson.track), href: (id) => routeHash({ name: 'lesson', id }) }),
       });
     } else if (route.name === 'practice') {
       showPractice(route.track, route.id);

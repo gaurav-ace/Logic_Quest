@@ -2,7 +2,7 @@
 // No dependencies: talks to Chrome over the DevTools protocol with Node's built-in WebSocket.
 //
 //   npm run build && npm run preview          (in another terminal)
-//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design|agent|profiles|practice|practice-walk|workshop] [url] [screenshot-dir]
+//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design|agent|profiles|practice|practice-walk|workshop|tutor] [url] [screenshot-dir]
 //   DIST_DIR=dist node scripts/browser-check.mjs update   (edits dist/ to simulate a deploy: rebuild after)
 //   LESSONS=binary-search,heaps node scripts/browser-check.mjs lessons   (walk only those)
 //
@@ -1058,6 +1058,62 @@ if (mode === 'practice-walk') {
       await shot(`walk-${track}-${item.id}`);
     }
   }
+}
+
+if (mode === 'tutor') {
+  // "Ask about this lesson": suggested answers with sources, a typed search over the course, a
+  // question nothing matches, a lesson with no suggested questions, and the conversation
+  // surviving a lesson that redraws itself ("New example"). Touch only, 360 px.
+  await viewport(360, 740, true);
+  await media('reduce');
+  const ask = async (q) => {
+    await tapSel('.tutor-ask input');
+    await send('Input.insertText', { text: q });
+    await tap('Search');
+    await sleep(300);
+  };
+  const turns = () => evaluate(`document.querySelectorAll('.tutor-turn').length`);
+  await load(url + '#/lesson/cache');
+  await sleep(600);
+  check('the panel sits under the goal, folded', (await evaluate(`document.querySelector('.objective').nextElementSibling.matches('details.tutor:not([open])')`)));
+  await tap('Ask about this lesson');
+  await sleep(800);
+  const qs = await evaluate(`[...document.querySelectorAll('.tutor-q')].map((b) => b.textContent)`);
+  check('the cache lesson offers its 3 suggested questions', qs.length === 3 && qs[0] === 'Should I update the database or remove the cached copy first?', JSON.stringify(qs));
+  await tap(qs[0]);
+  check('a suggested question shows its reviewed answer, with sources', /^Update the database first/.test(await text('.tutor-answer p')) && (await text('.tutor-sources summary')) === 'Sources (1)', await text('.tutor-answer p'));
+  await layoutChecks('tutor answer (360px)');
+  await ask('why not round robin');
+  const hits = await evaluate(`[...document.querySelectorAll('.tutor-turn')[0].querySelectorAll('.tutor-where')].map((p) => p.textContent)`);
+  check('a typed question shows the closest course passages, newest first', hits.length > 0 && hits.length <= 5 && (await text('.tutor-you')) === 'why not round robin', JSON.stringify(hits));
+  check('passages from other lessons link to them', await evaluate(`[...document.querySelectorAll('.tutor-turn')[0].querySelectorAll('a.tutor-open')].some((a) => a.getAttribute('href') === '#/lesson/load-balancer')`));
+  await ask('zebra quokka kiwi');
+  check('when nothing matches it says so and lists the lesson’s sources', /^Nothing in the course matches/.test(await evaluate(`document.querySelector('.tutor-turn .tutor-answer p').textContent`)));
+  await ask('<img src=x onerror=alert(1)>');
+  check('a question is shown as text, never as HTML', (await text('.tutor-you')) === '<img src=x onerror=alert(1)>' && !(await evaluate(`!!document.querySelector('.tutor-log img')`)));
+  await layoutChecks('tutor search (360px)');
+  await shot('tutor-cache');
+
+  await load(url + '#/lesson/arrays');
+  await sleep(600);
+  await tap('Ask about this lesson');
+  await sleep(800);
+  check('a lesson without suggested questions still has search', (await evaluate(`document.querySelectorAll('.tutor-q').length`)) === 0 && !!(await evaluate(`document.querySelector('.tutor-ask input')`)));
+  await ask('index of the last item');
+  const before = await turns();
+  await tap('New example');
+  await sleep(500);
+  check('the conversation survives the lesson redrawing itself', before === 1 && (await turns()) === 1 && (await evaluate(`document.querySelector('details.tutor').open`)), `${before} -> ${await turns()}`);
+
+  await viewport(1280, 800, false);
+  await media('no-preference', 'dark');
+  await load(url + '#/lesson/agent-guardrails');
+  await sleep(600);
+  await tap('Ask about this lesson');
+  await sleep(800);
+  await tap('Can a system prompt alone stop prompt injection?');
+  await layoutChecks('tutor (desktop)');
+  await shot('tutor-desktop-dark');
 }
 
 if (mode === 'workshop') {
