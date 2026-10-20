@@ -2630,3 +2630,46 @@ a.tutor-open {
   flex: none;
   accent-color: var(--accent);
 }
+
+/* The AI tiers under the tutor's search, and the Gemini key in Settings. */
+.tutor-ai {
+  margin-top: 8px;
+}
+
+.tutor-ai-row {
+  flex-wrap: wrap;
+}
+
+.tutor-ai a.tutor-open[hidden] {
+  display: none;
+}
+
+.tutor-to {
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+/* Model text keeps its line breaks; it is set as text, never as HTML. */
+.tutor-ai-text {
+  white-space: pre-wrap;
+}
+
+.tutor-prompt {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 6px 0;
+  font-size: 0.875rem;
+}
+
+.ai-key-form .learner-input {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.ai-key-form button {
+  flex: none;
+}
+
+.ai-steps {
+  padding-left: 1.4em;
+}

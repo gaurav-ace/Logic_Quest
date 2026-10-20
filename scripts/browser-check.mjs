@@ -1117,6 +1117,161 @@ if (mode === 'tutor') {
   await shot('tutor-desktop-dark');
 }
 
+if (mode === 'tutor-ai') {
+  // The AI tiers in the tutor panel, by touch at 360 px, with Gemini mocked (no real call is ever
+  // made): Ask Claude without a key (copy, then copying blocked), saving a key in Settings, Gemini
+  // answers shown as text with the key only in a header, follow-ups, each failure offering Claude,
+  // offline, and removing the key. Replies, the clipboard and being offline are driven from
+  // localStorage, so they survive page loads.
+  await viewport(360, 740, true);
+  await media('reduce');
+  await send('Page.addScriptToEvaluateOnNewDocument', {
+    source: `(() => {
+      const real = window.fetch.bind(window);
+      window.fetch = async (input, init = {}) => {
+        const u = String(input);
+        if (!u.startsWith('https://generativelanguage.googleapis.com/')) return real(input, init);
+        const log = JSON.parse(localStorage.getItem('test:gem-log') || '[]');
+        log.push({ url: u, headers: init.headers, body: init.body });
+        localStorage.setItem('test:gem-log', JSON.stringify(log));
+        const queue = JSON.parse(localStorage.getItem('test:gem') || '[]');
+        const next = queue.shift() || { status: 500, body: {} };
+        localStorage.setItem('test:gem', JSON.stringify(queue));
+        return new Response(JSON.stringify(next.body), { status: next.status, headers: { 'Content-Type': 'application/json' } });
+      };
+      Object.defineProperty(Navigator.prototype, 'onLine', { get: () => localStorage.getItem('test:offline') !== '1' });
+      // No share sheet in this test browser, so the copy path is the one checked.
+      Object.defineProperty(Navigator.prototype, 'share', { value: undefined });
+      Object.defineProperty(Navigator.prototype, 'clipboard', { get: () => ({ writeText: async (t) => {
+        if (localStorage.getItem('test:clip') === 'deny') throw new DOMException('denied', 'NotAllowedError');
+        localStorage.setItem('test:copied', t);
+      } }) });
+    })();`,
+  });
+  const FAKE = 'AQ.browser-check-not-a-real-key_0123456789';
+  const queue = (...replies) => evaluate(`localStorage.setItem('test:gem', ${JSON.stringify(JSON.stringify(replies))})`);
+  const gemLog = async () => JSON.parse((await evaluate(`localStorage.getItem('test:gem-log') || '[]'`)));
+  const ok = (t) => ({ status: 200, body: { candidates: [{ content: { parts: [{ text: 'thinking…', thought: true }, { text: t }] }, finishReason: 'STOP' }] } });
+  const type = async (selector, value) => {
+    await tapSel(selector);
+    await evaluate(`document.querySelector(${JSON.stringify(selector)}).value = ''`);
+    await send('Input.insertText', { text: value });
+  };
+  const latest = (sel) => evaluate(`document.querySelector('.tutor-turn')?.querySelector(${JSON.stringify(sel)})?.textContent ?? null`);
+  const openPanel = async (id = 'cache') => {
+    await load(url + `#/lesson/${id}`);
+    await sleep(600);
+    await tap('Ask about this lesson');
+    await sleep(800);
+  };
+  const buttons = () => evaluate(`[...document.querySelectorAll('.tutor-ai-row button')].map((b) => b.textContent)`);
+
+  await load();
+  await openPanel();
+  check('without a key: only Ask Claude, and a link to add a Gemini key', JSON.stringify(await buttons()) === '["Ask Claude"]' && (await evaluate(`document.querySelector('.tutor-ai a.tutor-open').offsetParent !== null && document.querySelector('.tutor-ai a.tutor-open').getAttribute('href')`)) === '#/settings', JSON.stringify(await buttons()));
+  await tap('Ask Claude');
+  check('an empty question asks for one first', (await text('.tutor-ai-hint')) === 'Type a question in the box first.' && (await evaluate(`document.querySelectorAll('.tutor-turn').length`)) === 0);
+  await type('.tutor-ask input', 'Why delete instead of update?');
+  await tap('Ask Claude');
+  await sleep(300);
+  const copied = await evaluate(`localStorage.getItem('test:copied')`);
+  check('Ask Claude copies a prompt with the lesson, its sources and the question', !!copied && copied.includes('"Cache"') && copied.includes('My question: Why delete instead of update?') && copied.includes('cite a source'), copied?.slice(0, 120));
+  check('then offers an Open Claude link to claude.ai', (await evaluate(`document.querySelector('.tutor-turn a.tutor-open')?.getAttribute('href')`)) === 'https://claude.ai/new' && (await latest('.tutor-to')) === 'To Claude: ');
+  await layoutChecks('ask claude (360px)');
+  await evaluate(`localStorage.setItem('test:clip', 'deny')`);
+  await type('.tutor-ask input', 'What is a TTL?');
+  await tap('Ask Claude');
+  await sleep(300);
+  check('when copying is blocked, the prompt is shown to copy by hand', ((await evaluate(`document.querySelector('.tutor-turn textarea')?.value`)) ?? '').includes('My question: What is a TTL?'));
+  await evaluate(`localStorage.removeItem('test:clip')`);
+  await layoutChecks('ask claude by hand (360px)');
+  await shot('tutor-ai-claude');
+
+  // Settings: a bad paste is refused, a good one saved and never shown again.
+  await load(url + '#/settings');
+  await sleep(500);
+  check('Settings has the AI tutor card with the privacy note', /used to improve our products/.test((await text('.ai-tutor')) ?? ''));
+  await type('.ai-key-form input', 'my key is 123');
+  await tap('Save key');
+  check('a pasted sentence is refused as a key', /doesn't look like a Gemini API key/.test((await text('.ai-key-status')) ?? ''), await text('.ai-key-status'));
+  check('the key box hides what is typed', (await evaluate(`document.querySelector('.ai-key-form input').type`)) === 'password');
+  await type('.ai-key-form input', FAKE);
+  await tap('Save key');
+  check('a key is saved for this learner, and not shown', /^Key saved/.test((await text('.ai-key-status')) ?? '') && !(await evaluate(`document.body.innerHTML.includes(${JSON.stringify(FAKE)})`)) && (await evaluate(`localStorage.getItem('logic-quest:p:p1:gemini-key')`)) === FAKE);
+  await layoutChecks('settings ai tutor (360px)');
+  await shot('tutor-ai-settings');
+
+  // Gemini answers, shown as text, with the key only in a header.
+  await queue(ok('<img src=x onerror=alert(1)> Delete it.\nThe next read refills it.'), ok('Because the TTL limits staleness.'));
+  await openPanel();
+  check('with a key: Ask Gemini and Ask Claude', JSON.stringify(await buttons()) === '["Ask Gemini","Ask Claude"]', JSON.stringify(await buttons()));
+  await type('.tutor-ask input', 'Why delete the cached copy?');
+  await tap('Ask Gemini');
+  await sleep(500);
+  check('the answer is labelled AI-generated and shown as text, not HTML', /^AI-generated \(Gemini\)/.test((await latest('.tutor-where')) ?? '') && (await latest('.tutor-ai-text')) === '<img src=x onerror=alert(1)> Delete it.\nThe next read refills it.' && !(await evaluate(`!!document.querySelector('.tutor-log img')`)), await latest('.tutor-ai-text'));
+  check("the model's thinking is left out, and the lesson's sources are listed", !((await latest('.tutor-ai-text')) ?? '').includes('thinking') && /^Sources \(\d+\)$/.test((await latest('.tutor-sources summary')) ?? ''));
+  let sent = await gemLog();
+  const body0 = JSON.parse(sent[0]?.body ?? '{}');
+  check('the key goes only in a header, never in the URL or body', sent.length === 1 && !sent[0].url.includes(FAKE) && !sent[0].body.includes(FAKE) && sent[0].headers['x-goog-api-key'] === FAKE, sent[0]?.url);
+  check("the request carries the lesson's text and the question, and no progress", sent[0].body.includes('Lesson: Cache') && body0.contents.at(-1).parts[0].text === 'Why delete the cached copy?' && !sent[0].body.includes('"events"'));
+  await type('.tutor-ask input', 'And why a TTL too?');
+  await tap('Ask Gemini');
+  await sleep(500);
+  sent = await gemLog();
+  check('a follow-up sends the earlier question and answer', JSON.parse(sent[1].body).contents.length === 5 && sent[1].body.includes('The next read refills it.'));
+  await layoutChecks('gemini answer (360px)');
+  await shot('tutor-ai-gemini');
+
+  // Every failure says why and offers Claude.
+  const failures = [
+    [{ status: 429, body: { error: { code: 429, status: 'RESOURCE_EXHAUSTED' } } }, /free limit/],
+    [{ status: 400, body: { error: { code: 400, details: [{ reason: 'API_KEY_INVALID' }] } } }, /did not accept the API key/],
+    [{ status: 503, body: { error: { code: 503 } } }, /busy or down/],
+    [{ status: 200, body: { promptFeedback: { blockReason: 'SAFETY' } } }, /stopped before answering/],
+  ];
+  for (const [reply, want] of failures) {
+    await queue(reply);
+    await type('.tutor-ask input', `Failure ${reply.status}`);
+    await tap('Ask Gemini');
+    await sleep(500);
+    const msg = await latest('.bad');
+    const offers = await evaluate(`[...document.querySelector('.tutor-turn').querySelectorAll('button')].some((b) => b.textContent === 'Ask Claude instead')`);
+    check(`Gemini ${reply.status}${reply.body.promptFeedback ? ' (blocked)' : ''}: says why and offers Claude`, want.test(msg ?? '') && offers, msg);
+  }
+  check('a wrong key links to Settings', await evaluate(`[...document.querySelectorAll('.tutor-turn')].some((t) => t.querySelector('a[href="#/settings"]') && /did not accept/.test(t.textContent))`));
+  await evaluate(`localStorage.removeItem('test:copied')`);
+  await tap('Ask Claude instead');
+  await sleep(300);
+  check('Ask Claude instead hands the same question over', ((await evaluate(`localStorage.getItem('test:copied')`)) ?? '').includes('My question: Failure 200'));
+  await layoutChecks('gemini failures (360px)');
+  await shot('tutor-ai-failures');
+
+  const before = (await gemLog()).length;
+  await evaluate(`localStorage.setItem('test:offline', '1')`);
+  await type('.tutor-ask input', 'Offline question');
+  await tap('Ask Gemini');
+  await sleep(300);
+  check('offline: says so without calling Gemini', /You're offline/.test((await latest('.bad')) ?? '') && (await gemLog()).length === before);
+  await tap('Ask Claude instead');
+  await sleep(200);
+  check('offline: Ask Claude says it needs a connection', /needs a connection/.test(await evaluate(`document.querySelector('.tutor-turn').textContent`)));
+  await evaluate(`localStorage.removeItem('test:offline')`);
+
+  // Removing the key turns Gemini off again.
+  await load(url + '#/settings');
+  await sleep(500);
+  await tap('Remove key');
+  check('Remove key deletes it', (await evaluate(`localStorage.getItem('logic-quest:p:p1:gemini-key')`)) === null && /^Key removed/.test((await text('.ai-key-status')) ?? ''));
+  await openPanel();
+  check('without the key, Ask Gemini is gone', JSON.stringify(await buttons()) === '["Ask Claude"]');
+
+  await viewport(1280, 800, false);
+  await media('no-preference', 'dark');
+  await openPanel('load-balancer');
+  await layoutChecks('tutor ai (desktop)');
+  await shot('tutor-ai-desktop-dark');
+}
+
 if (mode === 'playground') {
   // The design playground by touch at 360 px: place, connect, label, drag, nudge, undo and redo,
   // delete (taking its arrows), pinch zoom, saving across a reload, several designs; then the
