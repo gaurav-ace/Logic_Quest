@@ -1,0 +1,748 @@
+[
+  {
+    "id": "python-structure-corners",
+    "title": "Data structure surprises in Python",
+    "track": "dsa",
+    "level": "medium",
+    "kind": "quiz",
+    "objective": "Predict four Python behaviours that quietly break grids, maps, heaps and sorts in real solutions.",
+    "sources": [
+      {
+        "title": "Python documentation: Common sequence operations (s * n: items are referenced, not copied)",
+        "url": "https://docs.python.org/3/builtins/stdtypes.html#common-sequence-operations"
+      },
+      {
+        "title": "Python documentation: Mapping types, dict (keys must be hashable)",
+        "url": "https://docs.python.org/3/builtins/stdtypes.html#typesmapping"
+      },
+      {
+        "title": "Python documentation: heapq (heap[0] is the smallest item)",
+        "url": "https://docs.python.org/3/library/heapq.html"
+      },
+      {
+        "title": "Python documentation: Sorting techniques, sort stability",
+        "url": "https://docs.python.org/3/howto/sorting.html#sort-stability-and-complex-sorts"
+      }
+    ],
+    "related": "hash-maps",
+    "intro": "Each of these has broken a correct-looking algorithm. The algorithm was fine; the data structure did something unexpected.",
+    "questions": [
+      {
+        "prompt": "grid = [[0] * 3] * 3, then grid[0][0] = 1. What is grid now?",
+        "options": [
+          {
+            "text": "[[1, 0, 0], [0, 0, 0], [0, 0, 0]]",
+            "explanation": "That's what you'd get from [[0] * 3 for _ in range(3)], which builds three separate rows."
+          },
+          {
+            "text": "[[1, 0, 0], [1, 0, 0], [1, 0, 0]]",
+            "explanation": "Right. * 3 doesn't copy the inner list: all three rows are the same list, so changing one changes them all. Build DP tables with a comprehension instead."
+          },
+          {
+            "text": "[[1, 1, 1], [0, 0, 0], [0, 0, 0]]",
+            "explanation": "Only one cell was assigned. The surprise is across rows, not along the row."
+          },
+          {
+            "text": "An error: you can't assign into a repeated list",
+            "explanation": "Assignment works. It just lands in a list that all three rows share."
+          }
+        ],
+        "answer": 1
+      },
+      {
+        "prompt": "You want to count visited grid cells with a dict, keyed by position. Which key works?",
+        "options": [
+          {
+            "text": "A list, like seen[[2, 3]] = True",
+            "explanation": "Lists can change, so they aren't hashable: Python raises TypeError: unhashable type: 'list'."
+          },
+          {
+            "text": "Either a list or a tuple: dicts accept any value as a key",
+            "explanation": "Keys must be hashable. A list isn't, so it raises TypeError."
+          },
+          {
+            "text": "A tuple, like seen[(2, 3)] = True",
+            "explanation": "Right. A tuple of numbers can't change and is hashable, so it can be a dict key (or a set member)."
+          },
+          {
+            "text": "Neither: positions must be turned into strings first",
+            "explanation": "Strings work too, but they aren't needed: a tuple of numbers is a fine key."
+          }
+        ],
+        "answer": 2
+      },
+      {
+        "prompt": "h = [5, 1, 8, 3]; heapq.heapify(h); heapq.heappop(h). What does the pop return?",
+        "options": [
+          {
+            "text": "1",
+            "explanation": "Right. heapq is a min-heap: heap[0] is always the smallest item, and heappop removes it. For the largest first, push negated values."
+          },
+          {
+            "text": "8",
+            "explanation": "That's a max-heap. Python's heapq keeps the smallest item on top."
+          },
+          {
+            "text": "5",
+            "explanation": "heapify reorders the list, so the first item you passed in isn't what comes out."
+          },
+          {
+            "text": "3",
+            "explanation": "heappop always takes the smallest item, and 1 is smaller than 3."
+          }
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "people = [('Asha', 30), ('Ben', 25), ('Chen', 30), ('Dev', 25)]. What does sorted(people, key=lambda p: p[1]) give?",
+        "options": [
+          {
+            "text": "[('Ben', 25), ('Dev', 25), ('Asha', 30), ('Chen', 30)]",
+            "explanation": "Right. Python's sort is stable: people with the same age keep their original order (Ben before Dev, Asha before Chen)."
+          },
+          {
+            "text": "[('Dev', 25), ('Ben', 25), ('Chen', 30), ('Asha', 30)]",
+            "explanation": "Ties don't swap. A stable sort keeps equal keys in the order they came in."
+          },
+          {
+            "text": "The order of Ben and Dev can change from run to run",
+            "explanation": "Python guarantees a stable sort, so the result is the same every time."
+          },
+          {
+            "text": "[('Asha', 30), ('Ben', 25), ('Chen', 30), ('Dev', 25)]",
+            "explanation": "That's the input order. The key sorts by age, so the 25s come first."
+          }
+        ],
+        "answer": 0
+      }
+    ]
+  },
+  {
+    "id": "missing-base-case",
+    "title": "Factorial of zero",
+    "track": "dsa",
+    "level": "medium",
+    "kind": "debug",
+    "objective": "Find a recursive function's missing base case by tracing the smallest input.",
+    "sources": [
+      {
+        "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): recursion and divide-and-conquer"
+      },
+      {
+        "title": "Python documentation: sys.getrecursionlimit (the limit that stops runaway recursion)",
+        "url": "https://docs.python.org/3/library/sys.html#sys.getrecursionlimit"
+      },
+      {
+        "title": "Python documentation: RecursionError",
+        "url": "https://docs.python.org/3/builtins/exceptions.html#RecursionError"
+      }
+    ],
+    "related": "recursion",
+    "simplifies": "The app stops at Python's default limit of 1000 calls (sys.getrecursionlimit() in CPython 3.12). The limit can be changed, but a missing base case fails at any limit.",
+    "language": "python",
+    "code": [
+      "def fact(n):",
+      "    if n == 1:",
+      "        return 1",
+      "    return n * fact(n - 1)"
+    ],
+    "symptom": "fact(5) gives 120 and fact(1) gives 1, so the tests passed. A user then asked for fact(0), which should be 1, and the program crashed.",
+    "bugLine": 1,
+    "lineWhy": "The base case only stops at 1. Starting from 0, n goes -1, -2, -3 … and never equals 1 again, so nothing stops the calls.",
+    "program": "factorial-base-case",
+    "input": 0,
+    "predict": {
+      "prompt": "What happens when you call fact(0)?",
+      "options": [
+        {
+          "text": "1",
+          "explanation": "That's the right answer for 0!, but this code never returns it: 0 isn't 1, so it calls fact(-1)."
+        },
+        {
+          "text": "0",
+          "explanation": "Nothing multiplies by 0 and returns: the calls never stop, so no value comes back."
+        },
+        {
+          "text": "RecursionError",
+          "explanation": "Right. fact(0) calls fact(-1), which calls fact(-2), and so on. After about 1000 calls Python stops it with RecursionError."
+        },
+        {
+          "text": "None",
+          "explanation": "Every path ends in a return, so it would never give None. It never reaches a return at all."
+        }
+      ],
+      "answer": 2
+    },
+    "fix": {
+      "prompt": "Which fix is right?",
+      "options": [
+        {
+          "text": "Add `if n < 0: return 1` before the other check",
+          "explanation": "That stops the crash, but fact(0) would then be 0 * fact(-1) = 0, which is still wrong."
+        },
+        {
+          "text": "Raise the limit with sys.setrecursionlimit(100000)",
+          "explanation": "The calls never stop, so any limit is reached. It just takes longer to fail (or crashes Python itself)."
+        },
+        {
+          "text": "Change the base case to `if n == 2: return 2`",
+          "explanation": "That makes it worse: fact(1) and fact(0) both run forever."
+        },
+        {
+          "text": "Change `if n == 1:` to `if n <= 1:`",
+          "explanation": "Right. 0! and 1! are both 1, so the smallest inputs stop at once. (Negative n now returns 1 too; a real version would reject it.)"
+        }
+      ],
+      "answer": 3
+    }
+  },
+  {
+    "id": "binary-search-stuck",
+    "title": "The search that never ends",
+    "track": "dsa",
+    "level": "medium",
+    "kind": "debug",
+    "objective": "See why every binary search step must shrink the range, and find the line that doesn't.",
+    "sources": [
+      {
+        "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): binary search"
+      },
+      {
+        "title": "Sedgewick and Wayne, Algorithms, 4th ed.: section 1.1, BinarySearch",
+        "url": "https://algs4.cs.princeton.edu/11model/"
+      }
+    ],
+    "related": "binary-search",
+    "language": "python",
+    "code": [
+      "def search(xs, target):",
+      "    lo, hi = 0, len(xs) - 1",
+      "    while lo <= hi:",
+      "        mid = (lo + hi) // 2",
+      "        if xs[mid] == target:",
+      "            return mid",
+      "        if xs[mid] < target:",
+      "            lo = mid",
+      "        else:",
+      "            hi = mid - 1",
+      "    return -1"
+    ],
+    "symptom": "search([1, 3, 5, 7], 3) returns 1 straight away. search([1, 3, 5, 7], 7) never returns, and the page freezes.",
+    "bugLine": 7,
+    "lineWhy": "When xs[mid] is too small, mid itself is ruled out, but lo = mid keeps it in range. Once lo and hi are next to each other, (lo + hi) // 2 is lo again, so nothing changes and the loop repeats forever.",
+    "program": "binary-search-stuck",
+    "input": [[1, 3, 5, 7], 7],
+    "predict": {
+      "prompt": "What does search([1, 3, 5, 7], 7) do?",
+      "options": [
+        {
+          "text": "3",
+          "explanation": "That's the right answer, but trace it: lo becomes 1, then 2; with lo = 2 and hi = 3, mid is 2 every time, so index 3 is never checked."
+        },
+        {
+          "text": "never finishes (the loop runs forever)",
+          "explanation": "Right. lo = 2, hi = 3 gives mid = 2; 5 < 7 sets lo = 2 again. Same state, same step, forever."
+        },
+        {
+          "text": "-1",
+          "explanation": "-1 needs the loop to end with lo > hi, but lo stops growing at 2 and hi stays 3."
+        },
+        {
+          "text": "2",
+          "explanation": "xs[2] is 5, not 7, so it doesn't return there. It just keeps checking index 2."
+        }
+      ],
+      "answer": 1
+    },
+    "fix": {
+      "prompt": "Which fix is right?",
+      "options": [
+        {
+          "text": "Change `lo = mid` to `lo = mid + 1`",
+          "explanation": "Right. mid is already ruled out, so the next range starts after it. Every step now shrinks the range, so the loop must end."
+        },
+        {
+          "text": "Change `while lo <= hi:` to `while lo < hi:`",
+          "explanation": "That stops the loop one step early: with one item left (lo == hi) it gives up, so search([7], 7) returns -1."
+        },
+        {
+          "text": "Round mid up: `mid = (lo + hi + 1) // 2`",
+          "explanation": "That fixes this input, but when the target is bigger than every item, lo and hi meet and lo = mid repeats forever: search([1, 3], 5) never ends."
+        },
+        {
+          "text": "Add a counter and stop after 100 steps",
+          "explanation": "That hides the bug: the search would return -1 for a target that is there."
+        }
+      ],
+      "answer": 0
+    }
+  },
+  {
+    "id": "pair-with-target-sum",
+    "title": "Two numbers that add up",
+    "track": "dsa",
+    "level": "medium",
+    "kind": "guided",
+    "objective": "Turn a slow check-every-pair search into one pass with a hash map, and catch the pair that uses one item twice.",
+    "sources": [
+      {
+        "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): hash tables"
+      },
+      {
+        "title": "Python documentation: Mapping types, dict",
+        "url": "https://docs.python.org/3/builtins/stdtypes.html#typesmapping"
+      },
+      {
+        "title": "Pólya, How to Solve It (Princeton University Press, 1945): understand the problem, solve a smaller related problem, look back"
+      }
+    ],
+    "related": "hash-maps",
+    "simplifies": "Treats a dict lookup as constant time on average. That's typical, not guaranteed: many keys landing in one bucket makes lookups slower.",
+    "problem": "Given a list of numbers and a target, return the positions of two different items that add up to the target, or None if no pair does.",
+    "example": {
+      "input": "[3, 2, 4], target 6",
+      "output": "[1, 2]"
+    },
+    "steps": [
+      {
+        "stage": "understand",
+        "prompt": "In your own words: what goes in, what comes out, and can the same item be used twice?",
+        "hints": [
+          "Look at the example: 3 + 3 is 6, yet the answer isn't [0, 0].",
+          "“Two different items” means two different positions."
+        ],
+        "model": "In: a list and a target. Out: two different positions i and j with xs[i] + xs[j] == target, or None. One item can't pair with itself, but two equal items at different positions can pair.",
+        "check": {
+          "type": "choice",
+          "prompt": "Which restatement matches the problem?",
+          "options": [
+            {
+              "text": "Return the two largest numbers",
+              "explanation": "The target decides the pair, not the size of the numbers."
+            },
+            {
+              "text": "Return any i and j where xs[i] + xs[j] equals the target",
+              "explanation": "Close, but that allows i == j: [3, 2, 4] with target 6 would return [0, 0]."
+            },
+            {
+              "text": "Return two different positions whose values add up to the target, or None",
+              "explanation": "Right. Different positions is the key detail; values may repeat."
+            },
+            {
+              "text": "Return True if any two numbers add up to the target",
+              "explanation": "The problem asks for the positions, not just whether a pair exists."
+            }
+          ],
+          "answer": 2
+        }
+      },
+      {
+        "stage": "shrink",
+        "prompt": "What's the smallest list that can have an answer? Solve a tiny case before the general one.",
+        "hints": [
+          "A pair needs two items.",
+          "Try [3, 3] with target 6."
+        ],
+        "model": "Two items: either they add up to the target or there's no answer. [3, 3] with target 6 gives [0, 1]; [3] gives None, because one item can't be a pair.",
+        "check": {
+          "type": "choice",
+          "prompt": "xs = [3], target = 6. What's the answer?",
+          "options": [
+            {
+              "text": "[0, 0]",
+              "explanation": "That uses the one item twice, which the problem rules out."
+            },
+            {
+              "text": "None",
+              "explanation": "Right. With one item there's no pair at all."
+            },
+            {
+              "text": "[0]",
+              "explanation": "The answer is a pair of positions or None, never a single position."
+            },
+            {
+              "text": "3",
+              "explanation": "That's the value still missing, not an answer."
+            }
+          ],
+          "answer": 1
+        }
+      },
+      {
+        "stage": "breakdown",
+        "prompt": "Checking every pair works but is slow. For each number x, what other number are you looking for? What would make finding it fast?",
+        "hints": [
+          "If x is part of the pair, its partner is target - x.",
+          "A dict answers “have I seen this value, and where?” in one step on average."
+        ],
+        "model": "Keep a dict of value to position for items already seen. Walk the list once; for each x, look up target - x; if it's there, that's the pair; otherwise record x and keep going. If the loop ends, there's no pair.",
+        "check": {
+          "type": "order",
+          "parts": [
+            "Make an empty dict: value seen so far → its position",
+            "Walk the list once, left to right",
+            "For each x, look up target - x in the dict",
+            "If it's there, return both positions; if not, record x",
+            "After the loop, return None"
+          ],
+          "explain": "The dict must exist before the loop uses it; the lookup and the record happen for each item inside the loop; None is only certain once every item has been seen."
+        }
+      },
+      {
+        "stage": "logic",
+        "prompt": "Inside the loop, you look up target - x and you record x. Does the order of those two matter? Try xs = [3] and target = 6 both ways.",
+        "hints": [
+          "Record first: the dict holds {3: 0} before the lookup.",
+          "Then target - x = 3 is found… at position 0, which is x itself."
+        ],
+        "model": "Look up first, then record. If you record x first, x can find itself: [3] with target 6 returns [0, 0]. Looking up first means the dict only holds earlier items, so a match is always a different position. [3, 3] still works: at position 1, the 3 from position 0 is already recorded.",
+        "check": {
+          "type": "choice",
+          "prompt": "Why look up target - x before recording x?",
+          "options": [
+            {
+              "text": "It's faster that way round",
+              "explanation": "Both orders do one lookup and one write per item. The difference is correctness."
+            },
+            {
+              "text": "A dict can't be read and written in the same loop",
+              "explanation": "It can. The order matters for a different reason."
+            },
+            {
+              "text": "So a later 3 replaces an earlier 3 in the dict",
+              "explanation": "Replacement happens either way. The point is what the lookup can find."
+            },
+            {
+              "text": "So x can't pair with itself: recording first makes [3] with target 6 return [0, 0]",
+              "explanation": "Right. The dict then only holds earlier positions, so any match is a different item."
+            }
+          ],
+          "answer": 3
+        }
+      },
+      {
+        "stage": "edges",
+        "prompt": "List inputs that could break a solution: one item, equal values, negatives, no answer. Then test the slow version below.",
+        "hints": [
+          "The slow version loops i and j over every position, including i == j.",
+          "Which inputs have a value that is exactly half the target?"
+        ],
+        "model": "The double loop over all i and j (with i == j allowed) returns [0, 0] whenever xs[0] * 2 == target, even when a real pair exists elsewhere or no pair exists. Negatives and missing pairs are handled fine.",
+        "check": {
+          "type": "select",
+          "prompt": "The slow version is `for i in range(n): for j in range(n): if xs[i] + xs[j] == target: return [i, j]`, then return None. Tap every input it gets wrong.",
+          "cases": [
+            {
+              "text": "[2, 7, 11, 15], target 9",
+              "pick": false,
+              "why": "It reaches i = 0, j = 1 (2 + 7) first and returns [0, 1], which is right."
+            },
+            {
+              "text": "[3, 2, 4], target 6",
+              "pick": true,
+              "why": "i = 0, j = 0 gives 3 + 3 = 6, so it returns [0, 0]. The answer is [1, 2]."
+            },
+            {
+              "text": "[3], target 6",
+              "pick": true,
+              "why": "It pairs the only item with itself and returns [0, 0]. The answer is None."
+            },
+            {
+              "text": "[3, 3], target 6",
+              "pick": true,
+              "why": "It returns [0, 0] before ever trying j = 1. The answer is [0, 1]."
+            },
+            {
+              "text": "[1, 2], target 10",
+              "pick": false,
+              "why": "No pair adds up to 10, and no item doubled does either, so it returns None, which is right."
+            },
+            {
+              "text": "[-1, 5], target 4",
+              "pick": false,
+              "why": "-1 + 5 = 4 at i = 0, j = 1, and no single item doubles to 4, so [0, 1] is right."
+            }
+          ]
+        }
+      },
+      {
+        "stage": "combine",
+        "prompt": "Put it together in plain words, then compare. How does the work grow as the list gets longer?",
+        "hints": [
+          "Count how many times each item is looked at in each version."
+        ],
+        "model": "seen = {}. For i, x in enumerate(xs): if target - x in seen, return [seen[target - x], i]; otherwise seen[x] = i. After the loop, return None. Each item is looked at once, so the work grows in step with the list (linear), against about n² pair checks for the slow version. The price is extra memory: the dict can hold every item."
+      }
+    ]
+  },
+  {
+    "id": "greedy-coins",
+    "title": "Fewest coins, greedily",
+    "track": "dsa",
+    "level": "hard",
+    "kind": "debug",
+    "objective": "See why “take the biggest piece first” isn't always optimal, and when you need dynamic programming instead.",
+    "sources": [
+      {
+        "title": "Laaksonen, Competitive Programmer's Handbook: greedy algorithms, the coin problem (coins {1, 3, 4} and sum 6), then dynamic programming",
+        "url": "https://cses.fi/book/book.pdf"
+      },
+      {
+        "title": "Cormen, Leiserson, Rivest and Stein, Introduction to Algorithms, 4th ed. (MIT Press, 2022): dynamic programming; greedy algorithms"
+      }
+    ],
+    "related": "dynamic-programming",
+    "simplifies": "For some coin sets, such as the euro coins, greedy does give the fewest coins. The bug is assuming it works for every set of coins.",
+    "language": "python",
+    "code": [
+      "def min_coins(coins, amount):",
+      "    count = 0",
+      "    for c in sorted(coins, reverse=True):",
+      "        count += amount // c",
+      "        amount %= c",
+      "    return count if amount == 0 else -1"
+    ],
+    "symptom": "min_coins([1, 5, 10], 12) gives 3 (10 + 1 + 1), which is right. With coins [1, 3, 4], a customer owed 6 got three coins (4 + 1 + 1), though 3 + 3 makes 6 with two.",
+    "bugLine": 2,
+    "lineWhy": "Every line runs as written; the plan is wrong. Going biggest first commits to as many big coins as fit and never reconsiders, so it can't see that skipping the 4 leads to fewer coins.",
+    "program": "greedy-coins",
+    "input": [[1, 3, 4], 6],
+    "predict": {
+      "prompt": "What does min_coins([1, 3, 4], 6) return?",
+      "options": [
+        {
+          "text": "2",
+          "explanation": "That's the true minimum (3 + 3), but greedy takes a 4 first and can't get there."
+        },
+        {
+          "text": "3",
+          "explanation": "Right. One 4 (6 // 4 = 1, leaving 2), no 3s, then two 1s: 1 + 0 + 2 = 3 coins."
+        },
+        {
+          "text": "-1",
+          "explanation": "The 1 coin always finishes the job, so this coin set never returns -1."
+        },
+        {
+          "text": "6",
+          "explanation": "That would be six 1s. Greedy uses the biggest coins first."
+        }
+      ],
+      "answer": 1
+    },
+    "fix": {
+      "prompt": "Which fix always gives the fewest coins?",
+      "options": [
+        {
+          "text": "Sort the coins smallest first instead",
+          "explanation": "Then the 1 coin takes everything: 6 ones. Still greedy, now worse."
+        },
+        {
+          "text": "Run greedy twice, once from each end, and keep the better answer",
+          "explanation": "Smallest first gives six 1s, so the better of the two is still 3 coins. Neither run ever reconsiders a choice."
+        },
+        {
+          "text": "Work out best[a] for every amount a from 0 up: best[a] = 1 + the smallest best[a - c] over coins c ≤ a",
+          "explanation": "Right. Each amount's answer is built from smaller amounts already solved, trying every coin as the last one. best[6] = 1 + best[3] = 2."
+        },
+        {
+          "text": "Skip the biggest coin whenever it doesn't divide the amount exactly",
+          "explanation": "A rule of thumb, not a fix: it still decides each coin without comparing whole solutions."
+        }
+      ],
+      "answer": 2
+    }
+  },
+  {
+    "id": "longest-unique-run",
+    "title": "Longest stretch with no repeats",
+    "track": "dsa",
+    "level": "hard",
+    "kind": "guided",
+    "objective": "Build a sliding window that grows and shrinks, and find the input that breaks the obvious way to shrink it.",
+    "sources": [
+      {
+        "title": "Laaksonen, Competitive Programmer's Handbook: the two pointers method",
+        "url": "https://cses.fi/book/book.pdf"
+      },
+      {
+        "title": "Python documentation: Mapping types, dict",
+        "url": "https://docs.python.org/3/builtins/stdtypes.html#typesmapping"
+      },
+      {
+        "title": "Myers, Sandler and Badgett, The Art of Software Testing, 3rd ed. (Wiley, 2011): boundary-value analysis"
+      }
+    ],
+    "related": "sliding-window",
+    "problem": "Given a string, return the length of the longest stretch of neighbouring characters with no character repeated.",
+    "example": {
+      "input": "'abcabcbb'",
+      "output": "3 ('abc')"
+    },
+    "steps": [
+      {
+        "stage": "understand",
+        "prompt": "In your own words: what counts as a “stretch”, and what comes out?",
+        "hints": [
+          "Neighbouring characters: you can't skip any in between.",
+          "The answer is a length, not the text itself."
+        ],
+        "model": "A stretch is a run of characters next to each other (a substring). Out: the length of the longest run in which every character is different. The empty string gives 0.",
+        "check": {
+          "type": "choice",
+          "prompt": "For 'pwwkew', which is a valid stretch with no repeats?",
+          "options": [
+            {
+              "text": "'pwke': p, w, k, e are all different",
+              "explanation": "They're different, but not neighbours: getting them means skipping the second w."
+            },
+            {
+              "text": "'wke', length 3",
+              "explanation": "Right. w, k, e sit next to each other and none repeats. Nothing longer works, so the answer is 3."
+            },
+            {
+              "text": "'pwwkew' itself, since repeats are allowed if they aren't neighbours",
+              "explanation": "No character may appear twice in the stretch, next to each other or not."
+            },
+            {
+              "text": "'ww', length 2",
+              "explanation": "w repeats, so 'ww' isn't allowed."
+            }
+          ],
+          "answer": 1
+        }
+      },
+      {
+        "stage": "shrink",
+        "prompt": "Solve the tiniest strings first: '', 'a', 'aa', 'ab'.",
+        "hints": [
+          "A single character can never repeat.",
+          "In 'aa', can the stretch hold both a's?"
+        ],
+        "model": "'' gives 0, 'a' gives 1, 'aa' gives 1 (only one a at a time), 'ab' gives 2. So a repeat is the only thing that forces the stretch to stop growing.",
+        "check": {
+          "type": "choice",
+          "prompt": "What's the answer for 'bbbb'?",
+          "options": [
+            {
+              "text": "4",
+              "explanation": "That's the whole string, but b repeats."
+            },
+            {
+              "text": "0",
+              "explanation": "Any single character is a stretch with no repeats, so the answer is at least 1."
+            },
+            {
+              "text": "2",
+              "explanation": "'bb' already repeats b."
+            },
+            {
+              "text": "1",
+              "explanation": "Right. Any one 'b' alone; adding a neighbour repeats it."
+            }
+          ],
+          "answer": 3
+        }
+      },
+      {
+        "stage": "breakdown",
+        "prompt": "Checking every substring is slow. Picture a window over the string with a left and a right edge. What do you need to remember, and when does each edge move?",
+        "hints": [
+          "The right edge moves one character at a time, always forward.",
+          "When the new character is already inside the window, the left edge must jump past the earlier copy. To know where that is, remember each character's last position."
+        ],
+        "model": "Keep a window [left, right] with no repeats and a dict of each character's last position. Move right one step at a time. If the new character was last seen inside the window, move left to just after that position. After each step, record the window's length if it's the best so far.",
+        "check": {
+          "type": "order",
+          "parts": [
+            "Start with left = 0, best = 0 and an empty dict of last positions",
+            "Move right one character at a time",
+            "If the character was last seen inside the window, move left just past it",
+            "Record this character's position as its last one",
+            "Update best with the window's length, right - left + 1"
+          ],
+          "explain": "Setup comes first. For each new character, fix the window before measuring it, and look up the old position before overwriting it with the new one."
+        }
+      },
+      {
+        "stage": "logic",
+        "prompt": "Trace 'abba'. When right reaches the last 'a' (position 3), left is 2 and the dict says 'a' was last at 0. Where should left go?",
+        "hints": [
+          "Is position 0 inside the window that runs from 2 to 3?",
+          "The left edge should never move backwards."
+        ],
+        "model": "Only move left when the earlier copy is inside the window: if last[c] >= left, set left = last[c] + 1. In 'abba', the old 'a' at 0 is already outside (left is 2), so left stays at 2 and the window 'ba' has length 2.",
+        "check": {
+          "type": "choice",
+          "prompt": "s = 'abba', right = 3, left = 2, last['a'] = 0. What should left become?",
+          "options": [
+            {
+              "text": "1, which is last['a'] + 1",
+              "explanation": "That moves left backwards, and the window 'bba' would contain a repeat."
+            },
+            {
+              "text": "3, so the window starts fresh at the new 'a'",
+              "explanation": "That throws away a good window: 'ba' (positions 2 to 3) has no repeats."
+            },
+            {
+              "text": "It stays 2: the old 'a' at 0 is already outside the window",
+              "explanation": "Right. A repeat only matters if the earlier copy is inside the window, so the check is last[c] >= left."
+            },
+            {
+              "text": "0, back to the start of the string",
+              "explanation": "The left edge only ever moves forward."
+            }
+          ],
+          "answer": 2
+        }
+      },
+      {
+        "stage": "edges",
+        "prompt": "The obvious version moves left to last[c] + 1 whenever c was seen before, without checking it's inside the window. Which inputs break it?",
+        "hints": [
+          "It goes wrong when an old copy is behind the window and left jumps backwards.",
+          "Look for a character that repeats, then an older character that repeats after it."
+        ],
+        "model": "The unchecked version is wrong whenever left would jump backwards: 'abba' gives 3 instead of 2, and 'tmmzuxt' gives 6 instead of 5 (the final t pulls left back to 1, before the repeated m). Strings with a single repeated character, or whose repeats come in order, still pass, which is why the bug survives simple tests.",
+        "check": {
+          "type": "select",
+          "prompt": "The version without the inside-the-window check: tap every input it gets wrong.",
+          "cases": [
+            {
+              "text": "'abcabcbb' (answer 3)",
+              "pick": false,
+              "why": "Each repeat's earlier copy is still inside the window when it's met, so left never goes backwards. It gives 3."
+            },
+            {
+              "text": "'abba' (answer 2)",
+              "pick": true,
+              "why": "At the last 'a', left jumps back from 2 to 1, and the window 'bba' counts as 3."
+            },
+            {
+              "text": "'bbbb' (answer 1)",
+              "pick": false,
+              "why": "Each b's earlier copy is right next to it, inside the window. It gives 1."
+            },
+            {
+              "text": "'tmmzuxt' (answer 5)",
+              "pick": true,
+              "why": "At the final t, left jumps back from 2 to 1, so the window 'mmzuxt', which repeats m, counts as 6."
+            },
+            {
+              "text": "'' (answer 0)",
+              "pick": false,
+              "why": "The loop never runs and best stays 0, which is right."
+            }
+          ]
+        }
+      },
+      {
+        "stage": "combine",
+        "prompt": "Write the whole solution in plain words, then compare. How many times does each edge move?",
+        "hints": [
+          "Neither edge ever moves backwards."
+        ],
+        "model": "last = {}, left = 0, best = 0. For right, c in enumerate(s): if c in last and last[c] >= left: left = last[c] + 1. Then last[c] = right and best = max(best, right - left + 1). Return best. The right edge moves n times and the left edge only forward, so the work grows linearly with the string, against checking every substring, which grows much faster."
+      }
+    ]
+  }
+]

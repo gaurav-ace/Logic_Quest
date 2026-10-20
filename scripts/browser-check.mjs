@@ -2,7 +2,7 @@
 // No dependencies: talks to Chrome over the DevTools protocol with Node's built-in WebSocket.
 //
 //   npm run build && npm run preview          (in another terminal)
-//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design|agent|profiles|practice|workshop] [url] [screenshot-dir]
+//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design|agent|profiles|practice|practice-walk|workshop] [url] [screenshot-dir]
 //   DIST_DIR=dist node scripts/browser-check.mjs update   (edits dist/ to simulate a deploy: rebuild after)
 //   LESSONS=binary-search,heaps node scripts/browser-check.mjs lessons   (walk only those)
 //
@@ -989,6 +989,75 @@ if (mode === 'practice') {
   await sleep(800);
   await shot('practice-debug-desktop-dark');
   await layoutChecks('debug problem (desktop)');
+}
+
+if (mode === 'practice-walk') {
+  // Every practice item in every track, solved by touch at 360 px with the right answers read
+  // from the data files, then a layout check of the finished page (all its steps stay on screen).
+  await viewport(360, 740, true);
+  await media('reduce');
+  const practiceDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'practice');
+  // Tap by exact text inside the last element matching `scope`, so an earlier step's option with
+  // the same words can never be hit instead.
+  const tapIn = async (scope, name) => {
+    const box = await evaluate(`(() => {
+      const s = [...document.querySelectorAll(${JSON.stringify(scope)})].at(-1);
+      const b = s && [...s.querySelectorAll('button')].find((b) => b.offsetParent && !b.disabled && b.textContent.trim() === ${JSON.stringify(name)});
+      if (!b) return null;
+      b.scrollIntoView({ block: 'center' });
+      const r = b.getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    })()`);
+    if (!box) throw new Error(`nothing to tap in ${scope}: "${name}"`);
+    await sleep(120);
+    await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x, y: box.y }] });
+    await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await sleep(200);
+  };
+  const right = (q) => q.options[q.answer].text;
+  for (const file of readdirSync(practiceDir).filter((f) => f.endsWith('.json')).sort()) {
+    const track = file.replace(/\.json$/, '');
+    for (const item of JSON.parse(readFileSync(join(practiceDir, file), 'utf8'))) {
+      const name = `${track}/${item.id}`;
+      try {
+        await load(`${url}#/practice/${track}/${item.id}`);
+        await sleep(600);
+        if (item.kind === 'quiz') {
+          for (const [k, q] of item.questions.entries()) {
+            await tapIn('.practice-check', right(q));
+            if (k < item.questions.length - 1) await tap('Next question');
+          }
+        } else if (item.kind === 'debug') {
+          await tapSel('.code-line', item.bugLine);
+          await tapIn('main', right(item.predict));
+          if (item.program) {
+            const rows = await evaluate(`[...document.querySelectorAll('.run-rows p')].map((p) => p.textContent).join(' | ')`);
+            check(`${name}: the buggy run shown matches the predicted answer`, rows === `Buggy code gives: ${right(item.predict)}`, rows);
+          }
+          await tapIn('main', right(item.fix));
+        } else {
+          for (const [k, step] of item.steps.entries()) {
+            const c = step.check;
+            if (c?.type === 'choice') await tapIn('.workshop-step', right(c));
+            else if (c?.type === 'order') {
+              for (const part of c.parts) await tapIn('.workshop-step', part);
+              await tapIn('.workshop-step', 'Check the order');
+            } else if (c?.type === 'select') {
+              for (const kase of c.cases.filter((x) => x.pick)) await tapIn('.workshop-step', kase.text);
+              await tapIn('.workshop-step', 'Check');
+            }
+            if (k < item.steps.length - 1) await tapIn('.workshop-step', 'Next step');
+            else await tapIn('.workshop-step', 'Show the expert’s version');
+          }
+        }
+        check(`${name}: solved by touch, ends with Done`, (await text('.practice-done h3')) === 'Done ✓', await text('.practice-done h3'));
+      } catch (e) {
+        check(`${name}: solved by touch, ends with Done`, false, e.message);
+      }
+      await layoutChecks(`${name} (360px)`);
+      await shot(`walk-${track}-${item.id}`);
+    }
+  }
 }
 
 if (mode === 'workshop') {
