@@ -2039,6 +2039,11 @@ button.code-line {
   white-space: pre;
 }
 
+.code-line.blank {
+  display: inline-block;
+  min-height: 1.5em;
+}
+
 /* Once the bug is found the lines lock, but the code must stay readable. */
 button.code-line:disabled {
   color: inherit;

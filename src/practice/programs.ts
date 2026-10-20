@@ -204,6 +204,52 @@ export const PROGRAMS: Record<string, DebugProgram> = {
     },
   },
 
+  // Cache-aside where update_price writes the database but never removes the cached copy.
+  'cache-no-invalidation': {
+    buggy: (i) => cachedReads(i as CacheInput, false),
+    fixed: (i) => cachedReads(i as CacheInput, true),
+    random: (r) => {
+      const items = ['tea', 'milk'];
+      const ops: CacheOp[] = Array.from({ length: randomInt(r, 2, 6) }, () => {
+        const item = items[randomInt(r, 0, 1)]!;
+        return r() < 0.6 ? ['get', item] : ['set', item, randomInt(r, 5, 20)];
+      });
+      return { db: { tea: 10, milk: 4 }, ops };
+    },
+    show: (i) => {
+      const { db, ops } = i as CacheInput;
+      const start = `db = {${Object.entries(db).map(([k, v]) => `${pyStr(k)}: ${v}`).join(', ')}}`;
+      return [start, ...ops.map((op) => (op[0] === 'get' ? `get_price(${pyStr(op[1])})` : `update_price(${pyStr(op[1])}, ${op[2]})`))].join('; ');
+    },
+  },
+
+  // show_profile reads from a replica that is `lag` seconds behind the primary.
+  'replica-lag': {
+    buggy: (i) => {
+      const { lag, wait, old, name } = i as LagInput;
+      // The replica has the write only once the lag has passed.
+      return pyStr(wait >= lag ? name : old);
+    },
+    fixed: (i) => pyStr((i as LagInput).name), // the user's own profile is read from the primary
+    random: (r) => ({ lag: [0.5, 1, 2, 5][randomInt(r, 0, 3)]!, wait: [0.1, 0.5, 1, 3][randomInt(r, 0, 3)]!, old: 'A. Rao', name: 'Asha Rao' }),
+    show: (i) => {
+      const { lag, wait, name } = i as LagInput;
+      return `save_profile(7, ${pyStr(name)}); ${wait} s later: show_profile(7), with the replica ${lag} s behind`;
+    },
+  },
+
+  // pay() retries a charge on timeout without an idempotency key. The server always charges;
+  // only its replies get lost (`lost` of them, in a row).
+  'retry-no-idempotency': {
+    buggy: (i) => payment((i as { lost: number }).lost, false),
+    fixed: (i) => payment((i as { lost: number }).lost, true),
+    random: (r) => ({ lost: randomInt(r, 0, 4) }),
+    show: (i) => {
+      const lost = (i as { lost: number }).lost;
+      return `pay('order-42', 2000), where the first ${lost} repl${lost === 1 ? 'y is' : 'ies are'} lost`;
+    },
+  },
+
   // run(agent) with no step limit, where the tool fails every time and the agent retries.
   'agent-no-step-limit': {
     buggy: (i) => runAgent(i as AgentInput, null),
@@ -280,6 +326,37 @@ function lru({ capacity, ops }: LruInput, touchOnGet: boolean): string {
     }
   }
   return pyList(order.map(pyStr));
+}
+
+type CacheOp = ['get', string] | ['set', string, number];
+type CacheInput = { db: Record<string, number>; ops: CacheOp[] };
+/** What each get_price call returns, as a Python list. */
+function cachedReads({ db: start, ops }: CacheInput, invalidate: boolean): string {
+  const db = { ...start };
+  const cache = new Map<string, number>();
+  const seen: number[] = [];
+  for (const op of ops) {
+    if (op[0] === 'set') {
+      db[op[1]] = op[2];
+      if (invalidate) cache.delete(op[1]); // cache.pop(item, None)
+    } else {
+      if (!cache.has(op[1])) cache.set(op[1], db[op[1]]!);
+      seen.push(cache.get(op[1])!);
+    }
+  }
+  return pyList(seen);
+}
+
+type LagInput = { lag: number; wait: number; old: string; name: string };
+
+/** Three attempts. Without a key every attempt that reaches the server charges again. */
+const ATTEMPTS = 3;
+function payment(lost: number, withKey: boolean): string {
+  const attempts = Math.min(lost + 1, ATTEMPTS);
+  // With the same key on every attempt, the server charges once and replays its first answer.
+  const charges = withKey ? 1 : attempts;
+  const times = `charged ${charges} time${charges === 1 ? '' : 's'}`;
+  return lost >= ATTEMPTS ? `${times}, then PaymentFailed` : times;
 }
 
 type AgentInput = { failures: number | 'always' };

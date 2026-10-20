@@ -133,13 +133,18 @@ function runDebug(body: HTMLElement, item: DebugPractice, hooks: PracticeHooks, 
   const step1 = el('section', { class: 'card debug-lines', 'aria-label': 'Find the bug' });
   const lineFeedback = el('p', { class: 'feedback', 'aria-live': 'polite' });
   const code = el('ol', { class: `code debug-code ${item.language}` });
-  const lines = item.code.map((text, i) => {
-    const b = button(text || ' ', () => tapLine(i, b), { class: 'code-line', 'aria-label': `Line ${i + 1}: ${text.trim() || 'blank'}` });
-    if (!text.trim()) b.disabled = true;
+  // A blank line is spacing, not something to tap, so it isn't a button (a disabled one would
+  // still look like a too-small target). It keeps the class so line indexes stay aligned.
+  const lines = item.code.flatMap((text, i) => {
     const li = el('li');
-    li.append(b);
     code.append(li);
-    return b;
+    if (!text.trim()) {
+      li.append(el('span', { class: 'code-line blank' }));
+      return [];
+    }
+    const b = button(text, () => tapLine(i, b), { class: 'code-line', 'aria-label': `Line ${i + 1}: ${text.trim()}` });
+    li.append(b);
+    return [b];
   });
   step1.append(el('p', { class: 'quiz-count' }, 'Step 1 of 3'), el('h3', {}, 'Tap the line that causes it.'), el('div', { class: 'scroll-x' }), lineFeedback);
   step1.querySelector('.scroll-x')!.append(code);

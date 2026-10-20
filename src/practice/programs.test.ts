@@ -75,6 +75,22 @@ describe('fixed versions match an independent reference on random inputs', () =>
       expect(PROGRAMS['oversell-race']!.fixed(i)).toBe(`sold ${sold}, stock ${stock - sold}`);
     }));
 
+  it('cache-no-invalidation (fixed = every read sees the database as it is now)', () =>
+    each('cache-no-invalidation', (i) => {
+      const { db, ops } = i as { db: Record<string, number>; ops: (['get', string] | ['set', string, number])[] };
+      const now = { ...db };
+      const reads: number[] = [];
+      for (const op of ops) if (op[0] === 'set') now[op[1]] = op[2];
+      else reads.push(now[op[1]]!);
+      expect(PROGRAMS['cache-no-invalidation']!.fixed(i)).toBe(`[${reads.join(', ')}]`);
+    }));
+
+  it('replica-lag (fixed always shows the name just saved)', () =>
+    each('replica-lag', (i) => expect(PROGRAMS['replica-lag']!.fixed(i)).toBe(`'${(i as { name: string }).name}'`)));
+
+  it('retry-no-idempotency (fixed charges exactly once, however many replies are lost)', () =>
+    each('retry-no-idempotency', (i) => expect(PROGRAMS['retry-no-idempotency']!.fixed(i)).toMatch(/^charged 1 time(, then PaymentFailed)?$/)));
+
   it('agent-no-step-limit (fixed always stops within 8 steps)', () =>
     each('agent-no-step-limit', (i) => {
       const out = PROGRAMS['agent-no-step-limit']!.fixed(i);
@@ -111,6 +127,17 @@ describe('the bugs really are bugs', () => {
     expect(PROGRAMS['lru-get-no-touch']!.fixed({ capacity: 2, ops: [['put', 'a'], ['put', 'b'], ['get', 'a'], ['put', 'c']] })).toBe("['a', 'c']");
     expect(PROGRAMS['oversell-race']!.buggy({ stock: 1, buyers: 2 })).toBe('sold 2, stock -1');
     expect(PROGRAMS['agent-no-step-limit']!.buggy({ failures: 'always' })).toBe(NEVER_ENDS);
+    const tea = { db: { tea: 10 }, ops: [['get', 'tea'], ['set', 'tea', 12], ['get', 'tea']] };
+    expect(PROGRAMS['cache-no-invalidation']!.buggy(tea)).toBe('[10, 10]');
+    expect(PROGRAMS['cache-no-invalidation']!.fixed(tea)).toBe('[10, 12]');
+    // A value never read before the update is fetched fresh, so the bug needs an earlier read.
+    expect(PROGRAMS['cache-no-invalidation']!.buggy({ db: { tea: 10 }, ops: [['set', 'tea', 12], ['get', 'tea']] })).toBe('[12]');
+    expect(PROGRAMS['replica-lag']!.buggy({ lag: 2, wait: 0.5, old: 'A. Rao', name: 'Asha Rao' })).toBe("'A. Rao'");
+    expect(PROGRAMS['replica-lag']!.buggy({ lag: 2, wait: 3, old: 'A. Rao', name: 'Asha Rao' })).toBe("'Asha Rao'");
+    expect(PROGRAMS['retry-no-idempotency']!.buggy({ lost: 0 })).toBe('charged 1 time');
+    expect(PROGRAMS['retry-no-idempotency']!.buggy({ lost: 1 })).toBe('charged 2 times');
+    expect(PROGRAMS['retry-no-idempotency']!.buggy({ lost: 3 })).toBe('charged 3 times, then PaymentFailed');
+    expect(PROGRAMS['retry-no-idempotency']!.fixed({ lost: 3 })).toBe('charged 1 time, then PaymentFailed');
   });
 
   it('every program shows its input and runs on its own random inputs without throwing', () => {
