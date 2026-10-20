@@ -73,6 +73,8 @@ export class ProgressStore {
   constructor(
     private readonly kv: KeyValue | null,
     private readonly now: () => Date = () => new Date(),
+    /** Each learner profile saves under its own key (profiles.ts). */
+    readonly key: string = SAVE_KEY,
   ) {
     this.data = this.readStored();
   }
@@ -133,7 +135,7 @@ export class ProgressStore {
   private write(): void {
     if (!this.kv || !this.writable) return;
     try {
-      this.kv.setItem(SAVE_KEY, JSON.stringify(this.data));
+      this.kv.setItem(this.key, JSON.stringify(this.data));
     } catch {
       this.notice = "Progress can't be saved on this device right now (storage is full or blocked). It is kept until you close the app. Export a backup to keep it.";
     }
@@ -146,7 +148,7 @@ export class ProgressStore {
     }
     let text: string | null;
     try {
-      text = this.kv.getItem(SAVE_KEY);
+      text = this.kv.getItem(this.key);
     } catch {
       this.notice = "This browser won't let the app read saved progress. It is kept until you close the app.";
       return this.data;
@@ -158,7 +160,8 @@ export class ProgressStore {
       return parsed.data;
     }
     // Keep the unreadable save so it can be recovered; never silently throw it away.
-    const backupKey = `${BACKUP_PREFIX}${this.now().toISOString()}`;
+    // For the first profile this is BACKUP_PREFIX, as before profiles existed.
+    const backupKey = `${this.key}:unreadable:${this.now().toISOString()}`;
     try {
       this.kv.setItem(backupKey, text);
       this.notice = `Saved progress could not be read (${parsed.problem}). A copy was kept in this browser (${backupKey}), and a fresh start was made.`;
@@ -176,7 +179,7 @@ export class ProgressStore {
 }
 
 /** localStorage, or null where the browser blocks it (some private modes throw on access). */
-export function browserStorage(): KeyValue | null {
+export function browserStorage(): Storage | null {
   try {
     const s = window.localStorage;
     const probe = `${SAVE_KEY}:probe`;
