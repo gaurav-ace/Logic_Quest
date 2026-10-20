@@ -122,10 +122,10 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 
 ## Next step
 
-1. Owner reviews the 36 practice items (Phase 6b, M5) and Phase 6 when convenient.
-2. Owner: push the branch, then on the phone add the Gemini key in Settings > AI tutor and try "Ask Gemini" and "Ask Claude" on a real device. Then review Phase 6b as a whole.
-3. Owner: add the `DISCORD_WEBHOOK_URL` repository secret (README has the steps) so the scheduled reminders post; a manual post from this machine already worked.
-4. Phase 7 is built; the owner reviews it on the phone after pushing `claude/adaptive`. Proposed next: the daily news digest (a separate site plus a Discord summary), which needs the owner's decisions first (scope, a Gemini key as a GitHub secret, a public site, the source list). `docs/UI_REVAMP_PLAN.md` (written in another session, untracked) also awaits the owner.
+1. Owner: push `claude/adaptive`, merge it, and try Phase 7 on the phone (Home's Up next reason, Review, Progress by track). Then approve or report problems.
+2. Owner reviews content when convenient: the 36 practice items, the 26 tutor answers, Phase 6's agentic lessons.
+3. Done by the owner (2026-10-20): Gemini key added in the app, `DISCORD_WEBHOOK_URL` secret added.
+4. Proposed next: the daily news digest (a separate site plus a Discord summary), which needs the owner's decisions first (scope, a Gemini key as a GitHub secret, a public site, the source list). `docs/UI_REVAMP_PLAN.md` (written in another session, untracked) also awaits the owner.
 
 ## Blockers and questions for the owner
 
