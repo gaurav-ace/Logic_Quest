@@ -1838,3 +1838,101 @@ a:focus-visible {
     grid-column: 1 / -1;
   }
 }
+
+/* Learner profiles: the top-bar name is a link to Settings, so it gets a full tap target. */
+a.top-stat.who {
+  align-items: center;
+  min-height: var(--tap);
+  max-width: 10rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.top-stat.who strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.learner-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.learner-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.learner-row .controls {
+  flex-wrap: wrap;
+}
+
+.learner-name {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.learner-name small {
+  color: var(--mute);
+  font-weight: 400;
+}
+
+.learner-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.learner-input {
+  flex: 1 1 12rem;
+  min-height: var(--tap);
+  padding: 0 12px;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+}
+
+.picker {
+  max-width: 28rem;
+  margin: 24px auto;
+  text-align: center;
+}
+
+.picker-list {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.who-initial {
+  display: none;
+}
+
+@media (max-width: 479px) {
+  a.top-stat.who {
+    justify-content: center;
+    width: var(--tap);
+    padding: 0;
+  }
+
+  a.top-stat.who small,
+  a.top-stat.who strong {
+    display: none;
+  }
+
+  .who-initial {
+    display: inline;
+    font-weight: 800;
+  }
+}

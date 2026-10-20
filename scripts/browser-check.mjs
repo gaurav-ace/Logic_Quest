@@ -2,7 +2,7 @@
 // No dependencies: talks to Chrome over the DevTools protocol with Node's built-in WebSocket.
 //
 //   npm run build && npm run preview          (in another terminal)
-//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design|agent] [url] [screenshot-dir]
+//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design|agent|profiles] [url] [screenshot-dir]
 //   DIST_DIR=dist node scripts/browser-check.mjs update   (edits dist/ to simulate a deploy: rebuild after)
 //   LESSONS=binary-search,heaps node scripts/browser-check.mjs lessons   (walk only those)
 //
@@ -830,6 +830,72 @@ if (mode === 'persist') {
   await load(url + '#/progress');
   check('best streak is remembered', (await text('.panel[aria-label="Streak"] p')) === 'Current: 0 days. Best: 2.', await text('.panel[aria-label="Streak"] p'));
   await shot('persist-day6-progress');
+}
+
+if (mode === 'profiles') {
+  // Two learners on one phone: separate progress, rename, the launch picker, and removing one.
+  await viewport(360, 740, true);
+  await media('reduce');
+  const stats = () => text('.hud-stats');
+  const type = async (selector, value) => {
+    await tapSel(selector);
+    await evaluate(`document.querySelector(${JSON.stringify(selector)}).value = ''`);
+    await send('Input.insertText', { text: value });
+  };
+  await load();
+  await load(url + '#/lesson/hello-request-response');
+  await tap('Go to step 2', 'label');
+  await takeQuiz();
+  await tap('The browser, by sending a request');
+  await load();
+  check('one learner: progress as before, no learner name in the top bar', (await stats()) === 'Level1XP20 / 30Streak1 dayCoins5' && !(await evaluate(`!!document.querySelector('.who')`)), await stats());
+
+  await load(url + '#/settings');
+  check('settings lists the one learner', (await text('.learner-name')) === 'Learner 1 (you, now)', await text('.learner-name'));
+  await tap('Rename Learner 1', 'label');
+  await type('.learner-row input', 'Asha');
+  await tap('Save');
+  check('rename saves', (await text('.learner-name')) === 'Asha (you, now)', await text('.learner-name'));
+  await type('.learner-add input', 'Ben');
+  await tap('Add learner');
+  check('add a learner', (await text('.learner-status')) === 'Added Ben. Tap Switch to start learning as them.', await text('.learner-status'));
+  await type('.learner-add input', ' ben ');
+  await tap('Add learner');
+  check('a duplicate name is refused with a reason', (await text('.learner-status')) === 'Another learner already has that name.', await text('.learner-status'));
+  await layoutChecks('settings with two learners (360px)');
+  await shot('profiles-settings');
+
+  await tap('Switch to Ben', 'label');
+  await sleep(1500);
+  check('switching opens the new learner with their own, empty progress', (await stats()) === 'Level1XP0 / 30Streak0 daysCoins0', await stats());
+  check('the top bar says who is learning (initial on phones, full name for screen readers)', (await text('.who-initial')) === 'B' && (await evaluate(`document.querySelector('.who').getAttribute('aria-label')`)) === 'Learning as Ben. Change in Settings.', await text('.who-initial'));
+  await layoutChecks('home as Ben (360px)');
+  await shot('profiles-home-ben');
+
+  // A new launch of the app asks who is learning.
+  await evaluate('sessionStorage.clear()');
+  await load();
+  check('a new launch asks "Who’s learning?"', (await text('.picker h2')) === 'Who’s learning?', await text('.picker h2'));
+  await layoutChecks('learner picker (360px)');
+  await shot('profiles-picker');
+  await tap('Asha');
+  await sleep(1500);
+  check('picking Asha shows her progress, untouched by Ben', (await stats()) === 'Level1XP20 / 30Streak1 dayCoins5' && (await text('.who strong')) === 'Asha', await stats());
+  await load();
+  check('a reload in the same launch does not ask again', !(await evaluate(`!!document.querySelector('.picker')`)));
+
+  await load(url + '#/settings');
+  await tap('Remove Ben', 'label');
+  check('removing asks first, with Keep as the safe choice', (await evaluate(`document.activeElement?.textContent`)) === 'Keep', await evaluate(`document.activeElement?.textContent`));
+  await tap('Remove Ben');
+  check('removed: one learner left', (await evaluate(`document.querySelectorAll('.learner-row').length`)) === 1 && (await text('.learner-status')) === 'Removed Ben.', await text('.learner-status'));
+  await evaluate('sessionStorage.clear()');
+  await load();
+  check('with one learner left, no picker, and her progress survives the reload', !(await evaluate(`!!document.querySelector('.picker')`)) && (await stats()) === 'Level1XP20 / 30Streak1 dayCoins5', await stats());
+  await viewport(1280, 800, false);
+  await media('no-preference', 'dark');
+  await load(url + '#/settings');
+  await shot('profiles-settings-desktop-dark');
 }
 
 if (mode === 'update') {

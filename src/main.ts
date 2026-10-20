@@ -2,14 +2,16 @@ import './styles.css';
 import { loadCatalog } from './lesson/catalog';
 import type { Lesson } from './lesson/schema';
 import { LessonValidationError } from './lesson/validate';
-import { requestPersistentStorage, type PersistState } from './progress/persist';
-import { ProgressStore, SAVE_KEY, browserStorage } from './progress/store';
+import { persistMessage, requestPersistentStorage, type PersistState } from './progress/persist';
+import { Profiles, profileKey } from './progress/profiles';
+import { ProgressStore, browserStorage } from './progress/store';
 import { Tracker } from './progress/tracker';
 import { registerServiceWorker } from './pwa/register';
 import { REWARDS } from './rewards/config';
 import { button, el } from './render/dom';
 import { icon, type IconName } from './render/icons';
 import { renderHome } from './render/home';
+import { renderLearners, renderPicker } from './render/learners';
 import { renderLesson, type LessonView } from './render/lesson';
 import { renderProgress, renderSettings } from './render/progress';
 import { celebrate, clearToast } from './render/toast';
@@ -30,7 +32,9 @@ function chip(label: string, value: string): HTMLElement {
 function start(root: HTMLElement, lessons: Lesson[]): void {
   const byId = new Map(lessons.map((l) => [l.id, l]));
   const ids = new Set(byId.keys());
-  const store = new ProgressStore(browserStorage());
+  const kv = browserStorage();
+  const profiles = new Profiles(kv);
+  const store = new ProgressStore(kv, undefined, profileKey(profiles.current.id, 'progress'));
   const tracker = new Tracker(store, Tracker.lessonInfo(lessons), REWARDS);
   let persistState: PersistState = 'unsupported';
 
@@ -82,12 +86,20 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
     }
     const p = tracker.progress();
     chips.replaceChildren(chip('Lv', String(p.level)), chip('Streak', `${p.streak}d`), chip('Coins', String(p.coins)));
+    // With more than one learner on the device, show whose progress this is.
+    if (profiles.all.length > 1) {
+      const who = el('a', { class: 'top-stat who', href: routeHash({ name: 'settings' }), 'aria-label': `Learning as ${profiles.current.name}. Change in Settings.` });
+      // Phones show only the initial, so the top bar still fits at 360 px.
+      const initial = [...profiles.current.name][0]!.toUpperCase();
+      who.append(el('span', { class: 'who-initial', 'aria-hidden': 'true' }, initial), el('small', {}, 'Learner'), el('strong', {}, profiles.current.name));
+      chips.prepend(who);
+    }
     if (route.name === 'progress') {
       document.title = 'Progress · Logic Quest';
       renderProgress(view, tracker, REWARDS);
     } else if (route.name === 'settings') {
       document.title = 'Settings · Logic Quest';
-      renderSettings(view, tracker, store, REWARDS, persistState);
+      renderSettings(view, tracker, store, REWARDS, persistState, () => renderLearners(profiles, switchTo));
     } else if (route.name === 'lesson') {
       const lesson = byId.get(route.id)!;
       document.title = `${lesson.title} · Logic Quest`;
@@ -144,12 +156,14 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
   // Ask the browser not to clear saved progress when space runs low.
   void requestPersistentStorage().then((state) => {
     persistState = state;
-    if (current.name === 'settings') show(current);
+    // Update just that line: redrawing Settings would throw away a rename or removal in progress.
+    const line = view.querySelector('.persist-state');
+    if (line) line.textContent = persistMessage(state);
   });
 
   // Progress saved in another tab: merge it, and refresh the home screen's numbers.
   window.addEventListener('storage', (e) => {
-    if (e.key !== SAVE_KEY) return;
+    if (e.key !== store.key) return;
     store.reload();
     if (current.name !== 'lesson') show(current);
   });
@@ -159,8 +173,43 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
   const first = parseRoute(location.hash, ids);
   history.replaceState(null, '', routeHash(HOME));
   if (first.name !== 'home') history.pushState(null, '', routeHash(first));
-  show(first);
+  if (needsPicker()) {
+    document.title = 'Who’s learning? · Logic Quest';
+    renderPicker(view, profiles, (id) => {
+      markPicked();
+      if (id === profiles.current.id) show(first);
+      else switchTo(id);
+    });
+  } else show(first);
+
+  // Switching reloads, so every screen starts from the new learner's save with nothing left over.
+  function switchTo(id: string): void {
+    profiles.select(id);
+    markPicked();
+    location.replace(routeHash(HOME));
+    location.reload();
+  }
+
+  // Ask once per app launch. Where session storage is blocked the picker is skipped (Settings
+  // still switches learners), since asking on every reload would loop.
+  function needsPicker(): boolean {
+    if (profiles.all.length < 2) return false;
+    try {
+      return sessionStorage.getItem(PICKED_KEY) === null;
+    } catch {
+      return false;
+    }
+  }
+  function markPicked(): void {
+    try {
+      sessionStorage.setItem(PICKED_KEY, '1');
+    } catch {
+      // See needsPicker.
+    }
+  }
 }
+
+const PICKED_KEY = 'logic-quest:picked';
 
 function showLoadError(root: HTMLElement, e: unknown): never {
   // Bad lesson data must fail loudly, on screen as well as in the console.
