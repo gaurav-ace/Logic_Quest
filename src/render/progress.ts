@@ -57,11 +57,11 @@ export function renderProgress(root: HTMLElement, tracker: Tracker, config: Rewa
   root.replaceChildren(el('h2', {}, 'Your progress'), layout);
 }
 
-export function renderSettings(root: HTMLElement, tracker: Tracker, store: ProgressStore, config: RewardsConfig, persist: PersistState): void {
-  const redraw = () => renderSettings(root, tracker, store, config, persist);
+export function renderSettings(root: HTMLElement, tracker: Tracker, store: ProgressStore, config: RewardsConfig, persist: PersistState, learners?: () => HTMLElement): void {
+  const redraw = () => renderSettings(root, tracker, store, config, persist, learners);
   const p = tracker.progress();
   const today = localDay(new Date());
-  root.replaceChildren(el('h2', {}, 'Settings'), settings(), backup());
+  root.replaceChildren(el('h2', {}, 'Settings'), settings(), ...(learners ? [learners()] : []), backup());
 
   function settings(): HTMLElement {
     const card = el('section', { class: 'card panel', 'aria-label': 'Settings' });

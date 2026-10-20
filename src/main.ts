@@ -1,15 +1,24 @@
 import './styles.css';
 import { loadCatalog } from './lesson/catalog';
-import type { Lesson } from './lesson/schema';
+import { TRACKS, type Lesson, type Track } from './lesson/schema';
 import { LessonValidationError } from './lesson/validate';
-import { requestPersistentStorage, type PersistState } from './progress/persist';
-import { ProgressStore, SAVE_KEY, browserStorage } from './progress/store';
+import { persistMessage, requestPersistentStorage, type PersistState } from './progress/persist';
+import { loadPractice, practiceTracks } from './practice/catalog';
+import { practiceKey, type PracticeItem } from './practice/schema';
+import { practiceStatus } from './practice/status';
+import { WorkshopStore } from './practice/workshop';
+import { Profiles, profileKey } from './progress/profiles';
+import { ProgressStore, browserStorage } from './progress/store';
 import { Tracker } from './progress/tracker';
 import { registerServiceWorker } from './pwa/register';
 import { REWARDS } from './rewards/config';
 import { button, el } from './render/dom';
 import { icon, type IconName } from './render/icons';
 import { renderHome } from './render/home';
+import { renderLearners, renderPicker } from './render/learners';
+import { renderPractice, type PracticeContext, type PracticeHooks } from './render/practice';
+import { practiceSection } from './render/practice-list';
+import { renderWorkshop } from './render/workshop';
 import { renderLesson, type LessonView } from './render/lesson';
 import { renderProgress, renderSettings } from './render/progress';
 import { celebrate, clearToast } from './render/toast';
@@ -30,7 +39,9 @@ function chip(label: string, value: string): HTMLElement {
 function start(root: HTMLElement, lessons: Lesson[]): void {
   const byId = new Map(lessons.map((l) => [l.id, l]));
   const ids = new Set(byId.keys());
-  const store = new ProgressStore(browserStorage());
+  const kv = browserStorage();
+  const profiles = new Profiles(kv);
+  const store = new ProgressStore(kv, undefined, profileKey(profiles.current.id, 'progress'));
   const tracker = new Tracker(store, Tracker.lessonInfo(lessons), REWARDS);
   let persistState: PersistState = 'unsupported';
 
@@ -66,6 +77,9 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
 
   let current: Route = HOME;
   let lessonView: LessonView | undefined;
+  const withPractice = new Set(practiceTracks(TRACKS));
+  // The track whose practice list was last used, so coming back reopens it.
+  let practiceOpen: Track | null = null;
   let leaving = false;
 
   function show(route: Route): void {
@@ -74,7 +88,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
     guard.hidden = true;
     clearToast();
     current = route;
-    backToList.hidden = route.name !== 'lesson';
+    backToList.hidden = route.name !== 'lesson' && route.name !== 'practice';
     document.body.dataset.route = route.name;
     for (const { route: r, a } of navLinks) {
       if (r.name === route.name) a.setAttribute('aria-current', 'page');
@@ -82,12 +96,20 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
     }
     const p = tracker.progress();
     chips.replaceChildren(chip('Lv', String(p.level)), chip('Streak', `${p.streak}d`), chip('Coins', String(p.coins)));
+    // With more than one learner on the device, show whose progress this is.
+    if (profiles.all.length > 1) {
+      const who = el('a', { class: 'top-stat who', href: routeHash({ name: 'settings' }), 'aria-label': `Learning as ${profiles.current.name}. Change in Settings.` });
+      // Phones show only the initial, so the top bar still fits at 360 px.
+      const initial = [...profiles.current.name][0]!.toUpperCase();
+      who.append(el('span', { class: 'who-initial', 'aria-hidden': 'true' }, initial), el('small', {}, 'Learner'), el('strong', {}, profiles.current.name));
+      chips.prepend(who);
+    }
     if (route.name === 'progress') {
       document.title = 'Progress · Logic Quest';
       renderProgress(view, tracker, REWARDS);
     } else if (route.name === 'settings') {
       document.title = 'Settings · Logic Quest';
-      renderSettings(view, tracker, store, REWARDS, persistState);
+      renderSettings(view, tracker, store, REWARDS, persistState, () => renderLearners(profiles, switchTo));
     } else if (route.name === 'lesson') {
       const lesson = byId.get(route.id)!;
       document.title = `${lesson.title} · Logic Quest`;
@@ -96,15 +118,59 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
         complete: () => tracker.complete(lesson.id),
         celebrate: (f) => celebrate(f, store.settings.calm),
       });
+    } else if (route.name === 'practice') {
+      showPractice(route.track, route.id);
     } else {
       document.title = 'Logic Quest';
       renderHome(view, lessons, tracker.progress(), REWARDS.coins.bufferCost, (id) => {
         location.hash = routeHash({ name: 'lesson', id });
+      }, (track) => {
+        if (!withPractice.has(track)) return null;
+        const load = () => loadPractice(track, ids).then((items) => ({ items, status: practiceStatus(items, store.events) }));
+        return practiceSection(load, (item) => {
+          practiceOpen = track;
+          location.hash = routeHash({ name: 'practice', track, id: item.id });
+        }, practiceOpen === track);
       });
       if (store.notice) view.prepend(el('p', { class: 'card notice', role: 'status' }, store.notice));
     }
     window.scrollTo(0, 0);
     view.focus({ preventScroll: true });
+  }
+
+  function showPractice(track: Track, id: string): void {
+    view.replaceChildren(el('p', { class: 'muted' }, 'Loading…'));
+    loadPractice(track, ids).then(
+      (items) => {
+        if (current.name !== 'practice' || current.id !== id) return; // moved on while loading
+        const item = items.find((i) => i.id === id);
+        if (!item) {
+          view.replaceChildren(el('h2', {}, 'Not found'), el('p', {}, 'That practice problem doesn’t exist (any more).'), button('Back to lessons', () => history.back(), { class: 'primary' }));
+          return;
+        }
+        document.title = `${item.title} · Logic Quest`;
+        lessonView = renderPracticeItem(item);
+      },
+      (e: unknown) => view.replaceChildren(el('p', { class: 'card bad' }, `Practice couldn't load: ${e instanceof Error ? e.message : String(e)}`)),
+    );
+  }
+
+  function renderPracticeItem(item: PracticeItem): LessonView {
+    const hooks: PracticeHooks = {
+      answer: (check, option, correct) => {
+        const f = tracker.answer(practiceKey(item.id), check, option, correct);
+        // Practice doesn't count towards the daily goal, so the lesson wording would mislead.
+        return f.outcome === 'already-scored' ? { ...f, text: 'Already scored.' } : f;
+      },
+      celebrate: (f) => celebrate(f, store.settings.calm),
+    };
+    const related = item.related ? byId.get(item.related) : undefined;
+    const ctx: PracticeContext = {
+      back: () => history.back(),
+      ...(related ? { related: { title: related.title, open: () => (location.hash = routeHash({ name: 'lesson', id: related.id })) } } : {}),
+    };
+    if (item.kind === 'guided') return renderWorkshop(view, item, hooks, ctx, { store: new WorkshopStore(kv, profileKey(profiles.current.id, 'workshop')) });
+    return renderPractice(view, item, hooks, ctx);
   }
 
   // The Android back button (and "← Lessons") pops history. Leaving mid-quiz asks first
@@ -144,12 +210,14 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
   // Ask the browser not to clear saved progress when space runs low.
   void requestPersistentStorage().then((state) => {
     persistState = state;
-    if (current.name === 'settings') show(current);
+    // Update just that line: redrawing Settings would throw away a rename or removal in progress.
+    const line = view.querySelector('.persist-state');
+    if (line) line.textContent = persistMessage(state);
   });
 
   // Progress saved in another tab: merge it, and refresh the home screen's numbers.
   window.addEventListener('storage', (e) => {
-    if (e.key !== SAVE_KEY) return;
+    if (e.key !== store.key) return;
     store.reload();
     if (current.name !== 'lesson') show(current);
   });
@@ -159,8 +227,43 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
   const first = parseRoute(location.hash, ids);
   history.replaceState(null, '', routeHash(HOME));
   if (first.name !== 'home') history.pushState(null, '', routeHash(first));
-  show(first);
+  if (needsPicker()) {
+    document.title = 'Who’s learning? · Logic Quest';
+    renderPicker(view, profiles, (id) => {
+      markPicked();
+      if (id === profiles.current.id) show(first);
+      else switchTo(id);
+    });
+  } else show(first);
+
+  // Switching reloads, so every screen starts from the new learner's save with nothing left over.
+  function switchTo(id: string): void {
+    profiles.select(id);
+    markPicked();
+    location.replace(routeHash(HOME));
+    location.reload();
+  }
+
+  // Ask once per app launch. Where session storage is blocked the picker is skipped (Settings
+  // still switches learners), since asking on every reload would loop.
+  function needsPicker(): boolean {
+    if (profiles.all.length < 2) return false;
+    try {
+      return sessionStorage.getItem(PICKED_KEY) === null;
+    } catch {
+      return false;
+    }
+  }
+  function markPicked(): void {
+    try {
+      sessionStorage.setItem(PICKED_KEY, '1');
+    } catch {
+      // See needsPicker.
+    }
+  }
 }
+
+const PICKED_KEY = 'logic-quest:picked';
 
 function showLoadError(root: HTMLElement, e: unknown): never {
   // Bad lesson data must fail loudly, on screen as well as in the console.

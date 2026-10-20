@@ -2,7 +2,7 @@
 // No dependencies: talks to Chrome over the DevTools protocol with Node's built-in WebSocket.
 //
 //   npm run build && npm run preview          (in another terminal)
-//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design|agent] [url] [screenshot-dir]
+//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design|agent|profiles|practice|practice-walk|workshop] [url] [screenshot-dir]
 //   DIST_DIR=dist node scripts/browser-check.mjs update   (edits dist/ to simulate a deploy: rebuild after)
 //   LESSONS=binary-search,heaps node scripts/browser-check.mjs lessons   (walk only those)
 //
@@ -830,6 +830,313 @@ if (mode === 'persist') {
   await load(url + '#/progress');
   check('best streak is remembered', (await text('.panel[aria-label="Streak"] p')) === 'Current: 0 days. Best: 2.', await text('.panel[aria-label="Streak"] p'));
   await shot('persist-day6-progress');
+}
+
+if (mode === 'profiles') {
+  // Two learners on one phone: separate progress, rename, the launch picker, and removing one.
+  await viewport(360, 740, true);
+  await media('reduce');
+  const stats = () => text('.hud-stats');
+  const type = async (selector, value) => {
+    await tapSel(selector);
+    await evaluate(`document.querySelector(${JSON.stringify(selector)}).value = ''`);
+    await send('Input.insertText', { text: value });
+  };
+  await load();
+  await load(url + '#/lesson/hello-request-response');
+  await tap('Go to step 2', 'label');
+  await takeQuiz();
+  await tap('The browser, by sending a request');
+  await load();
+  check('one learner: progress as before, no learner name in the top bar', (await stats()) === 'Level1XP20 / 30Streak1 dayCoins5' && !(await evaluate(`!!document.querySelector('.who')`)), await stats());
+
+  await load(url + '#/settings');
+  check('settings lists the one learner', (await text('.learner-name')) === 'Learner 1 (you, now)', await text('.learner-name'));
+  await tap('Rename Learner 1', 'label');
+  await type('.learner-row input', 'Asha');
+  await tap('Save');
+  check('rename saves', (await text('.learner-name')) === 'Asha (you, now)', await text('.learner-name'));
+  await type('.learner-add input', 'Ben');
+  await tap('Add learner');
+  check('add a learner', (await text('.learner-status')) === 'Added Ben. Tap Switch to start learning as them.', await text('.learner-status'));
+  await type('.learner-add input', ' ben ');
+  await tap('Add learner');
+  check('a duplicate name is refused with a reason', (await text('.learner-status')) === 'Another learner already has that name.', await text('.learner-status'));
+  await layoutChecks('settings with two learners (360px)');
+  await shot('profiles-settings');
+
+  await tap('Switch to Ben', 'label');
+  await sleep(1500);
+  check('switching opens the new learner with their own, empty progress', (await stats()) === 'Level1XP0 / 30Streak0 daysCoins0', await stats());
+  check('the top bar says who is learning (initial on phones, full name for screen readers)', (await text('.who-initial')) === 'B' && (await evaluate(`document.querySelector('.who').getAttribute('aria-label')`)) === 'Learning as Ben. Change in Settings.', await text('.who-initial'));
+  await layoutChecks('home as Ben (360px)');
+  await shot('profiles-home-ben');
+
+  // A new launch of the app asks who is learning.
+  await evaluate('sessionStorage.clear()');
+  await load();
+  check('a new launch asks "Who’s learning?"', (await text('.picker h2')) === 'Who’s learning?', await text('.picker h2'));
+  await layoutChecks('learner picker (360px)');
+  await shot('profiles-picker');
+  await tap('Asha');
+  await sleep(1500);
+  check('picking Asha shows her progress, untouched by Ben', (await stats()) === 'Level1XP20 / 30Streak1 dayCoins5' && (await text('.who strong')) === 'Asha', await stats());
+  await load();
+  check('a reload in the same launch does not ask again', !(await evaluate(`!!document.querySelector('.picker')`)));
+
+  await load(url + '#/settings');
+  await tap('Remove Ben', 'label');
+  check('removing asks first, with Keep as the safe choice', (await evaluate(`document.activeElement?.textContent`)) === 'Keep', await evaluate(`document.activeElement?.textContent`));
+  await tap('Remove Ben');
+  check('removed: one learner left', (await evaluate(`document.querySelectorAll('.learner-row').length`)) === 1 && (await text('.learner-status')) === 'Removed Ben.', await text('.learner-status'));
+  await evaluate('sessionStorage.clear()');
+  await load();
+  check('with one learner left, no picker, and her progress survives the reload', !(await evaluate(`!!document.querySelector('.picker')`)) && (await stats()) === 'Level1XP20 / 30Streak1 dayCoins5', await stats());
+  await viewport(1280, 800, false);
+  await media('no-preference', 'dark');
+  await load(url + '#/settings');
+  await shot('profiles-settings-desktop-dark');
+}
+
+if (mode === 'practice') {
+  // Practice under a track: the drop-down, filters, the hard lock, a quiz item and a debug item by
+  // touch, XP that only counts once, the leave check, and statuses after a reload.
+  await viewport(360, 740, true);
+  await media('reduce');
+  // A plain tap on the n-th match (no folding logic: used for <summary> elements themselves).
+  const tapOnly = async (selector, n = 0) => {
+    const box = await evaluate(`(() => { const b = document.querySelectorAll(${JSON.stringify(selector)})[${n}]; if (!b) return null; b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+    if (!box) throw new Error(`nothing to tap: ${selector} #${n}`);
+    await sleep(150);
+    await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x, y: box.y }] });
+    await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await sleep(300);
+  };
+  const openLogicPractice = async () => {
+    if (!(await evaluate(`document.querySelector('.track[data-track="logic"]').open`))) await tapOnly('.track[data-track="logic"] > summary');
+    if (!(await evaluate(`document.querySelector('.track[data-track="logic"] .practice').open`))) await tapOnly('.track[data-track="logic"] .practice > summary');
+    await sleep(800);
+  };
+  const cards = () => evaluate(`[...document.querySelectorAll('.track[data-track="logic"] .practice-card')].map((c) => c.dataset.id + (c.classList.contains('locked') ? ':locked' : '') + (c.classList.contains('done') ? ':done' : ''))`);
+  await load();
+  await openLogicPractice();
+  const first = await cards();
+  check('the logic track has a practice drop-down with 6 problems, hard ones locked', first.length === 6 && first.filter((c) => c.endsWith(':locked')).length === 2, JSON.stringify(first));
+  check('it says how many are done', (await text('.track[data-track="logic"] .practice-count')) === '0 of 6 done', await text('.track[data-track="logic"] .practice-count'));
+  await layoutChecks('practice list (360px)');
+  await shot('practice-list');
+  await evaluate(`(() => { const s = document.querySelectorAll('.track[data-track="logic"] .practice-filter')[1]; s.value = 'debug'; s.dispatchEvent(new Event('change')); })()`);
+  check('filtering by type shows only debug problems', (await cards()).length === 3 && (await text('.track[data-track="logic"] .practice-count')) === '0 of 6 done · showing 3', await text('.track[data-track="logic"] .practice-count'));
+  await evaluate(`(() => { const s = document.querySelectorAll('.track[data-track="logic"] .practice-filter')[1]; s.value = 'all'; s.dispatchEvent(new Event('change')); })()`);
+  await tapSel('.practice-card[data-id="merge-meetings"]');
+  check('a locked hard problem explains itself', (await evaluate(`document.querySelector('.practice-card[data-id="merge-meetings"] .lesson-lock').textContent`)) === 'Finish the medium problems in this track first.');
+
+  await tapSel('.practice-card[data-id="python-arithmetic-corners"]');
+  await sleep(600);
+  check('a quiz problem opens with its goal and level', (await text('h2')) === 'Arithmetic that surprises' && (await text('.practice-meta')) === 'Medium · Corner cases', await text('.practice-meta'));
+  await tap('-3');
+  check('a wrong answer explains itself and costs nothing', /rounds down/.test(await text('.practice-check .feedback')) && (await text('.practice-check .reward')) === 'Not quite. Try another option.');
+  await tap('-4');
+  check('then the right one earns retry XP', (await text('.practice-check .reward')) === '+5 XP, after a retry', await text('.practice-check .reward'));
+  await layoutChecks('practice quiz (360px)');
+  for (const answer of ['1', '2', '2.67']) {
+    await tap('Next question');
+    await tap(answer);
+  }
+  check('finishing shows Done', (await text('.practice-done h3')) === 'Done ✓');
+  await shot('practice-quiz-done');
+  await tap('Back to practice');
+  await sleep(800);
+  check('Back returns to the list, still open, with the problem marked done', (await cards()).includes('python-arithmetic-corners:done') && (await text('.track[data-track="logic"] .practice-count')) === '1 of 6 done', JSON.stringify(await cards()));
+
+  await tapSel('.practice-card[data-id="fence-posts-debug"]');
+  await sleep(600);
+  await tapSel('.code-line', 0);
+  check('debug: a wrong line gets a hint', /trace it line by line/.test(await text('.debug-lines .feedback')));
+  await tapSel('.code-line', 2);
+  check('debug: the right line explains why', /one more post than gaps/.test(await text('.debug-lines .feedback')), await text('.debug-lines .feedback'));
+  await tap('5');
+  check('debug: the predicted output is shown as the app computed it', (await evaluate(`[...document.querySelectorAll('.run-rows p')].map((p) => p.textContent).join(' | ')`)) === 'Buggy code gives: 5', await evaluate(`[...document.querySelectorAll('.run-rows p')].map((p) => p.textContent).join(' | ')`));
+  await tap('return length // gap + 1');
+  const runText = () => evaluate(`[...document.querySelectorAll('.run-panel')].at(-1).textContent`);
+  check('debug: after the fix, both versions are run', /Buggy code gives: 5Fixed code gives: 6Different/.test(await runText()), await runText());
+  const before = await runText();
+  await tap('Try another input');
+  check('debug: "Try another input" runs both versions on a new input', (await runText()) !== before && /Fixed code gives: \d+/.test(await runText()), await runText());
+  await layoutChecks('debug problem (360px)');
+  await shot('practice-debug-done');
+  await tap('Back to practice');
+  await sleep(600);
+
+  await tapSel('.practice-card[data-id="last-item-never-checked"]');
+  await sleep(600);
+  await tapSel('.code-line', 0);
+  await browserBack();
+  check('leaving a started problem asks first', (await evaluate(`!document.querySelector('.guard').hidden`)) && (await text('h2')) === 'The last item is never checked');
+  await tap('Stay');
+  await load();
+  // Quiz 5 + 10 + 10 + 10, debug 5 + 10 + 10. Practice adds XP but isn't a finished lesson.
+  check('practice XP counts once, towards the level, but not towards the daily goal', (await text('.hud-stats')) === 'Level2XP60 / 80Streak0 daysCoins0', await text('.hud-stats'));
+  await openLogicPractice();
+  check('after a reload, the done problems are still done', (await text('.track[data-track="logic"] .practice-count')) === '2 of 6 done', await text('.track[data-track="logic"] .practice-count'));
+  await tapSel('.practice-card[data-id="python-arithmetic-corners"]');
+  await sleep(600);
+  await tap('-4');
+  check('replaying earns nothing new', (await text('.practice-check .reward')) === 'Already scored.', await text('.practice-check .reward'));
+  await viewport(1280, 800, false);
+  await media('no-preference', 'dark');
+  await load(url + '#/practice/logic/remove-while-looping');
+  await sleep(800);
+  await shot('practice-debug-desktop-dark');
+  await layoutChecks('debug problem (desktop)');
+}
+
+if (mode === 'practice-walk') {
+  // Every practice item in every track, solved by touch at 360 px with the right answers read
+  // from the data files, then a layout check of the finished page (all its steps stay on screen).
+  await viewport(360, 740, true);
+  await media('reduce');
+  const practiceDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'practice');
+  // Tap by exact text inside the last element matching `scope`, so an earlier step's option with
+  // the same words can never be hit instead.
+  const tapIn = async (scope, name) => {
+    const box = await evaluate(`(() => {
+      const s = [...document.querySelectorAll(${JSON.stringify(scope)})].at(-1);
+      const b = s && [...s.querySelectorAll('button')].find((b) => b.offsetParent && !b.disabled && b.textContent.trim() === ${JSON.stringify(name)});
+      if (!b) return null;
+      b.scrollIntoView({ block: 'center' });
+      const r = b.getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    })()`);
+    if (!box) throw new Error(`nothing to tap in ${scope}: "${name}"`);
+    await sleep(120);
+    await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x, y: box.y }] });
+    await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await sleep(200);
+  };
+  const right = (q) => q.options[q.answer].text;
+  for (const file of readdirSync(practiceDir).filter((f) => f.endsWith('.json')).sort()) {
+    const track = file.replace(/\.json$/, '');
+    for (const item of JSON.parse(readFileSync(join(practiceDir, file), 'utf8'))) {
+      const name = `${track}/${item.id}`;
+      try {
+        await load(`${url}#/practice/${track}/${item.id}`);
+        await sleep(600);
+        if (item.kind === 'quiz') {
+          for (const [k, q] of item.questions.entries()) {
+            await tapIn('.practice-check', right(q));
+            if (k < item.questions.length - 1) await tap('Next question');
+          }
+        } else if (item.kind === 'debug') {
+          await tapSel('.code-line', item.bugLine);
+          await tapIn('main', right(item.predict));
+          if (item.program) {
+            const rows = await evaluate(`[...document.querySelectorAll('.run-rows p')].map((p) => p.textContent).join(' | ')`);
+            check(`${name}: the buggy run shown matches the predicted answer`, rows === `Buggy code gives: ${right(item.predict)}`, rows);
+          }
+          await tapIn('main', right(item.fix));
+        } else {
+          for (const [k, step] of item.steps.entries()) {
+            const c = step.check;
+            if (c?.type === 'choice') await tapIn('.workshop-step', right(c));
+            else if (c?.type === 'order') {
+              for (const part of c.parts) await tapIn('.workshop-step', part);
+              await tapIn('.workshop-step', 'Check the order');
+            } else if (c?.type === 'select') {
+              for (const kase of c.cases.filter((x) => x.pick)) await tapIn('.workshop-step', kase.text);
+              await tapIn('.workshop-step', 'Check');
+            }
+            if (k < item.steps.length - 1) await tapIn('.workshop-step', 'Next step');
+            else await tapIn('.workshop-step', 'Show the expert’s version');
+          }
+        }
+        check(`${name}: solved by touch, ends with Done`, (await text('.practice-done h3')) === 'Done ✓', await text('.practice-done h3'));
+      } catch (e) {
+        check(`${name}: solved by touch, ends with Done`, false, e.message);
+      }
+      await layoutChecks(`${name} (360px)`);
+      await shot(`walk-${track}-${item.id}`);
+    }
+  }
+}
+
+if (mode === 'workshop') {
+  // One guided problem end to end by touch: notes, hints, the outline editor, the order and
+  // select checks, resuming after a reload, XP, and the two-column layout on desktop.
+  await viewport(360, 740, true);
+  await media('reduce');
+  const typeInto = async (selector, value, n = 0) => {
+    await tapSel(selector, n);
+    await send('Input.insertText', { text: value });
+    await sleep(150);
+  };
+  const lastStep = () => evaluate(`[...document.querySelectorAll('.workshop-step')].at(-1)?.dataset.stage`);
+  await load(url + '#/practice/logic/second-largest');
+  await sleep(800);
+  check('a guided problem opens with the problem and step 1', /^Given a list of numbers, return the second largest distinct value/.test(await text('.problem p')) && (await lastStep()) === 'understand', await text('.problem p'));
+  await typeInto('.workshop-step textarea', 'In: numbers. Out: biggest value below the max.');
+  check('notes collect in "My workspace"', (await text('.workspace .ws-row p')) === 'In: numbers. Out: biggest value below the max.', await text('.workspace .ws-row p'));
+  await tap('Show a hint (1 of 2)');
+  check('hints come one at a time', (await evaluate(`document.querySelectorAll('.hint-list li').length`)) === 1 && !!(await evaluate(`[...document.querySelectorAll('button')].find((b) => b.textContent === 'Another hint (2 of 2)')`)));
+  await tap('Return the second item of the list');
+  await tap('The largest value that is smaller than the maximum; None if there is none');
+  check('after the right answer, the expert’s version appears', /^An expert’s version: In: a list of numbers/.test(await evaluate(`document.querySelector('.expert').textContent`)));
+  await layoutChecks('workshop step 1 (360px)');
+  await tap('Next step');
+  await tap('3: the smaller of the two');
+  await tap('Next step');
+  check('step 3 is the breakdown, with an outline editor', (await lastStep()) === 'breakdown' && !!(await evaluate(`document.querySelector('.outline-add input')`)));
+  await typeInto('.outline-add input', 'Loop over the list');
+  await tap('Add');
+  await typeInto('.outline-add input', 'Update best and second');
+  await tap('Add');
+  await tap('Indent “Update best and second”', 'label');
+  await typeInto('.outline-add input', 'Remember best and second');
+  await tap('Add');
+  await tap('Move “Remember best and second” up', 'label');
+  await tap('Outdent “Remember best and second”', 'label');
+  const outline = () => evaluate(`[...document.querySelectorAll('.workshop-step .outline-row')].map((r) => r.style.getPropertyValue('--depth').trim() + ':' + r.querySelector('.outline-text').textContent).join(' | ')`);
+  check('the outline can be built, indented, moved and outdented by tap', (await outline()) === '0:Loop over the list | 0:Remember best and second | 1:Update best and second', await outline());
+  check('the workspace shows the outline', (await evaluate(`[...document.querySelectorAll('.workspace .outline li')].map((l) => l.textContent).join(' | ')`)) === 'Loop over the list | Remember best and second | Update best and second');
+  await layoutChecks('workshop outline (360px)');
+  await shot('workshop-outline');
+  // Tap the parts in the (deliberately shuffled) order they're shown: never the right order.
+  const poolCount = await evaluate(`document.querySelectorAll('.order-pool button').length`);
+  for (let k = 0; k < poolCount; k++) await tapSel('.order-pool button', 0);
+  await tap('Check the order');
+  check('a wrong order gets a hint, not a penalty', /what must already exist/.test(await text('.order-check .feedback')));
+  for (let k = 0; k < poolCount; k++) await tap('Undo');
+  for (const part of ['Decide what to remember: the best and the second best so far', 'Start both as None (nothing seen yet)', 'For each number, update the best and the second best', 'Return the second best (None if it was never set)']) await tap(part);
+  await tap('Check the order');
+  check('the right order passes and explains why', /That fixes the order/.test(await text('.order-check .feedback')) && (await text('.order-check .reward')) === '+5 XP, after a retry', await text('.order-check .reward'));
+  await tap('Next step');
+  await load(url + '#/practice/logic/second-largest');
+  await sleep(800);
+  check('after a reload it resumes at step 4, with notes and outline kept', (await lastStep()) === 'logic' && (await evaluate(`document.querySelectorAll('.workshop-step.done').length`)) === 3 && (await evaluate(`document.querySelector('.workshop-step textarea').value`)) === 'In: numbers. Out: biggest value below the max.' && (await outline()) === '0:Loop over the list | 0:Remember best and second | 1:Update best and second');
+  await tap('Nothing: 9 equals the best, and the second best must be smaller than the best');
+  await tap('Next step');
+  await tap('[]');
+  await tap('Check');
+  check('select: a partial pick says how many are missing', /3 to add/.test(await text('.select-check .feedback')), await text('.select-check .feedback'));
+  for (const c of ['[7]', '[5, 5]', '[4, 9, 7, 9]']) await tap(c);
+  await tap('Check');
+  check('select: the right picks pass, and every case is explained', (await evaluate(`document.querySelectorAll('.case-why li').length`)) === 6);
+  await layoutChecks('workshop edge cases (360px)');
+  await tap('Next step');
+  await tap('Show the expert’s version');
+  check('the last step ends with Done', (await text('.practice-done h3')) === 'Done ✓');
+  await shot('workshop-done');
+  await load();
+  // Retry 5 + 10 + retry 5 + 10 + retry 5.
+  check('XP from the graded checks only', (await text('.hud-stats')) === 'Level2XP35 / 80Streak0 daysCoins0', await text('.hud-stats'));
+  await viewport(1280, 800, false);
+  await media('no-preference', 'dark');
+  await load(url + '#/practice/logic/second-largest');
+  await sleep(800);
+  const cols = await evaluate(`(() => { const s = document.querySelector('.workshop-steps').getBoundingClientRect(); const w = document.querySelector('.workspace').getBoundingClientRect(); return w.left > s.right - 1 && Math.abs(w.top - s.top) < 2; })()`);
+  check('desktop: "My workspace" sits beside the steps', cols);
+  await layoutChecks('workshop (desktop)');
+  await shot('workshop-desktop-dark');
 }
 
 if (mode === 'update') {

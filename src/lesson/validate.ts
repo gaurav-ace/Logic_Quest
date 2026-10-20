@@ -110,7 +110,7 @@ export function validateLesson(data: unknown): Lesson {
   }
 }
 
-type Bad = (path: string, msg: string) => void;
+export type Bad = (path: string, msg: string) => void;
 
 const hostOf = (url: string) => {
   try {
@@ -447,7 +447,7 @@ function checkStep(s: unknown, p: string, bad: Bad, nodeIds: Set<string>, edgeKe
   });
 }
 
-function checkQuestion(q: unknown, p: string, bad: Bad): void {
+export function checkQuestion(q: unknown, p: string, bad: Bad): void {
   if (!isObj(q)) return void bad(p, 'must be an object');
   const question = q as Partial<QuizQuestion>;
   if (!isText(question.prompt)) bad(`${p}.prompt`, 'must be non-empty text');

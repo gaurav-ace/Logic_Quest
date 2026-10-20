@@ -1,0 +1,752 @@
+[
+  {
+    "id": "http-and-caching-corners",
+    "title": "Retries, limits and shared caches",
+    "track": "hld",
+    "level": "medium",
+    "kind": "quiz",
+    "objective": "Know what the HTTP rules and a load balancer actually promise when requests are retried, refused or cached.",
+    "sources": [
+      {
+        "title": "IETF RFC 9110, HTTP Semantics, section 9.2.2: Idempotent Methods",
+        "url": "https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2"
+      },
+      {
+        "title": "IETF RFC 6585: HTTP status code 429 Too Many Requests",
+        "url": "https://www.rfc-editor.org/rfc/rfc6585"
+      },
+      {
+        "title": "NGINX docs: Using nginx as HTTP load balancer (passive health checks, max_fails, fail_timeout)",
+        "url": "https://nginx.org/en/docs/http/load_balancing.html"
+      },
+      {
+        "title": "MDN: Cache-Control (private, s-maxage)",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control"
+      }
+    ],
+    "related": "idempotency",
+    "intro": "Four situations from real services. Each answer comes from the standard or the official docs, not from habit.",
+    "questions": [
+      {
+        "prompt": "A connection drops before the reply arrives. By the HTTP standard's definition, which requests are idempotent, so repeating one has the same intended effect as sending it once?",
+        "options": [
+          {
+            "text": "POST and PUT",
+            "explanation": "PUT is idempotent, but POST isn't: sending a POST twice can create two orders."
+          },
+          {
+            "text": "Only GET",
+            "explanation": "GET is idempotent (it's a safe method), but so are PUT and DELETE."
+          },
+          {
+            "text": "PUT, DELETE and safe methods such as GET",
+            "explanation": "Right. RFC 9110 names exactly these. POST isn't on the list, which is why payment APIs add idempotency keys."
+          },
+          {
+            "text": "All of them, as long as the server is written carefully",
+            "explanation": "A careful server can make a POST safe to repeat (with an idempotency key), but the standard doesn't promise it."
+          }
+        ],
+        "answer": 2
+      },
+      {
+        "prompt": "Your client gets 429 Too Many Requests. What should it do?",
+        "options": [
+          {
+            "text": "Retry at once, in a loop, until it works",
+            "explanation": "That sends even more requests to a server that just asked for fewer."
+          },
+          {
+            "text": "Wait before trying again, for as long as the Retry-After header says if there is one",
+            "explanation": "Right. 429 means too many requests in a given time. RFC 6585 says the reply MAY include Retry-After, telling the client how long to wait."
+          },
+          {
+            "text": "Treat it as a permanent failure and give up",
+            "explanation": "429 is about rate, not about the request being wrong. Waiting and retrying later is expected."
+          },
+          {
+            "text": "Send the same request to a different URL",
+            "explanation": "The limit is usually per client or per key, not per URL, and dodging it doesn't fix the cause."
+          }
+        ],
+        "answer": 1
+      },
+      {
+        "prompt": "nginx balances across three servers with its built-in (passive) health checks. One server dies. How does nginx find out?",
+        "options": [
+          {
+            "text": "It sends a test request to every server each second",
+            "explanation": "That's an active health check. The nginx docs list it as part of the paid NGINX Plus; the built-in checks are passive."
+          },
+          {
+            "text": "The dying server tells nginx before it stops",
+            "explanation": "A crashed server can't say anything. nginx learns from the requests it sends."
+          },
+          {
+            "text": "It doesn't: requests keep going to the dead server until someone edits the config",
+            "explanation": "The built-in checks do catch it, from the failing requests themselves."
+          },
+          {
+            "text": "A real request to it fails, and nginx avoids that server for a while (fail_timeout), then tries it again",
+            "explanation": "Right. These checks are “in-band”: by default one failed attempt (max_fails = 1) marks the server failed. That first request still fails, so retries matter."
+          }
+        ],
+        "answer": 3
+      },
+      {
+        "prompt": "The “My account” page shows the user's name and address. A CDN sits in front of it. Which header should the page send?",
+        "options": [
+          {
+            "text": "Cache-Control: private",
+            "explanation": "Right. private means only the user's own browser may store it, never a shared cache like a CDN. MDN warns that without it, one user's personal page can be served to others."
+          },
+          {
+            "text": "Cache-Control: public",
+            "explanation": "public lets shared caches store it, so one user's details could be served to the next visitor."
+          },
+          {
+            "text": "Cache-Control: s-maxage=600",
+            "explanation": "s-maxage is for shared caches: it would tell the CDN to keep the page for 10 minutes, the opposite of what you want."
+          },
+          {
+            "text": "Nothing: a CDN can tell personal pages apart by itself",
+            "explanation": "It can't read your intent. MDN says a personalised response without private can be stored in a shared cache and reused for other users."
+          }
+        ],
+        "answer": 0
+      }
+    ]
+  },
+  {
+    "id": "cache-never-invalidated",
+    "title": "The price that won't change",
+    "track": "hld",
+    "level": "medium",
+    "kind": "debug",
+    "objective": "Find why a cache keeps serving old data after an update, and fix it the way the cache-aside pattern says.",
+    "sources": [
+      {
+        "title": "Microsoft Azure Architecture Center: Cache-Aside pattern (update the data store, then invalidate the cached item)",
+        "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside"
+      }
+    ],
+    "related": "cache",
+    "simplifies": "Dicts stand in for the database and the cache, in one program with one user. With many servers and users there are more ways to go stale; Azure's page explains why the order (database first, then remove the cached copy) matters there.",
+    "language": "python",
+    "code": [
+      "def update_price(item, price):",
+      "    db[item] = price",
+      "",
+      "def get_price(item):",
+      "    if item not in cache:",
+      "        cache[item] = db[item]",
+      "    return cache[item]"
+    ],
+    "symptom": "The shop raised the price of tea from 10 to 12. The database says 12, but customers who had already looked at tea still see 10, hours later.",
+    "bugLine": 1,
+    "lineWhy": "update_price changes the database and stops there. The copy of the old price stays in the cache, and get_price trusts the cache first, so it never looks at the new value.",
+    "program": "cache-no-invalidation",
+    "input": {
+      "db": {
+        "tea": 10
+      },
+      "ops": [
+        [
+          "get",
+          "tea"
+        ],
+        [
+          "set",
+          "tea",
+          12
+        ],
+        [
+          "get",
+          "tea"
+        ]
+      ]
+    },
+    "predict": {
+      "prompt": "db = {'tea': 10}. Call get_price('tea'), then update_price('tea', 12), then get_price('tea'). What do the two get_price calls return, as a list?",
+      "options": [
+        {
+          "text": "[10, 12]",
+          "explanation": "That's what should happen. But the first call put 10 in the cache, and nothing removed it."
+        },
+        {
+          "text": "[12, 12]",
+          "explanation": "The first call runs before the update, when the database still says 10."
+        },
+        {
+          "text": "[10, 10]",
+          "explanation": "Right. The first call caches 10. The update only changes db, so the second call finds 'tea' in the cache and returns the old 10."
+        },
+        {
+          "text": "A KeyError on the second call",
+          "explanation": "'tea' is in both the cache and the database, so nothing is missing."
+        }
+      ],
+      "answer": 2
+    },
+    "fix": {
+      "prompt": "Which fix is right?",
+      "options": [
+        {
+          "text": "Give every cached price an expiry of one hour",
+          "explanation": "Better than never, but customers can still see the old price for up to an hour."
+        },
+        {
+          "text": "After db[item] = price, add cache.pop(item, None)",
+          "explanation": "Right. Update the database, then remove the cached copy, as the cache-aside pattern says. The next get_price misses and loads 12."
+        },
+        {
+          "text": "In get_price, read the cache twice to be sure",
+          "explanation": "Both reads return the same old 10. The cache was never told about the change."
+        },
+        {
+          "text": "Write the price to the database twice",
+          "explanation": "The database already has 12. The stale copy is in the cache."
+        }
+      ],
+      "answer": 1
+    }
+  },
+  {
+    "id": "read-your-own-write",
+    "title": "My new name disappeared",
+    "track": "hld",
+    "level": "medium",
+    "kind": "debug",
+    "objective": "Recognise replication lag behind a “my change vanished” bug, and route the user's own reads so they always see their writes.",
+    "sources": [
+      {
+        "title": "PostgreSQL documentation: Log-Shipping Standby Servers (streaming replication is asynchronous by default)",
+        "url": "https://www.postgresql.org/docs/current/warm-standby.html"
+      },
+      {
+        "title": "Kleppmann, Designing Data-Intensive Applications (O'Reilly, 2017): replication lag, reading your own writes"
+      }
+    ],
+    "related": "replication",
+    "simplifies": "The lag is a fixed number of seconds here. Real lag varies, and grows when the database is busy, which is why waiting a fixed time isn't a fix.",
+    "language": "python",
+    "code": [
+      "def save_profile(user_id, name):",
+      "    primary.write(user_id, name)",
+      "",
+      "def show_profile(user_id):",
+      "    return replica.read(user_id)"
+    ],
+    "symptom": "A user changes their name from 'A. Rao' to 'Asha Rao' and taps Save. The page reloads showing 'A. Rao'. They refresh a few seconds later and the new name is there.",
+    "bugLine": 4,
+    "lineWhy": "Writes go to the primary, but this read goes to a replica, which gets changes a little later (asynchronous replication). Read straight after saving, and the replica hasn't caught up yet.",
+    "program": "replica-lag",
+    "input": {
+      "lag": 2,
+      "wait": 0.5,
+      "old": "A. Rao",
+      "name": "Asha Rao"
+    },
+    "predict": {
+      "prompt": "The replica is 2 seconds behind. The page reloads 0.5 s after the save. What does show_profile(7) return?",
+      "options": [
+        {
+          "text": "'Asha Rao'",
+          "explanation": "That's on the primary, but the read goes to the replica, which won't have it for another 1.5 s."
+        },
+        {
+          "text": "'A. Rao'",
+          "explanation": "Right. 0.5 s is less than the 2 s lag, so the replica still has the old name."
+        },
+        {
+          "text": "None, because the write is half-copied",
+          "explanation": "A replica applies each change whole; it has either the old value or the new one."
+        },
+        {
+          "text": "An error, because the two copies disagree",
+          "explanation": "Nothing checks the copies against each other. The replica just answers with what it has."
+        }
+      ],
+      "answer": 1
+    },
+    "fix": {
+      "prompt": "Which fix is right?",
+      "options": [
+        {
+          "text": "Sleep 2 seconds in save_profile before returning",
+          "explanation": "Lag isn't a fixed number, so sometimes 2 s isn't enough, and every save now feels slow."
+        },
+        {
+          "text": "Add another replica",
+          "explanation": "More replicas share the reads, but each one is still behind the primary."
+        },
+        {
+          "text": "Read the user's own profile from the primary (at least for a while after they change it)",
+          "explanation": "Right. This is “read your own writes”: the person who just changed something reads from the copy that surely has it. Other people's profiles can still come from replicas."
+        },
+        {
+          "text": "Retry show_profile until the name changes",
+          "explanation": "The reader can't know a change is coming, and if the save had failed, this would loop forever."
+        }
+      ],
+      "answer": 2
+    }
+  },
+  {
+    "id": "cache-a-hot-page",
+    "title": "Cache a busy product page",
+    "track": "hld",
+    "level": "medium",
+    "kind": "guided",
+    "objective": "Break “add a cache” into decisions (what, which key, when to remove it), and find the cases that still hurt.",
+    "sources": [
+      {
+        "title": "Microsoft Azure Architecture Center: Cache-Aside pattern (lifetime of cached data; update the data store before removing the item)",
+        "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/cache-aside"
+      },
+      {
+        "title": "MDN: Cache-Control (private: personalised responses in a shared cache can leak to other users)",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control"
+      },
+      {
+        "title": "Wikipedia: Cache stampede",
+        "url": "https://en.wikipedia.org/wiki/Cache_stampede"
+      }
+    ],
+    "related": "caching-sim",
+    "simplifies": "One cache in front of one database. Real systems may have several cache layers (browser, CDN, an in-memory store), each with its own rules.",
+    "problem": "A shop's product pages are read far more often than products change, and the database is struggling. Plan a cache for product data that cuts database reads without showing wrong prices or one shopper's data to another.",
+    "steps": [
+      {
+        "stage": "understand",
+        "prompt": "In your own words: what must get better, and what must not get worse?",
+        "hints": [
+          "Better: the database load.",
+          "Not worse: correctness (prices) and privacy (one shopper's cart)."
+        ],
+        "model": "Goal: most product reads are answered without the database. Limits: a price change shows up quickly, and nothing personal (cart, name) is ever served to another shopper.",
+        "check": {
+          "type": "choice",
+          "prompt": "Which statement captures the job?",
+          "options": [
+            {
+              "text": "Make every page as fast as possible, whatever it shows",
+              "explanation": "Speed with wrong prices or someone else's cart isn't acceptable."
+            },
+            {
+              "text": "Answer most product reads from a cache, keep prices fresh enough, and never share personal data",
+              "explanation": "Right. Three parts: load, freshness, privacy. Each turns into a decision later."
+            },
+            {
+              "text": "Replace the database with the cache",
+              "explanation": "A cache holds copies. The database stays the source of truth."
+            },
+            {
+              "text": "Cache whole pages, including the shopper's cart",
+              "explanation": "That's the privacy problem the job must avoid."
+            }
+          ],
+          "answer": 1
+        }
+      },
+      {
+        "stage": "shrink",
+        "prompt": "Shrink it: one product, one cache, one database. What happens on the first read, and on the second?",
+        "hints": [
+          "The first read finds nothing in the cache.",
+          "Whatever the first read fetched, it can leave behind for the second."
+        ],
+        "model": "First read: a miss, so read the database, store the result in the cache, return it. Second read: a hit, answered from the cache with no database work. That's cache-aside.",
+        "check": {
+          "type": "choice",
+          "prompt": "A read finds nothing in the cache. What happens next?",
+          "options": [
+            {
+              "text": "Return “not found” to the shopper",
+              "explanation": "A miss only means the cache doesn't have it yet. The database still does."
+            },
+            {
+              "text": "Wait until something else fills the cache",
+              "explanation": "In cache-aside nothing else fills it: the reader does."
+            },
+            {
+              "text": "Read from the database, store a copy in the cache, then return it",
+              "explanation": "Right. The next read for the same product is then a hit."
+            },
+            {
+              "text": "Copy the whole database into the cache",
+              "explanation": "Far more than needed, and most of it would never be read."
+            }
+          ],
+          "answer": 2
+        }
+      },
+      {
+        "stage": "breakdown",
+        "prompt": "List the decisions in the order you'd make them. What goes in the cache, under what key, and what happens on reads and on updates?",
+        "hints": [
+          "Decide what is shared (product data) and what is personal (cart) first.",
+          "The update rule needs the key, so the key comes before it."
+        ],
+        "model": "Cache only shared product data, never the cart or the shopper's name; key it by product id; on a read, try the cache, and on a miss load from the database and store it with an expiry; on an update, write the database first, then remove the cached copy.",
+        "check": {
+          "type": "order",
+          "parts": [
+            "Decide what may be cached: shared product data only, nothing personal",
+            "Choose the key: one entry per product id",
+            "On a read: try the cache; on a miss, load from the database and store it with an expiry",
+            "On an update: write the database, then remove that product's cached copy"
+          ],
+          "explain": "What you cache decides whether it's safe to share; the key must exist before reads and updates can use it; reads fill the cache, and updates clean up after them."
+        }
+      },
+      {
+        "stage": "logic",
+        "prompt": "An admin changes a price. In which order should the code write the database and remove the cached copy? Think about a shopper reading in between.",
+        "hints": [
+          "Try “remove first”: a shopper reads between the two steps. What do they load into the cache?",
+          "The database still has the old price at that moment."
+        ],
+        "model": "Write the database first, then remove the cached copy. If you remove it first, a read in the gap misses, loads the old price from the database and caches it again, so the stale price survives the update.",
+        "check": {
+          "type": "choice",
+          "prompt": "Which order does Azure's cache-aside guidance give?",
+          "options": [
+            {
+              "text": "Remove the cached copy, then write the database",
+              "explanation": "In the gap, a read misses, fetches the old price and caches it again. Azure warns about exactly this."
+            },
+            {
+              "text": "Write the database, then remove the cached copy",
+              "explanation": "Right. “Update the data store before removing the item from the cache.”"
+            },
+            {
+              "text": "Write the new price into the cache only; the database can catch up later",
+              "explanation": "Then the database, the source of truth, is out of date, and a cache restart loses the change."
+            },
+            {
+              "text": "Either order: they happen so close together it can't matter",
+              "explanation": "With many shoppers, something will land in the gap. The order decides what it sees."
+            }
+          ],
+          "answer": 1
+        }
+      },
+      {
+        "stage": "edges",
+        "prompt": "Your plan works for a normal read. Which situations still cause trouble?",
+        "hints": [
+          "Think of a very popular entry at the moment it expires.",
+          "Think of what's inside a cached response, not just its key."
+        ],
+        "model": "Three still hurt: a hugely popular entry expiring (many requests miss at once and all hit the database, a stampede); caching a response that contains one shopper's data (it can be served to others); an update path that forgets to remove the copy (stale price). A first-ever read is just one miss, and repeat reads are the point of the cache.",
+        "check": {
+          "type": "select",
+          "prompt": "Tap every situation that still causes trouble.",
+          "cases": [
+            {
+              "text": "The most popular product's entry expires during a sale",
+              "pick": true,
+              "why": "Many requests miss at the same moment and all ask the database: a cache stampede. Fixes include letting only one request reload it."
+            },
+            {
+              "text": "The cached response includes the shopper's name and cart",
+              "pick": true,
+              "why": "The next shopper can be served that same response. Personal data must stay out of shared caches (MDN on Cache-Control: private)."
+            },
+            {
+              "text": "A bulk price import writes the database but skips the cache step",
+              "pick": true,
+              "why": "Every update path has to remove the cached copy, or old prices stay until they expire."
+            },
+            {
+              "text": "A product nobody has viewed before is opened",
+              "pick": false,
+              "why": "One miss, one database read, then it's cached. That's normal."
+            },
+            {
+              "text": "The same shopper opens the same product twice",
+              "pick": false,
+              "why": "The second read is a hit. That's what the cache is for."
+            }
+          ]
+        }
+      },
+      {
+        "stage": "combine",
+        "prompt": "Write the whole plan in plain words, then compare. What would you watch to know it works?",
+        "hints": [
+          "Name a number that shows the cache is helping."
+        ],
+        "model": "Cache shared product data under its product id with an expiry, using cache-aside: read from the cache, load and store on a miss. On every update path, write the database, then remove the copy. Keep personal parts (cart, name) out of it and mark personal responses Cache-Control: private. Protect the hottest entries from stampedes, for example by letting one request reload while others wait. Watch the hit rate and the database load: if the hit rate is low, the expiry may be too short or the cache too small."
+      }
+    ]
+  },
+  {
+    "id": "retry-double-charge",
+    "title": "Charged twice",
+    "track": "hld",
+    "level": "hard",
+    "kind": "debug",
+    "objective": "See how a retry after a lost reply repeats a payment, and how an idempotency key makes retrying safe.",
+    "sources": [
+      {
+        "title": "Stripe: Designing robust and predictable APIs with idempotency",
+        "url": "https://stripe.com/blog/idempotency"
+      },
+      {
+        "title": "IETF RFC 9110, HTTP Semantics, section 9.2.2: Idempotent Methods",
+        "url": "https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2"
+      }
+    ],
+    "related": "idempotency",
+    "simplifies": "The payment server always succeeds; only its replies get lost, and the client retries at once. Real clients wait longer between tries (backoff), and a real server keeps keys for a limited time.",
+    "language": "python",
+    "code": [
+      "def pay(order_id, amount):",
+      "    for attempt in range(3):",
+      "        try:",
+      "            return api.charge(amount)",
+      "        except Timeout:",
+      "            continue",
+      "    raise PaymentFailed()"
+    ],
+    "symptom": "On a day with a slow network, several customers were charged twice for one order. The logs show one timeout before each double charge.",
+    "bugLine": 3,
+    "lineWhy": "A timeout doesn't mean the charge failed: the server may have charged and the reply got lost. Each retry is a brand-new charge, because nothing tells the server it's the same payment.",
+    "program": "retry-no-idempotency",
+    "input": {
+      "lost": 1
+    },
+    "predict": {
+      "prompt": "The server charges every time it's asked. The first reply is lost (a timeout), the second arrives. What happens?",
+      "options": [
+        {
+          "text": "charged 1 time",
+          "explanation": "That's what the customer expects, but the first attempt did charge; only its reply was lost."
+        },
+        {
+          "text": "charged 2 times",
+          "explanation": "Right. Attempt 1 charges, the reply is lost; attempt 2 charges again and its reply arrives."
+        },
+        {
+          "text": "charged 3 times",
+          "explanation": "The loop returns as soon as a reply arrives, on attempt 2."
+        },
+        {
+          "text": "charged 0 times, then PaymentFailed",
+          "explanation": "A timeout only means no reply came. The server did the work."
+        }
+      ],
+      "answer": 1
+    },
+    "fix": {
+      "prompt": "Which fix is right?",
+      "options": [
+        {
+          "text": "Make a new random idempotency key for each attempt",
+          "explanation": "Every attempt then looks like a different payment to the server, so it still charges each time. The key must stay the same across retries."
+        },
+        {
+          "text": "Retry only twice instead of three times",
+          "explanation": "One lost reply still gives two charges."
+        },
+        {
+          "text": "Don't retry: raise PaymentFailed on the first timeout",
+          "explanation": "The customer may already be charged yet sees “failed”, and will probably pay again by hand."
+        },
+        {
+          "text": "Send one idempotency key per order (for example the order id) with every attempt",
+          "explanation": "Right. The server sees the same key, charges once, and replies to retries with the first result. Stripe's API works this way."
+        }
+      ],
+      "answer": 3
+    }
+  },
+  {
+    "id": "rate-limit-many-servers",
+    "title": "One limit, four servers",
+    "track": "hld",
+    "level": "hard",
+    "kind": "guided",
+    "objective": "Design a per-user rate limit that holds across several servers, and find where a fixed window and a non-atomic counter leak.",
+    "sources": [
+      {
+        "title": "IETF RFC 6585: HTTP status code 429 Too Many Requests (MAY include Retry-After)",
+        "url": "https://www.rfc-editor.org/rfc/rfc6585"
+      },
+      {
+        "title": "Redis documentation: INCR (atomic increment; the rate limiter pattern)",
+        "url": "https://redis.io/docs/latest/commands/incr/"
+      },
+      {
+        "title": "Claude Platform docs: Rate limits (an example of a real API that uses the token bucket algorithm)",
+        "url": "https://platform.claude.com/docs/en/api/rate-limits"
+      }
+    ],
+    "related": "rate-limiting",
+    "simplifies": "Uses a fixed one-minute window and assumes the shared store is always reachable. Real designs also decide what happens when it isn't (allow requests, or refuse them), and many use a token bucket or sliding window instead.",
+    "problem": "An API runs on 4 servers behind a load balancer. Each user may make at most 100 requests per minute in total. Over the limit, they get 429 Too Many Requests. Design the limiter.",
+    "steps": [
+      {
+        "stage": "understand",
+        "prompt": "In your own words: what is counted, over what period, across which servers, and what happens over the limit?",
+        "hints": [
+          "“In total” is the key phrase.",
+          "Who is the limit per: a server, or a user?"
+        ],
+        "model": "Count each user's requests over one minute, added up across all 4 servers. The 101st request in that minute gets 429, ideally with Retry-After saying when to try again.",
+        "check": {
+          "type": "choice",
+          "prompt": "Which restatement is right?",
+          "options": [
+            {
+              "text": "Each server allows each user 100 requests per minute",
+              "explanation": "With 4 servers that allows up to 400 per user, not 100 in total."
+            },
+            {
+              "text": "Each server allows 100 requests per minute from all users together",
+              "explanation": "That limits the server, not each user. One busy user could use it all up."
+            },
+            {
+              "text": "Each user gets 100 requests per minute, counted across all servers; extra ones get 429",
+              "explanation": "Right. Per user, all servers combined, refused with 429."
+            },
+            {
+              "text": "Each user may send one request every 0.6 seconds",
+              "explanation": "That's a stricter, smoother rule. The problem allows bursts within the 100."
+            }
+          ],
+          "answer": 2
+        }
+      },
+      {
+        "stage": "shrink",
+        "prompt": "Shrink it: one server, one user, a counter that resets each minute. Walk through a busy minute.",
+        "hints": [
+          "Count each request as it arrives.",
+          "Compare the count with 100 before handling the request."
+        ],
+        "model": "Keep a count for the current minute. Each request adds 1; if the count is now above 100, reply 429; at the next minute the count starts again at 0.",
+        "check": {
+          "type": "choice",
+          "prompt": "One server. The user's count for this minute is already 100, and request 101 arrives 40 seconds in. What happens?",
+          "options": [
+            {
+              "text": "It's handled, because the minute isn't over",
+              "explanation": "The limit is 100 within the minute, and this would be the 101st."
+            },
+            {
+              "text": "It gets 429; the count starts again at the next minute",
+              "explanation": "Right. Over the limit means refused until the window resets."
+            },
+            {
+              "text": "The count resets to 0 and the request is handled",
+              "explanation": "Resetting on overflow would make the limit meaningless."
+            },
+            {
+              "text": "The user is blocked for the rest of the day",
+              "explanation": "The limit is per minute. Next minute, they can send again."
+            }
+          ],
+          "answer": 1
+        }
+      },
+      {
+        "stage": "breakdown",
+        "prompt": "Every server has to check the user’s count before handling a request. List the steps one server takes, in order. Where does the count live?",
+        "hints": [
+          "You need to know who the user is before you can find their counter.",
+          "Increment and read the new value in one atomic step, so two servers can't both see 99."
+        ],
+        "model": "Identify the user; build the key for this user and this minute; atomically increment it in the shared store (Redis INCR returns the new value) and let the key expire after the minute; if the new value is over 100, reply 429 with Retry-After; otherwise handle the request.",
+        "check": {
+          "type": "order",
+          "parts": [
+            "Identify the user (for example from their API key)",
+            "Build the counter key: this user and this minute",
+            "Atomically add 1 in the shared store and read the new count",
+            "Over 100: reply 429 with Retry-After; otherwise handle the request"
+          ],
+          "explain": "The key needs the user; the count needs the key; the decision needs the count. Adding and reading in one atomic step is what keeps two servers from both seeing 99."
+        }
+      },
+      {
+        "stage": "logic",
+        "prompt": "Why must the count live in a shared store? Try the quick version: a counter in each server’s memory, limit 100 each. In the worst case, how many requests can one user get through in a minute?",
+        "hints": [
+          "The load balancer spreads requests across the servers.",
+          "Each server only knows its own count."
+        ],
+        "model": "Up to 400: each server lets through 100 before refusing, and none knows about the others. The count must live in one place all servers share, such as a Redis key per user per minute.",
+        "check": {
+          "type": "choice",
+          "prompt": "4 servers, each with its own in-memory counter and a limit of 100. Worst case per user per minute?",
+          "options": [
+            {
+              "text": "100",
+              "explanation": "Only if every request lands on the same server. The balancer spreads them out."
+            },
+            {
+              "text": "25",
+              "explanation": "Nothing divides the limit. Each server allows the full 100."
+            },
+            {
+              "text": "400",
+              "explanation": "Right. Each server allows 100 and can't see the others' counts. Hence a shared counter."
+            },
+            {
+              "text": "Unlimited",
+              "explanation": "Each server still stops at 100, so the total stops at 4 × 100."
+            }
+          ],
+          "answer": 2
+        }
+      },
+      {
+        "stage": "edges",
+        "prompt": "The intent is “no more than 100 requests in any 60 seconds”. Which cases break it?",
+        "hints": [
+          "Look at the moment one window ends and the next begins.",
+          "What if two servers read the count, then each write count + 1?"
+        ],
+        "model": "Two leaks. Window edges: 100 requests at 0:59 and 100 more at 1:00 are 200 within two seconds, all allowed, because each lands in a different window (a token bucket or a sliding window avoids this). Read-then-write: two servers both read 99 and both write 100, letting 101 through; an atomic increment avoids it. Steady traffic and a single burst inside one window are handled correctly.",
+        "check": {
+          "type": "select",
+          "prompt": "Shared fixed-window counter, limit 100 per minute. Tap every case that breaks “no more than 100 in any 60 seconds”.",
+          "cases": [
+            {
+              "text": "100 requests at 0:59, then 100 more at 1:00",
+              "pick": true,
+              "why": "Different windows, so all 200 pass within about two seconds. That's the fixed window's weak spot."
+            },
+            {
+              "text": "Two servers each read the count (99), add 1 and write back 100",
+              "pick": true,
+              "why": "Both requests pass, so 101 get through, and the count says 100. Hence an atomic increment like Redis INCR."
+            },
+            {
+              "text": "50 requests spread evenly across one minute",
+              "pick": false,
+              "why": "Well under the limit, nothing to refuse."
+            },
+            {
+              "text": "101 requests in the middle of one minute, with an atomic counter",
+              "pick": false,
+              "why": "The 101st gets 429, which is correct."
+            }
+          ]
+        }
+      },
+      {
+        "stage": "combine",
+        "prompt": "Put the design together in plain words, then compare. What would you choose if bursts at window edges matter?",
+        "hints": [
+          "Name the store, the key and the operation.",
+          "Think of the rate-limiting lesson's token bucket."
+        ],
+        "model": "Every server, for every request: identify the user, atomically increment a shared counter keyed by user and minute (for example Redis INCR with an expiry), and reply 429 with Retry-After when the count passes 100. Counting in one shared place makes the limit total, not per server; the atomic increment stops two servers counting the same slot. If bursts at the window edge matter, use a token bucket (the Claude API, for example, says it uses one) or a sliding window. Also decide in advance what happens if the shared store is down."
+      }
+    ]
+  }
+]

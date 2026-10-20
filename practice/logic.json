@@ -1,0 +1,743 @@
+[
+  {
+    "id": "python-arithmetic-corners",
+    "title": "Arithmetic that surprises",
+    "track": "logic",
+    "level": "medium",
+    "kind": "quiz",
+    "objective": "Predict what Python's //, % and round() give at the edges, where most people guess wrong.",
+    "sources": [
+      {
+        "title": "Python documentation: Expressions, binary arithmetic operations (floor division and %)",
+        "url": "https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations"
+      },
+      {
+        "title": "Python documentation: Built-in functions, round()",
+        "url": "https://docs.python.org/3/builtins/functions.html#round"
+      }
+    ],
+    "related": "dry-run",
+    "intro": "Four tiny expressions. Each one has tripped up real code: think before you tap.",
+    "questions": [
+      {
+        "prompt": "What is -7 // 2 in Python?",
+        "options": [
+          {
+            "text": "-4",
+            "explanation": "Right. // is floor division: Python works out -3.5 and then rounds down, to -4."
+          },
+          {
+            "text": "-3",
+            "explanation": "That would be rounding towards zero. Python's // rounds down (it applies the floor), and the floor of -3.5 is -4."
+          },
+          {
+            "text": "-3.5",
+            "explanation": "That's what / gives. // between two integers gives an integer."
+          },
+          {
+            "text": "An error",
+            "explanation": "Negative numbers are fine. Only dividing by zero raises an error (ZeroDivisionError)."
+          }
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "What is -7 % 2 in Python?",
+        "options": [
+          {
+            "text": "1",
+            "explanation": "Right. In Python the result of % has the same sign as the second number (2), and -7 == (-4) * 2 + 1."
+          },
+          {
+            "text": "-1",
+            "explanation": "Python's % always takes the sign of the second operand, here 2, so the result can't be negative."
+          },
+          {
+            "text": "0",
+            "explanation": "-7 is odd, so dividing by 2 leaves a remainder."
+          },
+          {
+            "text": "3.5",
+            "explanation": "% gives a remainder, not a quotient."
+          }
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "What does round(2.5) return?",
+        "options": [
+          {
+            "text": "2",
+            "explanation": "Right. When a number is exactly halfway, round() goes to the even neighbour, so 2.5 becomes 2 (and 3.5 becomes 4)."
+          },
+          {
+            "text": "3",
+            "explanation": "That's the 'round half up' rule from school. Python rounds a tie to the even choice, and 2 is even."
+          },
+          {
+            "text": "2.0",
+            "explanation": "With no ndigits, round() returns an integer, not a float."
+          },
+          {
+            "text": "2.5",
+            "explanation": "round() with no ndigits always returns a whole number."
+          }
+        ],
+        "answer": 0
+      },
+      {
+        "prompt": "What does round(2.675, 2) return?",
+        "options": [
+          {
+            "text": "2.67",
+            "explanation": "Right. 2.675 can't be stored exactly as a float; the stored value is a hair below 2.675, so it rounds down. Python's docs call this out: it's not a bug."
+          },
+          {
+            "text": "2.68",
+            "explanation": "That's what you'd get with exact decimals. The float closest to 2.675 is slightly smaller than 2.675."
+          },
+          {
+            "text": "2.7",
+            "explanation": "ndigits=2 keeps two decimal places, not one."
+          },
+          {
+            "text": "3",
+            "explanation": "That's round(2.675) with no ndigits."
+          }
+        ],
+        "answer": 0
+      }
+    ]
+  },
+  {
+    "id": "fence-posts-debug",
+    "title": "Fence posts",
+    "track": "logic",
+    "level": "medium",
+    "kind": "debug",
+    "objective": "Spot the classic off-by-one: counting gaps when you meant to count posts.",
+    "sources": [
+      {
+        "title": "Wikipedia: Off-by-one error (the fencepost error)",
+        "url": "https://en.wikipedia.org/wiki/Off-by-one_error"
+      },
+      {
+        "title": "Python documentation: Expressions, binary arithmetic operations (floor division and %)",
+        "url": "https://docs.python.org/3/reference/expressions.html#binary-arithmetic-operations"
+      }
+    ],
+    "related": "loops-limits",
+    "simplifies": "Assumes the fence length is a whole multiple of the gap, so there's a post at both ends.",
+    "language": "python",
+    "code": [
+      "def posts(length, gap):",
+      "    # one post every `gap` metres, both ends",
+      "    return length // gap"
+    ],
+    "symptom": "A 10 m fence with a post every 2 m needs posts at 0, 2, 4, 6, 8 and 10 m. The order form keeps coming up one post short.",
+    "bugLine": 2,
+    "lineWhy": "length // gap counts the gaps between posts. A straight fence always has one more post than gaps.",
+    "program": "fence-posts",
+    "input": [
+      10,
+      2
+    ],
+    "predict": {
+      "prompt": "What does posts(10, 2) return?",
+      "options": [
+        {
+          "text": "5",
+          "explanation": "Right: 10 // 2 is 5. That's the number of 2 m gaps, not the number of posts."
+        },
+        {
+          "text": "6",
+          "explanation": "That's what it should return. The code divides and stops there."
+        },
+        {
+          "text": "4",
+          "explanation": "Nothing is subtracted; 10 // 2 is 5."
+        },
+        {
+          "text": "5.0",
+          "explanation": "// between two integers gives an integer, 5."
+        }
+      ],
+      "answer": 0
+    },
+    "fix": {
+      "prompt": "Which fix is right?",
+      "options": [
+        {
+          "text": "return length // gap + 1",
+          "explanation": "Right. Gaps plus one: 10 // 2 + 1 = 6 posts."
+        },
+        {
+          "text": "return length // gap - 1",
+          "explanation": "That goes the wrong way: 4 posts for 10 m."
+        },
+        {
+          "text": "return length / gap",
+          "explanation": "Still 5 (as 5.0): the missing post is still missing."
+        },
+        {
+          "text": "return round(length / gap)",
+          "explanation": "Rounding doesn't add the extra post: still 5."
+        }
+      ],
+      "answer": 0
+    }
+  },
+  {
+    "id": "last-item-never-checked",
+    "title": "The last item is never checked",
+    "track": "logic",
+    "level": "medium",
+    "kind": "debug",
+    "objective": "Read a loop's range exactly and catch a loop that stops one item early.",
+    "sources": [
+      {
+        "title": "Python tutorial: The range() function (the end point is never part of the sequence)",
+        "url": "https://docs.python.org/3/tutorial/controlflow.html#the-range-function"
+      },
+      {
+        "title": "Myers, Sandler and Badgett, The Art of Software Testing, 3rd ed. (Wiley, 2011): boundary-value analysis"
+      }
+    ],
+    "related": "loops-limits",
+    "language": "python",
+    "code": [
+      "def contains(xs, target):",
+      "    for i in range(len(xs) - 1):",
+      "        if xs[i] == target:",
+      "            return True",
+      "    return False"
+    ],
+    "symptom": "Most searches work. Users report that the item they added most recently can never be found.",
+    "bugLine": 1,
+    "lineWhy": "range(stop) already stops before stop. range(len(xs) - 1) stops one earlier still, so the last index is never visited.",
+    "program": "contains-last",
+    "input": [
+      [
+        3,
+        8,
+        5
+      ],
+      5
+    ],
+    "predict": {
+      "prompt": "What does contains([3, 8, 5], 5) return?",
+      "options": [
+        {
+          "text": "False",
+          "explanation": "Right. range(2) visits only indexes 0 and 1 (3 and 8), so the 5 at index 2 is never compared."
+        },
+        {
+          "text": "True",
+          "explanation": "5 is in the list, but the loop never reaches index 2."
+        },
+        {
+          "text": "IndexError",
+          "explanation": "The loop stays inside the list; it just stops too soon."
+        },
+        {
+          "text": "None",
+          "explanation": "When nothing matches, the function reaches return False."
+        }
+      ],
+      "answer": 0
+    },
+    "fix": {
+      "prompt": "Which fix is right?",
+      "options": [
+        {
+          "text": "for i in range(len(xs)):",
+          "explanation": "Right. range(len(xs)) visits 0 to len(xs) - 1: every index exactly once."
+        },
+        {
+          "text": "for i in range(1, len(xs)):",
+          "explanation": "Now the first item is skipped instead of the last."
+        },
+        {
+          "text": "for i in range(len(xs) + 1):",
+          "explanation": "That visits index len(xs), which doesn't exist: an IndexError whenever the target isn't found earlier."
+        },
+        {
+          "text": "Add `if not xs: return False` at the top",
+          "explanation": "Empty lists already return False. The missing last item is still missed."
+        }
+      ],
+      "answer": 0
+    }
+  },
+  {
+    "id": "second-largest",
+    "title": "Second largest",
+    "track": "logic",
+    "level": "medium",
+    "kind": "guided",
+    "objective": "Break a small problem into steps, and find the inputs that break the obvious one-liner.",
+    "sources": [
+      {
+        "title": "Pólya, How to Solve It (Princeton University Press, 1945): understand the problem, solve a smaller related problem, look back"
+      },
+      {
+        "title": "Myers, Sandler and Badgett, The Art of Software Testing, 3rd ed. (Wiley, 2011): boundary-value analysis"
+      },
+      {
+        "title": "Python documentation: Built-in functions, sorted()",
+        "url": "https://docs.python.org/3/builtins/functions.html#sorted"
+      },
+      {
+        "title": "Python documentation: IndexError",
+        "url": "https://docs.python.org/3/builtins/exceptions.html#IndexError"
+      }
+    ],
+    "related": "edge-cases",
+    "problem": "Given a list of numbers, return the second largest distinct value, or None if there isn't one.",
+    "example": {
+      "input": "[4, 9, 7, 9]",
+      "output": "7"
+    },
+    "steps": [
+      {
+        "stage": "understand",
+        "prompt": "In your own words: what goes in, what comes out, and what does “second largest” mean when a value repeats?",
+        "hints": [
+          "Look at the example: 9 appears twice, yet the answer is 7.",
+          "“Distinct” means the second largest is a different, smaller value than the largest."
+        ],
+        "model": "In: a list of numbers, possibly empty, possibly with repeats. Out: the biggest value that is strictly smaller than the maximum, or None if no value is smaller than the maximum.",
+        "check": {
+          "type": "choice",
+          "prompt": "Which restatement matches the problem?",
+          "options": [
+            {
+              "text": "The largest value that is smaller than the maximum; None if there is none",
+              "explanation": "Right. That handles repeats: in [4, 9, 7, 9] the maximum is 9 and the largest smaller value is 7."
+            },
+            {
+              "text": "Sort the list and return the item at index 1",
+              "explanation": "That's the second smallest, and it ignores repeats."
+            },
+            {
+              "text": "Return the second item of the list",
+              "explanation": "Position in the list has nothing to do with size."
+            },
+            {
+              "text": "Return the maximum minus one",
+              "explanation": "The answer must be a value from the list: 9 - 1 = 8 isn't in [4, 9, 7, 9]."
+            }
+          ],
+          "answer": 0
+        }
+      },
+      {
+        "stage": "shrink",
+        "prompt": "What's the smallest list where the question makes sense? Solve it in your head before reading on.",
+        "hints": [
+          "Try a list with two numbers.",
+          "Then try two numbers that are equal."
+        ],
+        "model": "With two different values, the smaller one is the answer: [3, 8] gives 3. With [5, 5] there's only one distinct value, so the answer is None. Tiny cases already show the whole rule.",
+        "check": {
+          "type": "choice",
+          "prompt": "For [3, 8], what's the answer?",
+          "options": [
+            {
+              "text": "3: the smaller of the two",
+              "explanation": "Right. With two different values, the smaller is the second largest."
+            },
+            {
+              "text": "8",
+              "explanation": "8 is the largest; the question asks for the next one down."
+            },
+            {
+              "text": "None: you need at least three values",
+              "explanation": "Two different values are enough to have a second largest."
+            },
+            {
+              "text": "11",
+              "explanation": "That's the sum. We want one of the values."
+            }
+          ],
+          "answer": 0
+        }
+      },
+      {
+        "stage": "breakdown",
+        "prompt": "Split the job into smaller jobs you could each do on their own. What do you need to remember as you read the list once?",
+        "hints": [
+          "You don't need to sort. What two numbers would you keep in your head while reading left to right?",
+          "You need a starting value before you've seen anything."
+        ],
+        "model": "Remember two things, the best and the second best seen so far; start them both at None; look at each number once and update the pair; at the end, return the second best.",
+        "check": {
+          "type": "order",
+          "parts": [
+            "Decide what to remember: the best and the second best so far",
+            "Start both as None (nothing seen yet)",
+            "For each number, update the best and the second best",
+            "Return the second best (None if it was never set)"
+          ],
+          "explain": "You can't update something you haven't decided to keep, and you can't return it before you've looked at every number. That fixes the order."
+        }
+      },
+      {
+        "stage": "logic",
+        "prompt": "Write the update rule for one number x in plain words. What happens when x is bigger than the best? Equal to it? In between?",
+        "hints": [
+          "Bigger than the best: the old best becomes the second best.",
+          "Equal to the best: a repeat. Should it become the second best?"
+        ],
+        "model": "If x > best: second = best, then best = x. Else if x < best and (second is None or x > second): second = x. If x equals best, do nothing: the second best must be strictly smaller.",
+        "check": {
+          "type": "choice",
+          "prompt": "best = 9, second = 7, and the next x is 9. What should happen?",
+          "options": [
+            {
+              "text": "Nothing: 9 equals the best, and the second best must be smaller than the best",
+              "explanation": "Right. Treating the repeat as a new second best would turn [4, 9, 7, 9] into 9, which is wrong."
+            },
+            {
+              "text": "second = 9",
+              "explanation": "Then the second best equals the best, and [4, 9, 7, 9] would return 9 instead of 7."
+            },
+            {
+              "text": "best = 9 and second = 9",
+              "explanation": "Same problem: a repeat isn't a smaller value."
+            },
+            {
+              "text": "Reset second to None",
+              "explanation": "That throws away the 7 we already found."
+            }
+          ],
+          "answer": 0
+        }
+      },
+      {
+        "stage": "edges",
+        "prompt": "List inputs that could break a solution: empty, one item, repeats, negatives. Then test the one-liner below against them.",
+        "hints": [
+          "Empty and one-item lists are the first things to try.",
+          "What does sorted(xs)[-2] do when the largest value appears twice?"
+        ],
+        "model": "sorted(xs)[-2] fails on [] and [7] (IndexError), and gives the wrong answer whenever the maximum repeats: [5, 5] gives 5 instead of None, and [4, 9, 7, 9] gives 9 instead of 7. Negatives are fine.",
+        "check": {
+          "type": "select",
+          "prompt": "The one-liner is `return sorted(xs)[-2]`. Tap every input it gets wrong.",
+          "cases": [
+            {
+              "text": "[]",
+              "pick": true,
+              "why": "sorted([])[-2] raises IndexError: there is no index -2. The answer should be None."
+            },
+            {
+              "text": "[7]",
+              "pick": true,
+              "why": "A one-item list also has no index -2: IndexError instead of None."
+            },
+            {
+              "text": "[5, 5]",
+              "pick": true,
+              "why": "It returns 5, but there's only one distinct value, so the answer is None."
+            },
+            {
+              "text": "[4, 9, 7, 9]",
+              "pick": true,
+              "why": "sorted gives [4, 7, 9, 9], and index -2 is the second 9. The answer is 7."
+            },
+            {
+              "text": "[1, 2, 3]",
+              "pick": false,
+              "why": "No repeats and enough values: index -2 is 2, which is right."
+            },
+            {
+              "text": "[-5, -2]",
+              "pick": false,
+              "why": "Negatives sort fine: index -2 is -5, which is right."
+            }
+          ]
+        }
+      },
+      {
+        "stage": "combine",
+        "prompt": "Put the pieces together. Write the whole solution in plain words, then compare.",
+        "hints": [
+          "Use your update rule inside a loop over the list."
+        ],
+        "model": "best = second = None. For each x: if best is None or x > best: second, best = best, x. Elif x < best and (second is None or x > second): second = x. Return second. One pass, so the time grows linearly with the list. A shorter correct version is: values = sorted(set(xs)); return values[-2] if len(values) >= 2 else None (it removes repeats first, but sorting is slower for long lists)."
+      }
+    ]
+  },
+  {
+    "id": "remove-while-looping",
+    "title": "Removing while looping",
+    "track": "logic",
+    "level": "hard",
+    "kind": "debug",
+    "objective": "Trace a loop over a list that changes under it, and fix it by building a new list.",
+    "sources": [
+      {
+        "title": "Python tutorial: for statements (modifying a collection while looping over it)",
+        "url": "https://docs.python.org/3/tutorial/controlflow.html#for-statements"
+      },
+      {
+        "title": "Python documentation: Mutable sequence types, s.remove(x)",
+        "url": "https://docs.python.org/3/builtins/stdtypes.html#mutable-sequence-types"
+      }
+    ],
+    "related": "dry-run",
+    "language": "python",
+    "code": [
+      "def remove_evens(xs):",
+      "    for x in xs:",
+      "        if x % 2 == 0:",
+      "            xs.remove(x)",
+      "    return xs"
+    ],
+    "symptom": "remove_evens([2, 4, 5, 6]) should give [5], but an even number survives.",
+    "bugLine": 3,
+    "lineWhy": "The loop walks the list by position. Removing an item shifts everything after it one place left, so the next item slides into the spot the loop has just finished with, and gets skipped.",
+    "program": "remove-while-looping",
+    "input": [
+      2,
+      4,
+      5,
+      6
+    ],
+    "predict": {
+      "prompt": "What does remove_evens([2, 4, 5, 6]) return?",
+      "options": [
+        {
+          "text": "[4, 5]",
+          "explanation": "Right. Position 0 is 2: removed, and 4 slides into position 0. The loop moves to position 1, which is now 5: kept. Position 2 is 6: removed. 4 was never looked at."
+        },
+        {
+          "text": "[5]",
+          "explanation": "That's the intended answer. The loop skips the 4 after removing the 2."
+        },
+        {
+          "text": "[5, 6]",
+          "explanation": "6 is still visited: after the first removal it sits at position 2, which the loop reaches."
+        },
+        {
+          "text": "IndexError",
+          "explanation": "The loop re-checks the list's length every time, so it doesn't run past the end; it just skips items."
+        }
+      ],
+      "answer": 0
+    },
+    "fix": {
+      "prompt": "Which fix is right?",
+      "options": [
+        {
+          "text": "return [x for x in xs if x % 2 != 0]",
+          "explanation": "Right. Build a new list instead of changing the one you're looping over. Looping over a copy (for x in xs[:]) also works; Python's tutorial suggests either."
+        },
+        {
+          "text": "Sort xs before the loop",
+          "explanation": "Sorting doesn't stop the shifting: [2, 4, 5, 6] is already sorted and still fails."
+        },
+        {
+          "text": "Replace xs.remove(x) with del xs[0]",
+          "explanation": "That deletes whatever happens to be first, which isn't the even number you found."
+        },
+        {
+          "text": "Loop with for i in range(len(xs)) and del xs[i]",
+          "explanation": "The list gets shorter while i keeps counting to the old length: an IndexError, and items still get skipped."
+        }
+      ],
+      "answer": 0
+    }
+  },
+  {
+    "id": "merge-meetings",
+    "title": "Merge overlapping meetings",
+    "track": "logic",
+    "level": "hard",
+    "kind": "guided",
+    "objective": "Solve a problem with a small rule plus the right preparation step (sorting), and test it on tricky inputs.",
+    "sources": [
+      {
+        "title": "Pólya, How to Solve It (Princeton University Press, 1945): understand the problem, solve a smaller related problem, look back"
+      },
+      {
+        "title": "Python documentation: Built-in functions, sorted()",
+        "url": "https://docs.python.org/3/builtins/functions.html#sorted"
+      },
+      {
+        "title": "Myers, Sandler and Badgett, The Art of Software Testing, 3rd ed. (Wiley, 2011): boundary-value analysis"
+      }
+    ],
+    "problem": "Meetings are [start, end] pairs in hours. Combine meetings that overlap or touch (one ends exactly when the next starts) into single busy blocks, listed in time order.",
+    "example": {
+      "input": "[[1, 3], [8, 10], [2, 6], [15, 18]]",
+      "output": "[[1, 6], [8, 10], [15, 18]]"
+    },
+    "steps": [
+      {
+        "stage": "understand",
+        "prompt": "Restate the task. What exactly counts as overlapping, and in what order should the answer be?",
+        "hints": [
+          "[1, 3] and [2, 6] share the hour from 2 to 3.",
+          "The problem says touching meetings merge too: [1, 3] and [3, 5] become [1, 5]."
+        ],
+        "model": "In: a list of [start, end] meetings in any order. Out: busy blocks in time order, where any meetings that overlap or touch become one block.",
+        "check": {
+          "type": "choice",
+          "prompt": "Which restatement is right?",
+          "options": [
+            {
+              "text": "Combine meetings that overlap or touch into single busy blocks, in time order",
+              "explanation": "Right. That's the whole task, including touching meetings and the output order."
+            },
+            {
+              "text": "Delete meetings that overlap another one",
+              "explanation": "Nothing is deleted: overlapping meetings are combined into one longer block."
+            },
+            {
+              "text": "Count how many pairs of meetings overlap",
+              "explanation": "The answer is a list of blocks, not a number."
+            },
+            {
+              "text": "Sort the meetings by end time",
+              "explanation": "Sorting may help, but it isn't the answer."
+            }
+          ],
+          "answer": 0
+        }
+      },
+      {
+        "stage": "shrink",
+        "prompt": "Take just two meetings, [a, b] and [c, d], with a ≤ c. When do they merge?",
+        "hints": [
+          "Draw them on a timeline.",
+          "Compare where the second one starts with where the first one ends."
+        ],
+        "model": "With a ≤ c, they merge exactly when c ≤ b: the second starts before (or right when) the first ends. The merged block is [a, max(b, d)].",
+        "check": {
+          "type": "choice",
+          "prompt": "With a ≤ c, when do [a, b] and [c, d] merge?",
+          "options": [
+            {
+              "text": "When c ≤ b: the second starts before, or exactly when, the first ends",
+              "explanation": "Right. That one comparison is the whole rule, once meetings are in start order."
+            },
+            {
+              "text": "When d ≤ b",
+              "explanation": "That's only the case where the second fits entirely inside the first. [1, 3] and [2, 6] also merge."
+            },
+            {
+              "text": "When a == c",
+              "explanation": "Starting together does mean overlap, but so does starting later inside the first meeting."
+            },
+            {
+              "text": "Always",
+              "explanation": "[1, 3] and [8, 10] don't merge: there's a gap from 3 to 8."
+            }
+          ],
+          "answer": 0
+        }
+      },
+      {
+        "stage": "breakdown",
+        "prompt": "The two-meeting rule needs meetings in start order. What steps turn that rule into a full solution?",
+        "hints": [
+          "What preparation makes “compare with the previous one” enough?",
+          "Where does the answer start?"
+        ],
+        "model": "Sort by start time; start the result with the first meeting; for each next meeting compare its start with the end of the last block; then either extend that block or start a new one.",
+        "check": {
+          "type": "order",
+          "parts": [
+            "Sort the meetings by start time",
+            "Start the result with the first meeting",
+            "For each next meeting, compare its start with the last block's end",
+            "Extend the last block, or start a new one"
+          ],
+          "explain": "Sorting comes first because the two-meeting rule only works when each meeting starts no earlier than the one before it."
+        }
+      },
+      {
+        "stage": "logic",
+        "prompt": "Write the step for one meeting [s, e] when the last block in the result is [a, b].",
+        "hints": [
+          "If s ≤ b, they merge. What should the new end be?",
+          "Watch out for a meeting that sits entirely inside the block."
+        ],
+        "model": "If s ≤ b: the last block becomes [a, max(b, e)]. Otherwise: add [s, e] as a new block. Using e instead of max(b, e) is a common bug.",
+        "check": {
+          "type": "choice",
+          "prompt": "The result so far ends with [1, 6]. The next meeting is [2, 4]. What is the last block now?",
+          "options": [
+            {
+              "text": "[1, 6]: [2, 4] is inside it, so the end stays max(6, 4) = 6",
+              "explanation": "Right. Always keep the larger end."
+            },
+            {
+              "text": "[1, 4]: take the new meeting's end",
+              "explanation": "That shrinks the block and loses the hours from 4 to 6, the classic bug."
+            },
+            {
+              "text": "[2, 6]",
+              "explanation": "The block still starts at 1."
+            },
+            {
+              "text": "[1, 6] and [2, 4], as two blocks",
+              "explanation": "They overlap, so they belong in one block."
+            }
+          ],
+          "answer": 0
+        }
+      },
+      {
+        "stage": "edges",
+        "prompt": "Which inputs could break it? Think about order, containment, touching, and empty input.",
+        "hints": [
+          "What if the meetings arrive out of order?",
+          "What about a single meeting, or none?"
+        ],
+        "model": "Without sorting, an out-of-order meeting gets compared with the wrong block: [[8, 10], [1, 3], [2, 6]] collapses into [[8, 10]], and [[5, 7], [1, 6]] loses the hours from 1 to 5. Already-sorted inputs, a single meeting and an empty list all work without sorting.",
+        "check": {
+          "type": "select",
+          "prompt": "A version skips the sorting step and only compares each meeting with the last block. Tap every input it gets wrong.",
+          "cases": [
+            {
+              "text": "[[8, 10], [1, 3], [2, 6]]",
+              "pick": true,
+              "why": "1 ≤ 10, so [1, 3] is wrongly merged into [8, 10], and so is [2, 6]. The result is [[8, 10]]: the hours from 1 to 6 vanish. The right answer is [[1, 6], [8, 10]]."
+            },
+            {
+              "text": "[[5, 7], [1, 6]]",
+              "pick": true,
+              "why": "1 ≤ 7, so [1, 6] is merged into [5, 7] and the block stays [5, 7], losing the hours from 1 to 5. The right answer is [[1, 7]]."
+            },
+            {
+              "text": "[[1, 3], [2, 6], [8, 10]]",
+              "pick": false,
+              "why": "Already in start order, so skipping the sort changes nothing."
+            },
+            {
+              "text": "[[1, 2]]",
+              "pick": false,
+              "why": "One meeting is its own block."
+            },
+            {
+              "text": "[]",
+              "pick": false,
+              "why": "No meetings, no blocks: an empty list, as long as the code doesn't assume a first meeting exists."
+            }
+          ]
+        }
+      },
+      {
+        "stage": "combine",
+        "prompt": "Write the whole solution in plain words.",
+        "hints": [
+          "Sort first, then one loop with your rule."
+        ],
+        "model": "If there are no meetings, return []. Sort by start. result = [first meeting]. For each next [s, e]: if s ≤ result[-1][1], set result[-1][1] = max(result[-1][1], e); otherwise append [s, e]. Return result. Sorting dominates the work, so the time grows like n log n for n meetings."
+      }
+    ]
+  }
+]

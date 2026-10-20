@@ -1,10 +1,13 @@
-import type { Lesson } from '../lesson/schema';
+import type { Lesson, Track } from '../lesson/schema';
 import { groupByTrack, missingRequirements, trackToOpen } from '../lesson/unlock';
 import type { Progress } from '../rewards/engine';
 import { el } from './dom';
 import { renderHud } from './hud';
 
-export function renderHome(root: HTMLElement, lessons: Lesson[], progress: Progress, bufferCost: number, open: (id: string) => void): void {
+/** Builds a track's practice drop-down, or null when the track has no practice. */
+export type PracticeSlot = (track: Track) => HTMLDetailsElement | null;
+
+export function renderHome(root: HTMLElement, lessons: Lesson[], progress: Progress, bufferCost: number, open: (id: string) => void, practice?: PracticeSlot): void {
   const byId = new Map(lessons.map((l) => [l.id, l]));
   const groups = groupByTrack(lessons, progress.completed);
   const openTrack = trackToOpen(groups);
@@ -17,6 +20,12 @@ export function renderHome(root: HTMLElement, lessons: Lesson[], progress: Progr
     const list = el('ul', { class: 'lesson-list' });
     for (const lesson of g.lessons) list.append(card(lesson));
     section.append(summary, list);
+    const drill = practice?.(g.track);
+    if (drill) {
+      section.append(drill);
+      // Coming back from a practice item reopens its list, so the track must be open too.
+      if (drill.open) section.open = true;
+    }
     return section;
   });
   const main = el('div', { class: 'home-main' });
