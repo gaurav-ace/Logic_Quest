@@ -22,7 +22,7 @@ const NAV: { route: Route; label: string; icon: IconName }[] = [
 ];
 
 function chip(label: string, value: string): HTMLElement {
-  const c = el('span', { class: 'chip' });
+  const c = el('span', { class: 'top-stat' });
   c.append(el('small', {}, label), el('strong', {}, value));
   return c;
 }
@@ -38,7 +38,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
   // rail on wide screens, and the page itself.
   const header = el('header', { class: 'topbar' });
   const backToList = button('← Lessons', () => history.back(), { class: 'nav-back' });
-  const chips = el('div', { class: 'chips', 'aria-label': 'Your level, streak and coins', role: 'group' });
+  const chips = el('div', { class: 'top-stats', 'aria-label': 'Your level, streak and coins', role: 'group' });
   const brand = el('a', { class: 'brand', href: routeHash(HOME) });
   brand.append(el('span', { class: 'brand-mark', 'aria-hidden': 'true' }, 'LQ'), el('h1', {}, 'Logic Quest'));
   header.append(brand, backToList, chips);

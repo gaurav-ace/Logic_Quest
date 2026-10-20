@@ -103,6 +103,8 @@ h1 {
   border-top: 1px solid var(--line);
   padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px));
   box-shadow: 0 -6px 24px rgb(0 0 0 / 0.18);
+  /* Above the sticky lesson player (z-index 5) and the top bar, or they can cover Stay / Leave. */
+  z-index: 15;
 }
 
 .guard p {
@@ -1456,13 +1458,13 @@ button.action {
   order: 3;
 }
 
-.chips {
+.top-stats {
   display: flex;
   gap: 6px;
   order: 4;
 }
 
-.chip {
+.top-stat {
   display: flex;
   align-items: baseline;
   gap: 5px;
@@ -1473,13 +1475,13 @@ button.action {
   font-size: 0.875rem;
 }
 
-.chip small {
+.top-stat small {
   color: var(--mute);
   font-size: 0.75rem;
   font-weight: 700;
 }
 
-.chip strong {
+.top-stat strong {
   font-variant-numeric: tabular-nums;
 }
 
@@ -1549,7 +1551,7 @@ body:not([data-route='lesson']) .nav-back {
     clip-path: inset(50%);
   }
 
-  body[data-route='lesson'] .chips {
+  body[data-route='lesson'] .top-stats {
     display: none;
   }
 }
