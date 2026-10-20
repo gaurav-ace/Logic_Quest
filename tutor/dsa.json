@@ -1,0 +1,23 @@
+{
+  "dynamic-programming": [
+    {
+      "q": "Why doesn't taking the biggest coin first always work?",
+      "a": "Because a choice that looks best now can rule out a better whole answer. Laaksonen's handbook gives the example: with coins {1, 3, 4} and a target of 6, greedy picks 4 + 1 + 1 (three coins), but 3 + 3 uses two. Greedy does work for some coin sets, such as the euro coins. Dynamic programming tries every coin as the last one, so it always finds the minimum.",
+      "sources": [{ "title": "Laaksonen, Competitive Programmer's Handbook: greedy algorithms, the coin problem", "url": "https://cses.fi/book/book.pdf" }]
+    }
+  ],
+  "hash-maps": [
+    {
+      "q": "Why can't a list be a dictionary key?",
+      "a": "Dictionary keys must be hashable, and a list can change, so it isn't: Python raises TypeError: unhashable type: 'list'. Use a tuple instead, for example (row, col) for a grid position.",
+      "sources": [{ "title": "Python documentation: Mapping types, dict", "url": "https://docs.python.org/3/builtins/stdtypes.html#typesmapping" }]
+    }
+  ],
+  "heaps": [
+    {
+      "q": "How do I get the largest item first with heapq?",
+      "a": "heapq is a min-heap: heap[0] is always the smallest item. The classic trick is to push negated values and negate them again when you pop. From Python 3.14, heapq also has max-heap functions named with a _max suffix, such as heappush_max and heappop_max.",
+      "sources": [{ "title": "Python documentation: heapq", "url": "https://docs.python.org/3/library/heapq.html" }]
+    }
+  ]
+}

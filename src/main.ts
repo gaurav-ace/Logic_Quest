@@ -19,6 +19,12 @@ import { renderLearners, renderPicker } from './render/learners';
 import { renderPractice, type PracticeContext, type PracticeHooks } from './render/practice';
 import { practiceSection } from './render/practice-list';
 import { renderWorkshop } from './render/workshop';
+import { renderPlayground } from './render/playground';
+import { PROMPT_DATA, validatePrompts } from './playground/prompts';
+import { BoardStore } from './playground/store';
+import { tutorPanel } from './render/tutor';
+import { faqPassages, loadFaqs, type FaqFile } from './tutor/faq';
+import { buildIndex, lessonPassages, type Index } from './tutor/search';
 import { renderLesson, type LessonView } from './render/lesson';
 import { renderProgress, renderSettings } from './render/progress';
 import { celebrate, clearToast } from './render/toast';
@@ -27,6 +33,7 @@ import { HOME, parseRoute, routeHash, sameRoute, type Route } from './router';
 const NAV: { route: Route; label: string; icon: IconName }[] = [
   { route: HOME, label: 'Learn', icon: 'learn' },
   { route: { name: 'progress' }, label: 'Progress', icon: 'progress' },
+  { route: { name: 'playground' }, label: 'Design', icon: 'design' },
   { route: { name: 'settings' }, label: 'Settings', icon: 'settings' },
 ];
 
@@ -39,11 +46,27 @@ function chip(label: string, value: string): HTMLElement {
 function start(root: HTMLElement, lessons: Lesson[]): void {
   const byId = new Map(lessons.map((l) => [l.id, l]));
   const ids = new Set(byId.keys());
+  // Bad prompt data fails loudly at load, like lessons.
+  const prompts = validatePrompts(PROMPT_DATA, ids);
   const kv = browserStorage();
   const profiles = new Profiles(kv);
   const store = new ProgressStore(kv, undefined, profileKey(profiles.current.id, 'progress'));
   const tracker = new Tracker(store, Tracker.lessonInfo(lessons), REWARDS);
   let persistState: PersistState = 'unsupported';
+
+  // The tutor's search covers every lesson plus the open track's suggested answers; built once per track.
+  const tutorData = new Map<Track, Promise<{ faqs: FaqFile; index: Index }>>();
+  const lessonTracks = new Map(lessons.map((l) => [l.id, l.track] as const));
+  const titles = new Map(lessons.map((l) => [l.id, l.title] as const));
+  const loadTutor = (track: Track) => {
+    let p = tutorData.get(track);
+    if (!p) {
+      p = loadFaqs(track, lessonTracks).then((faqs) => ({ faqs, index: buildIndex([...lessons.flatMap(lessonPassages), ...faqPassages(faqs, titles)]) }));
+      p.catch(() => tutorData.delete(track));
+      tutorData.set(track, p);
+    }
+    return p;
+  };
 
   // Shell: top bar (brand, back, stats), a nav that is a bottom tab bar on phones and a left
   // rail on wide screens, and the page itself.
@@ -96,20 +119,27 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
     }
     const p = tracker.progress();
     chips.replaceChildren(chip('Lv', String(p.level)), chip('Streak', `${p.streak}d`), chip('Coins', String(p.coins)));
-    // With more than one learner on the device, show whose progress this is.
-    if (profiles.all.length > 1) {
-      const who = el('a', { class: 'top-stat who', href: routeHash({ name: 'settings' }), 'aria-label': `Learning as ${profiles.current.name}. Change in Settings.` });
-      // Phones show only the initial, so the top bar still fits at 360 px.
-      const initial = [...profiles.current.name][0]!.toUpperCase();
-      who.append(el('span', { class: 'who-initial', 'aria-hidden': 'true' }, initial), el('small', {}, 'Learner'), el('strong', {}, profiles.current.name));
-      chips.prepend(who);
-    }
+    // Always show whose progress this is (owner's choice, 2026-10-20); it opens Settings > Learners.
+    const who = el('a', { class: 'top-stat who', href: routeHash({ name: 'settings' }), 'aria-label': `Learning as ${profiles.current.name}. Change in Settings.` });
+    // Phones show only the initial, so the top bar still fits at 360 px.
+    const initial = [...profiles.current.name][0]!.toUpperCase();
+    who.append(el('span', { class: 'who-initial', 'aria-hidden': 'true' }, initial), el('small', {}, 'Learner'), el('strong', {}, profiles.current.name));
+    chips.prepend(who);
     if (route.name === 'progress') {
       document.title = 'Progress · Logic Quest';
       renderProgress(view, tracker, REWARDS);
+    } else if (route.name === 'playground') {
+      document.title = 'Design playground · Logic Quest';
+      renderPlayground(view, new BoardStore(kv, profileKey(profiles.current.id, 'boards')), {
+        prompts,
+        lesson: (id) => {
+          const l = byId.get(id);
+          return l ? { title: l.title, href: routeHash({ name: 'lesson', id }) } : null;
+        },
+      });
     } else if (route.name === 'settings') {
       document.title = 'Settings · Logic Quest';
-      renderSettings(view, tracker, store, REWARDS, persistState, () => renderLearners(profiles, switchTo));
+      renderSettings(view, tracker, store, REWARDS, persistState, () => renderLearners(profiles, switchTo), new WorkshopStore(kv, profileKey(profiles.current.id, 'workshop')));
     } else if (route.name === 'lesson') {
       const lesson = byId.get(route.id)!;
       document.title = `${lesson.title} · Logic Quest`;
@@ -117,6 +147,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
         answer: (q, option, correct) => tracker.answer(lesson.id, q, option, correct),
         complete: () => tracker.complete(lesson.id),
         celebrate: (f) => celebrate(f, store.settings.calm),
+        tutor: tutorPanel(lesson, { load: () => loadTutor(lesson.track), href: (id) => routeHash({ name: 'lesson', id }) }),
       });
     } else if (route.name === 'practice') {
       showPractice(route.track, route.id);

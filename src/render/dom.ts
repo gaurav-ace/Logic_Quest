@@ -21,6 +21,16 @@ export function button(text: string, onTap: () => void, attrs: Attrs = {}): HTML
   return b;
 }
 
+/** Saves text as a file through the browser's download, with no server involved. */
+export function download(text: string, name: string, type = 'application/json'): void {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = el('a', { href: url, download: name });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export const reducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function scrollTo(target: Element, block: ScrollLogicalPosition): void {

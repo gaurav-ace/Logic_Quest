@@ -9,6 +9,8 @@ export interface QuizHooks {
   complete(): Feedback;
   /** Shows a reward (a toast, unless calm mode is on). */
   celebrate(feedback: Feedback): void;
+  /** The lesson's tutor panel, shown under the goal. The same element is reused when a lesson redraws, so its conversation stays. */
+  tutor?: HTMLElement;
 }
 
 /** Shows question `index` in `box`. `replay` restarts the animation for another look. */

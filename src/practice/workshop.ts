@@ -126,6 +126,28 @@ export class WorkshopStore {
     return parseSave(v === undefined ? null : JSON.stringify(v), steps);
   }
 
+  /** Every problem this learner has started, for a backup file. */
+  exportAll(): Record<string, WorkshopSave> {
+    return parseWorkshopBackup(this.all());
+  }
+
+  /** How many problems a backup would add to or fill in. */
+  previewImport(raw: unknown): number {
+    return mergeBackup(this.exportAll(), parseWorkshopBackup(raw)).changed;
+  }
+
+  /** Merges a backup's workshop saves in; false if storage refused the write. */
+  importAll(raw: unknown): boolean {
+    const { saves, changed } = mergeBackup(this.exportAll(), parseWorkshopBackup(raw));
+    if (changed === 0) return true;
+    try {
+      this.kv?.setItem(this.key, JSON.stringify({ ...this.all(), ...saves }));
+      return this.kv !== null;
+    } catch {
+      return false;
+    }
+  }
+
   save(id: string, data: WorkshopSave): boolean {
     try {
       this.kv?.setItem(this.key, JSON.stringify({ ...this.all(), [id]: data }));
@@ -134,4 +156,53 @@ export class WorkshopStore {
       return false;
     }
   }
+}
+
+/** Guided problems always have the six stages (the validator insists), so saved steps are 0–5. */
+const STEP_COUNT = 6;
+const ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/**
+ * The workshop part of a backup file: problem id → save. Lenient, like reading a local save:
+ * entries that aren't a problem id are dropped, and each save is cleaned by parseSave.
+ */
+export function parseWorkshopBackup(raw: unknown): Record<string, WorkshopSave> {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return {};
+  const out: Record<string, WorkshopSave> = {};
+  for (const [id, v] of Object.entries(raw)) if (ID.test(id)) out[id] = parseSave(JSON.stringify(v), STEP_COUNT);
+  return out;
+}
+
+const blank = (s: WorkshopSave) => s.step === 0 && s.outline.length === 0 && Object.values(s.notes).every((n) => !n.trim());
+
+/**
+ * Merges one problem's imported save into the local one without losing anything written here:
+ * a local note or outline always wins, imported ones only fill gaps, and the furthest step stays.
+ */
+export function mergeSave(local: WorkshopSave, incoming: WorkshopSave): WorkshopSave {
+  const notes = { ...local.notes };
+  for (const [k, v] of Object.entries(incoming.notes)) if (!notes[k]?.trim() && v.trim()) notes[k] = v;
+  return { step: Math.max(local.step, incoming.step), notes, outline: local.outline.length ? local.outline : incoming.outline };
+}
+
+const same = (a: WorkshopSave, b: WorkshopSave) => JSON.stringify(a) === JSON.stringify(b);
+
+export interface WorkshopMerge {
+  saves: Record<string, WorkshopSave>;
+  /** Problems the import adds to or fills in. */
+  changed: number;
+}
+
+export function mergeBackup(local: Record<string, WorkshopSave>, incoming: Record<string, WorkshopSave>): WorkshopMerge {
+  const saves = { ...local };
+  let changed = 0;
+  for (const [id, save] of Object.entries(incoming)) {
+    if (blank(save)) continue;
+    const merged = local[id] ? mergeSave(local[id], save) : save;
+    if (!local[id] || !same(merged, local[id])) {
+      saves[id] = merged;
+      changed++;
+    }
+  }
+  return { saves, changed };
 }

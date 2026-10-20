@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { defineConfig, type Plugin } from 'vitest/config';
@@ -33,10 +34,24 @@ function serviceWorker(): Plugin {
   };
 }
 
+// The commit this build came from, shown in Settings so a learner can tell whether a device has
+// the latest version (it matches the short ids GitHub shows). "local" outside a git checkout.
+function commit(): string {
+  try {
+    return execSync('git rev-parse --short=7 HEAD', { encoding: 'utf8' }).trim();
+  } catch {
+    return 'local';
+  }
+}
+
 export default defineConfig({
   // GitHub Pages serves the site from /<repo-name>/. The service worker scope follows this.
   base: '/Logic_Quest/',
   plugins: [serviceWorker()],
+  define: {
+    __APP_COMMIT__: JSON.stringify(commit()),
+    __APP_BUILT__: JSON.stringify(new Date().toISOString().slice(0, 10)),
+  },
   test: {
     include: ['src/**/*.test.ts'],
     // Vitest 5 caches transformed files on disk keyed by their own content, so a file using

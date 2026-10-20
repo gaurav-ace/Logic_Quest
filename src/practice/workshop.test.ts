@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  OUTLINE_MAX, WorkshopStore, addItem, indent, move, normalise, orderIsRight, outdent, parseSave, removeItem, selectionIsRight, shuffledOrder, type OutlineItem,
+  OUTLINE_MAX, WorkshopStore, addItem, indent, mergeBackup, mergeSave, move, normalise, orderIsRight, outdent, parseSave, parseWorkshopBackup, removeItem, selectionIsRight, shuffledOrder, type OutlineItem, type WorkshopSave,
 } from './workshop';
 
 const o = (...items: [string, number][]): OutlineItem[] => items.map(([text, depth]) => ({ text, depth }));
@@ -116,5 +116,63 @@ describe('saving', () => {
     kv.fail = true;
     expect(new WorkshopStore(kv, 'w').save('a', { step: 0, notes: {}, outline: [] })).toBe(false);
     expect(new WorkshopStore(null, 'w').save('a', { step: 0, notes: {}, outline: [] })).toBe(false);
+  });
+});
+
+describe('backups', () => {
+  const mem = () => {
+    const m = new Map<string, string>();
+    return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) };
+  };
+  const save = (step: number, notes: Record<string, string>, outline: OutlineItem[] = []): WorkshopSave => ({ step, notes, outline });
+
+  it('local notes and outline always win; imported ones only fill gaps; the furthest step stays', () => {
+    const local = save(1, { '0': 'mine', '1': '' }, o(['local plan', 0]));
+    const incoming = save(4, { '0': 'theirs', '1': 'filled', '3': 'new' }, o(['their plan', 0]));
+    expect(mergeSave(local, incoming)).toEqual(save(4, { '0': 'mine', '1': 'filled', '3': 'new' }, o(['local plan', 0])));
+    expect(mergeSave(save(0, {}), incoming).outline).toEqual(o(['their plan', 0]));
+  });
+
+  it('counts only problems that change, and importing twice changes nothing', () => {
+    const local = { a: save(2, { '0': 'x' }) };
+    const incoming = { a: save(2, { '0': 'y' }), b: save(1, { '0': 'b notes' }), c: save(0, {}) };
+    const first = mergeBackup(local, incoming);
+    // a: local note wins and nothing else differs; b: new; c: blank, so ignored.
+    expect(first.changed).toBe(1);
+    expect(Object.keys(first.saves).sort()).toEqual(['a', 'b']);
+    expect(mergeBackup(first.saves, incoming).changed).toBe(0);
+  });
+
+  it('never loses anything written locally, on random saves', () => {
+    let seed = 5;
+    const r = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
+    const rand = (): WorkshopSave => save(Math.floor(r() * 6), Object.fromEntries([0, 1, 2, 3, 4].filter(() => r() < 0.5).map((k) => [String(k), r() < 0.3 ? '' : `n${k}-${Math.floor(r() * 9)}`])), r() < 0.5 ? o(['p', 0]) : []);
+    for (let k = 0; k < 500; k++) {
+      const local = rand();
+      const merged = mergeSave(local, rand());
+      for (const [key, v] of Object.entries(local.notes)) if (v.trim()) expect(merged.notes[key]).toBe(v);
+      if (local.outline.length) expect(merged.outline).toEqual(local.outline);
+      expect(merged.step).toBeGreaterThanOrEqual(local.step);
+    }
+  });
+
+  it('the workshop part of a backup is read leniently: bad ids and junk are dropped, saves are cleaned', () => {
+    expect(parseWorkshopBackup(null)).toEqual({});
+    expect(parseWorkshopBackup([1, 2])).toEqual({});
+    const read = parseWorkshopBackup({ 'Bad Id': save(1, {}), ok: { step: 99, notes: { '0': 'n', x: 'dropped' }, outline: 'junk' } });
+    expect(read).toEqual({ ok: save(5, { '0': 'n' }) });
+  });
+
+  it('the store exports, previews and imports, and an old backup without notes changes nothing', () => {
+    const kv = mem();
+    const here = new WorkshopStore(kv, 'w');
+    here.save('a', save(3, { '0': 'notes' }, o(['plan', 0])));
+    const exported = JSON.parse(JSON.stringify(here.exportAll())) as unknown;
+    const other = new WorkshopStore(mem(), 'w');
+    expect(other.previewImport(exported)).toBe(1);
+    expect(other.importAll(exported)).toBe(true);
+    expect(other.load('a', 6)).toEqual(save(3, { '0': 'notes' }, o(['plan', 0])));
+    expect(other.previewImport(exported)).toBe(0);
+    expect(other.previewImport(undefined)).toBe(0);
   });
 });

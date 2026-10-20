@@ -2,7 +2,7 @@
 // No dependencies: talks to Chrome over the DevTools protocol with Node's built-in WebSocket.
 //
 //   npm run build && npm run preview          (in another terminal)
-//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design|agent|profiles|practice|practice-walk|workshop] [url] [screenshot-dir]
+//   node scripts/browser-check.mjs [ui|pwa|persist|lessons|update|sim|design|agent|profiles|practice|practice-walk|workshop|tutor|playground] [url] [screenshot-dir]
 //   DIST_DIR=dist node scripts/browser-check.mjs update   (edits dist/ to simulate a deploy: rebuild after)
 //   LESSONS=binary-search,heaps node scripts/browser-check.mjs lessons   (walk only those)
 //
@@ -445,9 +445,9 @@ if (mode === 'ui') {
     const merged = join(downloads, 'with-extra.json');
     writeFileSync(merged, JSON.stringify({ ...backup, events: [...backup.events, extra] }));
     await importFile(merged);
-    check('import previews only what is new', (await text('.backup-status')).startsWith('This file has 1 new item.'), await text('.backup-status'));
-    await tap('Merge 1 item');
-    check('merge adds it once: +10 XP for the newly completed lesson', (await text('.backup-status')) === 'Merged 1 item into your progress.');
+    check('import previews only what is new', (await text('.backup-status')).startsWith('This file has 1 new item of progress.'), await text('.backup-status'));
+    await tap('Merge');
+    check('merge adds it once: +10 XP for the newly completed lesson', (await text('.backup-status')) === 'Merged 1 new item of progress.');
     const xpAfter = await progressStats();
     await importFile(merged);
     const again = await text('.backup-status');
@@ -848,7 +848,7 @@ if (mode === 'profiles') {
   await takeQuiz();
   await tap('The browser, by sending a request');
   await load();
-  check('one learner: progress as before, no learner name in the top bar', (await stats()) === 'Level1XP20 / 30Streak1 dayCoins5' && !(await evaluate(`!!document.querySelector('.who')`)), await stats());
+  check('one learner: progress as before, and the top bar shows the learner, linking to Settings', (await stats()) === 'Level1XP20 / 30Streak1 dayCoins5' && (await text('.who-initial')) === 'L' && (await evaluate(`document.querySelector('a.who').getAttribute('href')`)) === '#/settings', await stats());
 
   await load(url + '#/settings');
   check('settings lists the one learner', (await text('.learner-name')) === 'Learner 1 (you, now)', await text('.learner-name'));
@@ -895,6 +895,7 @@ if (mode === 'profiles') {
   await viewport(1280, 800, false);
   await media('no-preference', 'dark');
   await load(url + '#/settings');
+  check('Settings shows the app version (build commit and date)', /^App version ([0-9a-f]{7}|local), built \d{4}-\d{2}-\d{2}$/.test(await text('.app-version')), await text('.app-version'));
   await shot('profiles-settings-desktop-dark');
 }
 
@@ -1060,6 +1061,232 @@ if (mode === 'practice-walk') {
   }
 }
 
+if (mode === 'tutor') {
+  // "Ask about this lesson": suggested answers with sources, a typed search over the course, a
+  // question nothing matches, a lesson with no suggested questions, and the conversation
+  // surviving a lesson that redraws itself ("New example"). Touch only, 360 px.
+  await viewport(360, 740, true);
+  await media('reduce');
+  const ask = async (q) => {
+    await tapSel('.tutor-ask input');
+    await send('Input.insertText', { text: q });
+    await tap('Search');
+    await sleep(300);
+  };
+  const turns = () => evaluate(`document.querySelectorAll('.tutor-turn').length`);
+  await load(url + '#/lesson/cache');
+  await sleep(600);
+  check('the panel sits under the goal, folded', (await evaluate(`document.querySelector('.objective').nextElementSibling.matches('details.tutor:not([open])')`)));
+  await tap('Ask about this lesson');
+  await sleep(800);
+  const qs = await evaluate(`[...document.querySelectorAll('.tutor-q')].map((b) => b.textContent)`);
+  check('the cache lesson offers its 3 suggested questions', qs.length === 3 && qs[0] === 'Should I update the database or remove the cached copy first?', JSON.stringify(qs));
+  await tap(qs[0]);
+  check('a suggested question shows its reviewed answer, with sources', /^Update the database first/.test(await text('.tutor-answer p')) && (await text('.tutor-sources summary')) === 'Sources (1)', await text('.tutor-answer p'));
+  await layoutChecks('tutor answer (360px)');
+  await ask('why not round robin');
+  const hits = await evaluate(`[...document.querySelectorAll('.tutor-turn')[0].querySelectorAll('.tutor-where')].map((p) => p.textContent)`);
+  check('a typed question shows the closest course passages, newest first', hits.length > 0 && hits.length <= 5 && (await text('.tutor-you')) === 'why not round robin', JSON.stringify(hits));
+  check('passages from other lessons link to them', await evaluate(`[...document.querySelectorAll('.tutor-turn')[0].querySelectorAll('a.tutor-open')].some((a) => a.getAttribute('href') === '#/lesson/load-balancer')`));
+  await ask('zebra quokka kiwi');
+  check('when nothing matches it says so and lists the lesson’s sources', /^Nothing in the course matches/.test(await evaluate(`document.querySelector('.tutor-turn .tutor-answer p').textContent`)));
+  await ask('<img src=x onerror=alert(1)>');
+  check('a question is shown as text, never as HTML', (await text('.tutor-you')) === '<img src=x onerror=alert(1)>' && !(await evaluate(`!!document.querySelector('.tutor-log img')`)));
+  await layoutChecks('tutor search (360px)');
+  await shot('tutor-cache');
+
+  await load(url + '#/lesson/arrays');
+  await sleep(600);
+  await tap('Ask about this lesson');
+  await sleep(800);
+  check('a lesson without suggested questions still has search', (await evaluate(`document.querySelectorAll('.tutor-q').length`)) === 0 && !!(await evaluate(`document.querySelector('.tutor-ask input')`)));
+  await ask('index of the last item');
+  const before = await turns();
+  await tap('New example');
+  await sleep(500);
+  check('the conversation survives the lesson redrawing itself', before === 1 && (await turns()) === 1 && (await evaluate(`document.querySelector('details.tutor').open`)), `${before} -> ${await turns()}`);
+
+  await viewport(1280, 800, false);
+  await media('no-preference', 'dark');
+  await load(url + '#/lesson/agent-guardrails');
+  await sleep(600);
+  await tap('Ask about this lesson');
+  await sleep(800);
+  await tap('Can a system prompt alone stop prompt injection?');
+  await layoutChecks('tutor (desktop)');
+  await shot('tutor-desktop-dark');
+}
+
+if (mode === 'playground') {
+  // The design playground by touch at 360 px: place, connect, label, drag, nudge, undo and redo,
+  // delete (taking its arrows), pinch zoom, saving across a reload, several designs; then the
+  // keyboard on desktop.
+  await viewport(360, 740, true);
+  await media('reduce');
+  const touch = async (type, points) => send('Input.dispatchTouchEvent', { type, touchPoints: points });
+  const tapAt = async (x, y) => {
+    await touch('touchStart', [{ x, y }]);
+    await touch('touchEnd', []);
+    await sleep(200);
+  };
+  const box = (sel, n = 0) => evaluate(`(() => { const e = document.querySelectorAll(${JSON.stringify(sel)})[${n}]; if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, left: r.left, top: r.top }; })()`);
+  const counts = async () => evaluate(`[document.querySelectorAll('.pg-shape').length, document.querySelectorAll('.pg-arrow').length].join('/')`);
+  const shapeX = (n) => evaluate(`+document.querySelectorAll('.pg-shape rect')[${n}].getAttribute('x')`);
+  const enter = () => send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r' }).then(() => send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 }));
+
+  await load(url + '#/playground');
+  await sleep(500);
+  check('the Design tab opens the playground', (await text('h2')) === 'Design playground' && (await evaluate(`document.querySelector('.nav-item[aria-current="page"]')?.textContent`)) === 'Design');
+  check('first visit starts one empty design, with a hint', (await evaluate(`document.querySelectorAll('.pg-bar option').length`)) === 1 && (await counts()) === '0/0' && /^Start by tapping a box type/.test(await text('.pg-status')));
+  await tap('API service');
+  check('a palette item waits for a tap on the board', /Tap the board to place: API service/.test(await text('.pg-status')));
+  await scrollToCanvas();
+  const c = await box('.pg-canvas');
+  await tapAt(c.left + 90, c.top + 60);
+  check('tapping the board places it, selected', (await counts()) === '1/0' && (await text('.pg-panel h3')) === 'Selected: API service', await text('.pg-panel h3'));
+  await tap('Database');
+  await scrollToCanvas();
+  const c2 = await box('.pg-canvas');
+  await tapAt(c2.left + 90, c2.top + 230);
+  await tap('Connect');
+  await scrollToCanvas();
+  const s1 = await box('.pg-shape rect', 0);
+  const s2 = await box('.pg-shape rect', 1);
+  await tapAt(s1.x, s1.y);
+  check('Connect asks for the second box', (await text('.pg-status')) === 'Now tap the box the arrow goes to.');
+  await tapAt(s2.x, s2.y);
+  check('tapping two boxes draws an arrow between them, selected', (await counts()) === '2/1' && /^Selected: arrow from API service to Database$/.test(await text('.pg-panel h3')), await text('.pg-panel h3'));
+  await tapSel('.pg-panel input');
+  await send('Input.insertText', { text: 'SQL' });
+  await enter();
+  await sleep(200);
+  check('the arrow gets a label', (await text('.pg-arrow text')) === 'SQL');
+  await layoutChecks('playground (360px)');
+  const scale = await evaluate(`(() => { const t = document.querySelector('.pg-shape text'); return t.getScreenCTM().a * parseFloat(t.getAttribute('font-size')); })()`);
+  check('board labels are at least 14 px at the starting zoom', scale >= 14, `${scale}px`);
+  await shot('playground-360');
+
+  await scrollToCanvas();
+  const before = await shapeX(1);
+  const d = await box('.pg-shape rect', 1);
+  await touch('touchStart', [{ x: d.x, y: d.y }]);
+  for (let k = 1; k <= 5; k++) {
+    await touch('touchMove', [{ x: d.x + k * 20, y: d.y }]);
+    await sleep(30);
+  }
+  await touch('touchEnd', []);
+  await sleep(200);
+  check('dragging a box moves it, snapped to the grid', (await shapeX(1)) === before + 100, `${before} -> ${await shapeX(1)}`);
+  await tap('Move right', 'label');
+  check('the arrow buttons nudge it one grid step', (await shapeX(1)) === before + 120);
+  await tap('Undo');
+  await tap('Undo');
+  check('Undo steps back through the nudge and the drag', (await shapeX(1)) === before);
+  await tap('Redo');
+  check('Redo steps forward again', (await shapeX(1)) === before + 100);
+
+  await tap(`The design as text: 2 boxes, 1 arrow`);
+  await tapSel('.pg-text li button', 0);
+  await tap('Delete');
+  check('deleting a box takes its arrows with it', (await counts()) === '1/0');
+  await tap('Undo');
+  check('and Undo brings both back', (await counts()) === '2/1');
+
+  await scrollToCanvas();
+  const p = await box('.pg-canvas');
+  const z0 = await evaluate(`document.querySelector('.pg-svg g').getAttribute('transform')`);
+  await touch('touchStart', [{ x: p.x - 100, y: p.y, id: 1 }, { x: p.x + 100, y: p.y, id: 2 }]);
+  for (let k = 1; k <= 5; k++) {
+    await touch('touchMove', [{ x: p.x - 100 + k * 15, y: p.y, id: 1 }, { x: p.x + 100 - k * 15, y: p.y, id: 2 }]);
+    await sleep(30);
+  }
+  await touch('touchEnd', []);
+  await sleep(200);
+  const z1 = await evaluate(`document.querySelector('.pg-svg g').getAttribute('transform')`);
+  check('pinching zooms out', /scale\(0\./.test(z1) && z0.startsWith('scale(1)'), `${z0} -> ${z1}`);
+  await tap('Zoom in', 'label');
+  check('the + button zooms back in', (await evaluate(`document.querySelector('.pg-svg g').getAttribute('transform')`)) !== z1);
+  await layoutChecks('playground zoomed (360px)');
+
+  await load(url + '#/playground');
+  await sleep(500);
+  check('after a reload the design is still there', (await counts()) === '2/1' && (await text('.pg-arrow text')) === 'SQL');
+  await tap('Design: My design');
+  await tap('New design');
+  check('New design starts an empty second one', (await evaluate(`document.querySelectorAll('.pg-bar option').length`)) === 2 && (await counts()) === '0/0');
+  await tap('Delete design');
+  check('deleting asks for a second tap', (await evaluate(`[...document.querySelectorAll('.pg-bar button')].some((b) => b.textContent === 'Tap again to delete')`)));
+  await tap('Tap again to delete');
+  check('and then goes back to the remaining design', (await evaluate(`document.querySelectorAll('.pg-bar option').length`)) === 1 && (await counts()) === '2/1');
+
+  // A practice prompt: requirements, a checklist that is saved, and lessons to compare with.
+  await tap('Practice prompts');
+  await evaluate(`(() => { const s = document.querySelector('.pg-practice select'); s.value = 'url-shortener'; s.dispatchEvent(new Event('change')); })()`);
+  await sleep(200);
+  check('a prompt shows its requirements, checklist and lessons to compare', (await text('.pg-practice summary')) === 'Practice: A URL shortener' && (await evaluate(`document.querySelectorAll('.pg-checklist input').length`)) === 5 && (await evaluate(`[...document.querySelectorAll('.pg-practice a')].map((a) => a.getAttribute('href')).join(' ')`)) === '#/lesson/design-url-shortener #/lesson/cache #/lesson/rate-limiting');
+  await tapSel('.pg-checklist label', 1);
+  check('ticking a question counts it', /\(1 of 5\)/.test(await evaluate(`[...document.querySelectorAll('.pg-practice h3')][1].textContent`)));
+  await layoutChecks('playground practice (360px)');
+  await load(url + '#/playground');
+  await sleep(500);
+  check('the prompt and the tick are kept after a reload', (await text('.pg-practice summary')) === 'Practice: A URL shortener' && (await evaluate(`[...document.querySelectorAll('.pg-checklist input')].map((i) => i.checked).join()`)) === 'false,true,false,false,false');
+
+  // Files: JSON and SVG downloads, and importing the JSON back as a new design.
+  const downloads = join(outDir, 'playground-downloads');
+  rmSync(downloads, { recursive: true, force: true });
+  mkdirSync(downloads, { recursive: true });
+  await send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloads });
+  await tap('Files');
+  await tap('Download as JSON');
+  await tap('Download as SVG');
+  await sleep(1500);
+  const got = readdirSync(downloads).sort();
+  check('both files download', got.join(' ') === 'my-design.json my-design.svg', got.join(' '));
+  const saved = got.includes('my-design.json') ? JSON.parse(readFileSync(join(downloads, 'my-design.json'), 'utf8')) : {};
+  check('the JSON holds the boxes, the arrow and the prompt', saved.shapes?.length === 2 && saved.arrows?.[0]?.label === 'SQL' && saved.prompt === 'url-shortener');
+  check('the SVG is a picture of the same design', got.includes('my-design.svg') && /<svg[\s\S]*SQL[\s\S]*<\/svg>/.test(readFileSync(join(downloads, 'my-design.svg'), 'utf8')));
+  const importFile = async (path) => {
+    const { result } = await send('Runtime.evaluate', { expression: `document.querySelector('.pg-files input[type=file]')` });
+    await send('DOM.setFileInputFiles', { files: [path], objectId: result.objectId });
+    await sleep(600);
+  };
+  if (got.includes('my-design.json')) {
+    await importFile(join(downloads, 'my-design.json'));
+    check('importing it adds it as a new design', (await evaluate(`document.querySelectorAll('.pg-bar option').length`)) === 2 && (await counts()) === '2/1' && /^Imported “My design”/.test(await text('.pg-status')), await text('.pg-status'));
+  }
+  const bad = join(downloads, 'bad.json');
+  writeFileSync(bad, JSON.stringify({ version: 1, name: 'x', shapes: [{ id: 's1', kind: 'rocket', x: 0, y: 0, width: 140, height: 60, label: '' }], arrows: [] }));
+  await importFile(bad);
+  check('a bad file is refused with the reason, and nothing changes', (await text('.pg-status')) === "That file can't be imported: shape s1 has an unknown kind. Nothing was changed." && (await evaluate(`document.querySelectorAll('.pg-bar option').length`)) === 2, await text('.pg-status'));
+
+  await viewport(1280, 800, false);
+  await media('no-preference', 'dark');
+  await load(url + '#/playground');
+  await sleep(500);
+  await evaluate(`document.querySelector('.pg-text').open = true`);
+  await tapSel('.pg-text li button', 1);
+  const kx = await shapeX(1);
+  await evaluate(`document.querySelector('.pg-canvas').focus()`);
+  const key = async (k, code, vk, mods = 0) => {
+    await send('Input.dispatchKeyEvent', { type: 'keyDown', key: k, code, windowsVirtualKeyCode: vk, modifiers: mods });
+    await send('Input.dispatchKeyEvent', { type: 'keyUp', key: k, code, windowsVirtualKeyCode: vk, modifiers: mods });
+    await sleep(150);
+  };
+  await key('ArrowRight', 'ArrowRight', 39);
+  check('keyboard: an arrow key nudges the selected box', (await shapeX(1)) === kx + 20);
+  await key('Delete', 'Delete', 46);
+  check('keyboard: Delete removes it', (await counts()) === '1/0');
+  await key('z', 'KeyZ', 90, 2);
+  check('keyboard: Ctrl+Z undoes', (await counts()) === '2/1');
+  await layoutChecks('playground (desktop)');
+  await shot('playground-desktop-dark');
+
+  async function scrollToCanvas() {
+    await evaluate(`document.querySelector('.pg-canvas').scrollIntoView({ block: 'center' })`);
+    await sleep(150);
+  }
+}
+
 if (mode === 'workshop') {
   // One guided problem end to end by touch: notes, hints, the outline editor, the order and
   // select checks, resuming after a reload, XP, and the two-column layout on desktop.
@@ -1129,6 +1356,35 @@ if (mode === 'workshop') {
   await load();
   // Retry 5 + 10 + retry 5 + 10 + retry 5.
   check('XP from the graded checks only', (await text('.hud-stats')) === 'Level2XP35 / 80Streak0 daysCoins0', await text('.hud-stats'));
+
+  // Backups carry the workshop: export, lose the notes on this device, import, and they're back.
+  const downloads = join(outDir, 'workshop-downloads');
+  rmSync(downloads, { recursive: true, force: true });
+  mkdirSync(downloads, { recursive: true });
+  await send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloads });
+  await load(url + '#/settings');
+  await tap('Export backup');
+  await sleep(1500);
+  const file = readdirSync(downloads).find((f) => f.endsWith('.json'));
+  const backup = file ? JSON.parse(readFileSync(join(downloads, file), 'utf8')) : {};
+  check('the backup file holds the workshop notes and outline', backup.workshop?.['second-largest']?.notes?.['0'] === 'In: numbers. Out: biggest value below the max.' && backup.workshop['second-largest'].outline.length === 3, JSON.stringify(backup.workshop ?? null).slice(0, 120));
+  await evaluate(`localStorage.removeItem('logic-quest:p:p1:workshop')`);
+  await load(url + '#/settings');
+  const importFile = async () => {
+    const { result } = await send('Runtime.evaluate', { expression: `document.querySelector('input[type=file]')` });
+    await send('DOM.setFileInputFiles', { files: [join(downloads, file)], objectId: result.objectId });
+    await sleep(500);
+  };
+  if (file) {
+    await importFile();
+    check('import offers the workshop notes back, and no progress twice', (await text('.backup-status')).startsWith('This file has workshop notes for 1 problem.'), await text('.backup-status'));
+    await tap('Merge');
+    await importFile();
+    check('importing it again adds nothing', (await text('.backup-status')) === 'Everything in that file is already here. Nothing to add.', await text('.backup-status'));
+    await load(url + '#/practice/logic/second-largest');
+    await sleep(800);
+    check('the problem resumes with the imported notes and outline', (await evaluate(`document.querySelector('.workshop-step textarea').value`)) === 'In: numbers. Out: biggest value below the max.' && (await outline()) === '0:Loop over the list | 0:Remember best and second | 1:Update best and second', await outline());
+  }
   await viewport(1280, 800, false);
   await media('no-preference', 'dark');
   await load(url + '#/practice/logic/second-largest');

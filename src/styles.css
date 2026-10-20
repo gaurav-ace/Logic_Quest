@@ -383,7 +383,8 @@ button.primary {
   cursor: pointer;
 }
 
-.notes a {
+.notes a,
+.tutor-sources a {
   color: var(--blue);
   /* Source links sit alone on their line, so they can be full-size tap targets. */
   display: inline-flex;
@@ -1492,7 +1493,7 @@ button.action {
   bottom: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   background: var(--card);
   border-top: 1px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -2260,4 +2261,372 @@ button.code-line.wrong {
 
 .save-state:empty {
   display: none;
+}
+
+/* The offline tutor ("Ask about this lesson"): suggested questions, a search box, and the answers, newest first. */
+.tutor > summary,
+.tutor-sources > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap);
+  cursor: pointer;
+}
+
+.tutor > summary {
+  font-weight: 700;
+}
+
+/* display: flex drops the browser's fold marker, so draw one, as the practice drop-down does. */
+.tutor > summary::before,
+.tutor-sources > summary::before {
+  content: '▸';
+}
+
+.tutor[open] > summary::before,
+.tutor-sources[open] > summary::before {
+  content: '▾';
+}
+
+/* The input takes the spare width; the button keeps its whole label at 360 px. */
+.tutor-ask .learner-input {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.tutor-ask button {
+  flex: none;
+}
+
+.tutor-suggested {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.tutor-suggested h3 {
+  margin: 4px 0;
+  font-size: 1rem;
+}
+
+button.tutor-q {
+  text-align: left;
+  font-weight: 500;
+}
+
+.tutor-log {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tutor-you {
+  margin: 0 0 6px;
+  font-weight: 700;
+}
+
+.tutor-answer {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  overflow-wrap: anywhere;
+}
+
+.tutor-answer > p,
+.tutor-hit > p {
+  margin: 0 0 6px;
+}
+
+.tutor-hit {
+  padding: 8px 0;
+  border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+}
+
+.tutor-where {
+  font-size: 0.875rem;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+a.tutor-open {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  min-width: var(--tap);
+}
+
+/* The design playground. The board is plain SVG; pan and zoom are a transform on one group, so at
+   the starting zoom one board unit is one CSS pixel and labels are 14 px. */
+.pg-bar,
+.pg-tools,
+.pg-nudge {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.pg-designs > summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.pg-designs > summary::before {
+  content: '▸';
+  margin-right: 8px;
+}
+
+.pg-designs[open] > summary::before {
+  content: '▾';
+}
+
+.pg-designs .pg-bar {
+  margin: 8px 0 0;
+}
+
+.pg-bar select {
+  min-height: var(--tap);
+  flex: 1 1 10rem;
+  font: inherit;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  padding: 0 8px;
+}
+
+/* The palette scrolls sideways inside its own box, never the page. */
+.pg-palette {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+.pg-palette button {
+  flex: none;
+  white-space: nowrap;
+}
+
+.pg-status {
+  min-height: 1.5em;
+  margin: 0 0 8px;
+}
+
+.pg-canvas {
+  height: clamp(320px, 60vh, 560px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+  touch-action: none;
+}
+
+.pg-canvas:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.pg-canvas.placing {
+  cursor: crosshair;
+}
+
+.pg-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pg-world {
+  fill: var(--card);
+  stroke: var(--line);
+  stroke-width: 2;
+}
+
+.pg-shape rect {
+  fill: color-mix(in srgb, var(--accent) 12%, var(--card));
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.pg-shape text,
+.pg-arrow text {
+  fill: var(--ink);
+  pointer-events: none;
+}
+
+/* Data stores are green with rounder corners, queues dashed, AI purple, outside services grey. */
+.pg-shape.kind-db rect,
+.pg-shape.kind-cache rect,
+.pg-shape.kind-storage rect {
+  fill: color-mix(in srgb, var(--ok) 14%, var(--card));
+  stroke: var(--ok);
+}
+
+.pg-shape.kind-queue rect {
+  stroke-dasharray: 8 4;
+}
+
+.pg-shape.kind-llm rect {
+  fill: color-mix(in srgb, #8b5cf6 16%, var(--card));
+  stroke: #8b5cf6;
+}
+
+.pg-shape.kind-external rect,
+.pg-shape.kind-cdn rect {
+  fill: color-mix(in srgb, var(--mute) 12%, var(--card));
+  stroke: var(--mute);
+}
+
+.pg-shape.kind-note rect {
+  fill: var(--hi);
+  stroke: color-mix(in srgb, var(--hi-ink) 40%, var(--hi));
+}
+
+.pg-shape.kind-note text {
+  fill: var(--hi-ink);
+}
+
+.pg-shape.selected rect {
+  stroke-width: 4;
+}
+
+.pg-shape.from rect {
+  stroke-width: 4;
+  stroke-dasharray: 4 3;
+}
+
+.pg-arrow line {
+  stroke: var(--stroke);
+  stroke-width: 2;
+}
+
+.pg-arrow.selected line {
+  stroke: var(--accent);
+  stroke-width: 4;
+}
+
+.pg-arrow text {
+  paint-order: stroke;
+  stroke: var(--card);
+  stroke-width: 4px;
+}
+
+.pg-head {
+  fill: var(--stroke);
+}
+
+.pg-panel h3 {
+  margin-top: 0;
+}
+
+.pg-panel .learner-input {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.pg-text ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pg-text button {
+  width: 100%;
+  text-align: left;
+  font-weight: 500;
+}
+
+.pg-text > summary {
+  min-height: var(--tap);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.pg-text > summary::before {
+  content: '▸';
+  margin-right: 8px;
+}
+
+.pg-text[open] > summary::before {
+  content: '▾';
+}
+
+.pg-practice > summary,
+.pg-files > summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.pg-practice > summary::before,
+.pg-files > summary::before {
+  content: '▸';
+  margin-right: 8px;
+}
+
+.pg-practice[open] > summary::before,
+.pg-files[open] > summary::before {
+  content: '▾';
+}
+
+.pg-practice select {
+  width: 100%;
+  min-height: var(--tap);
+  font: inherit;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  padding: 0 8px;
+}
+
+.pg-practice h3 {
+  font-size: 1rem;
+  margin: 14px 0 6px;
+}
+
+.pg-practice a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  min-width: var(--tap);
+  color: var(--blue);
+}
+
+/* The whole row is the tap target, not just the small box. */
+.pg-checklist {
+  list-style: none;
+  padding: 0;
+}
+
+.pg-checklist label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--tap);
+  cursor: pointer;
+}
+
+.pg-checklist input {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  accent-color: var(--accent);
 }

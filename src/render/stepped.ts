@@ -76,7 +76,7 @@ export function renderStepped(root: HTMLElement, lesson: Lesson, stage: Stage, h
   // On wide screens the stage sits beside the caption and controls (CSS only; the order here is the phone order).
   const split = el('div', { class: 'lesson-split' });
   split.append(stage.element, predictBox, player);
-  root.replaceChildren(title, objective, ...(basis ? [basis] : []), split, tally, ...(middle ? [middle] : []), quiz, ...(options.footer ? [options.footer] : []), notes(lesson));
+  root.replaceChildren(title, objective, ...(hooks.tutor ? [hooks.tutor] : []), ...(basis ? [basis] : []), split, tally, ...(middle ? [middle] : []), quiz, ...(options.footer ? [options.footer] : []), notes(lesson));
 
   /** Predictions answered in this run: step index -> right on the first try. */
   const predicted = new Map<number, boolean>();

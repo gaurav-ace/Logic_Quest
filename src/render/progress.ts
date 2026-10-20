@@ -1,10 +1,11 @@
 import { persistMessage, type PersistState } from '../progress/persist';
+import type { WorkshopStore } from '../practice/workshop';
 import type { ProgressStore } from '../progress/store';
 import type { Tracker } from '../progress/tracker';
 import type { RewardsConfig } from '../rewards/config';
 import { addDays, localDay, type Day } from '../rewards/days';
 import type { DayStatus } from '../rewards/engine';
-import { button, el } from './dom';
+import { button, download, el } from './dom';
 import { renderHud } from './hud';
 
 const DAY_LABEL: Record<DayStatus | 'none', [mark: string, text: string]> = {
@@ -57,11 +58,11 @@ export function renderProgress(root: HTMLElement, tracker: Tracker, config: Rewa
   root.replaceChildren(el('h2', {}, 'Your progress'), layout);
 }
 
-export function renderSettings(root: HTMLElement, tracker: Tracker, store: ProgressStore, config: RewardsConfig, persist: PersistState, learners?: () => HTMLElement): void {
-  const redraw = () => renderSettings(root, tracker, store, config, persist, learners);
+export function renderSettings(root: HTMLElement, tracker: Tracker, store: ProgressStore, config: RewardsConfig, persist: PersistState, learners?: () => HTMLElement, workshop?: WorkshopStore): void {
+  const redraw = () => renderSettings(root, tracker, store, config, persist, learners, workshop);
   const p = tracker.progress();
   const today = localDay(new Date());
-  root.replaceChildren(el('h2', {}, 'Settings'), settings(), ...(learners ? [learners()] : []), backup());
+  root.replaceChildren(el('h2', {}, 'Settings'), settings(), ...(learners ? [learners()] : []), backup(), el('p', { class: 'muted app-version' }, `App version ${__APP_COMMIT__}, built ${__APP_BUILT__}`));
 
   function settings(): HTMLElement {
     const card = el('section', { class: 'card panel', 'aria-label': 'Settings' });
@@ -98,26 +99,38 @@ export function renderSettings(root: HTMLElement, tracker: Tracker, store: Progr
       const f = file.files?.[0];
       file.value = '';
       if (!f) return;
-      const preview = store.previewImport(await f.text());
+      const text = await f.text();
+      const preview = store.previewImport(text);
       if (!preview.ok) {
         status.replaceChildren(el('p', { class: 'bad' }, `That file can't be imported: ${preview.problem}. Nothing was changed.`));
         return;
       }
-      if (preview.newCount === 0) {
+      // The progress part has been checked, so the text is valid JSON. Older backups have no workshop part.
+      const notes = (JSON.parse(text) as { workshop?: unknown }).workshop;
+      const problems = workshop?.previewImport(notes) ?? 0;
+      if (preview.newCount === 0 && problems === 0) {
         status.replaceChildren(el('p', {}, 'Everything in that file is already here. Nothing to add.'));
         return;
       }
-      const merge = button(`Merge ${preview.newCount} ${preview.newCount === 1 ? 'item' : 'items'}`, () => {
+      const what = [
+        ...(preview.newCount ? [`${preview.newCount} new ${preview.newCount === 1 ? 'item' : 'items'} of progress`] : []),
+        ...(problems ? [`workshop notes for ${problems} ${problems === 1 ? 'problem' : 'problems'}`] : []),
+      ].join(' and ');
+      const merge = button('Merge', () => {
         store.applyImport(preview);
+        const saved = workshop?.importAll(notes) ?? true;
         redraw();
-        root.querySelector('.backup-status')?.replaceChildren(el('p', {}, `Merged ${preview.newCount} ${preview.newCount === 1 ? 'item' : 'items'} into your progress.`));
+        root.querySelector('.backup-status')?.replaceChildren(
+          el('p', {}, `Merged ${what}.`),
+          ...(saved ? [] : [el('p', { class: 'bad' }, "The workshop notes couldn't be saved on this device (storage is full or blocked).")]),
+        );
       }, { class: 'primary' });
       const actions = el('div', { class: 'controls' });
       actions.append(button('Cancel', () => status.replaceChildren()), merge);
-      status.replaceChildren(el('p', {}, `This file has ${preview.newCount} new ${preview.newCount === 1 ? 'item' : 'items'}. Merging adds them to your progress and never counts anything twice.`), actions);
+      status.replaceChildren(el('p', {}, `This file has ${what}. Merging adds them and never counts anything twice; notes you wrote here are kept.`), actions);
     });
     const actions = el('div', { class: 'controls' });
-    actions.append(button('Export backup', () => download(store.exportText(), `logic-quest-progress-${today}.json`)), button('Import backup', () => file.click()));
+    actions.append(button('Export backup', () => download(withWorkshop(store.exportText(), workshop), `logic-quest-progress-${today}.json`)), button('Import backup', () => file.click()));
     card.append(
       el('h3', {}, 'Backup'),
       el('p', {}, 'Your progress is saved on this device after every answer, so it is still here when you come back tomorrow. It lives only in this browser: clearing site data, or uninstalling the app, deletes it.'),
@@ -131,14 +144,12 @@ export function renderSettings(root: HTMLElement, tracker: Tracker, store: Progr
   }
 }
 
-function download(text: string, name: string): void {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-  const a = el('a', { href: url, download: name });
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 const weekday = (day: Day) => new Date(`${day}T12:00:00Z`).toLocaleDateString(undefined, { weekday: 'short', timeZone: 'UTC' });
 const shortDate = (day: Day) => new Date(`${day}T12:00:00Z`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' });
+
+/** Adds the learner's workshop notes to a progress backup, when there are any. */
+function withWorkshop(progress: string, workshop: WorkshopStore | undefined): string {
+  const saves = workshop?.exportAll() ?? {};
+  if (Object.keys(saves).length === 0) return progress;
+  return JSON.stringify({ ...(JSON.parse(progress) as object), workshop: saves }, null, 2);
+}
