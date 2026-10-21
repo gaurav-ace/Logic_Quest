@@ -1,4 +1,4 @@
-import { STAGES, type GuidedPractice, type GuidedStep, type OrderCheck, type SelectCheck, type Stage } from '../practice/schema';
+import { STAGES, STAGE_TITLE, type GuidedPractice, type GuidedStep, type OrderCheck, type SelectCheck } from '../practice/schema';
 import { addItem, indent, move, orderIsRight, outdent, removeItem, selectionIsRight, shuffledOrder, NOTE_MAX, type OutlineItem, type WorkshopSave, type WorkshopStore } from '../practice/workshop';
 import { button, el, scrollTo } from './dom';
 import { choiceCheck, donePanel, practiceHeader, type PracticeContext, type PracticeHooks, type PracticeView } from './practice';
@@ -9,14 +9,6 @@ import { notes } from './stepped';
 // edge cases, put it together. The learner writes first, then a tap check (graded), then sees the
 // expert's version. "My workspace" collects what they wrote, so the breakdown is always in view.
 
-export const STAGE_TITLE: Record<Stage, string> = {
-  understand: 'Understand the problem',
-  shrink: 'Shrink it',
-  breakdown: 'Break it down',
-  logic: 'Logic for one piece',
-  edges: 'Edge cases',
-  combine: 'Put it together',
-};
 
 export interface WorkshopOptions {
   store: WorkshopStore;

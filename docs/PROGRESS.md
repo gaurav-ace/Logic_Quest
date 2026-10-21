@@ -6,13 +6,24 @@ Update this file at the end of every session. Keep it short and factual. Only re
 
 Phase 5b, Low-level design: **done**, pushed, and approved by the owner on 2026-10-19 ("site shows LLD now, proceed"); a phone check was not mentioned. Phase 5c plan approved 2026-10-19 ("Approve, build all of it"). **Phase 5c, Real-world systems: done, pushed, and approved by the owner on 2026-10-19.** Phase 6 plan approved 2026-10-19 ("go ahead"). **Phase 6, Agentic AI: all 10 lessons built and checked, awaiting the owner's review.** Not pushed.
 
-**Phase 6b, Practice and tools (plan approved 2026-10-20): in progress on branch `claude/ai_integration`, not pushed.** M1–M9 built (main has M1–M7, merged as PRs #3 and #4); M8 (Gemini chat) and M9 (Ask Claude) are on the branch, not pushed. Phase 6b awaits the owner's review.
+**Phase 6b, Practice and tools (plan approved 2026-10-20): in progress on branch `claude/ai_integration`, not pushed.** M1–M9 built and pushed. **Owner reported on 2026-10-20: "all tested and working fine, keys added"** (Gemini key in the app, Discord secret on GitHub); recorded as Phase 6b approved. The content reviews (36 practice items, 26 tutor answers) are still open.
+
+**Phase 7, Adaptive learning (plan approved 2026-10-20, "proceed with phase 7"): built on branch `claude/adaptive`, not pushed, awaiting the owner's review.** The plan's three questions weren't answered, so my recommendations were used (reviews count towards the goal; options shuffled everywhere; intervals 1, 3, 7, 14, 30 days).
 
 Phase 5, System design (HLD): **done**, pushed and approved by the owner on 2026-10-19.
 
 Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19 without a line-by-line content review; the owner will report any content problems they find later). Live at https://gaurav-ace.github.io/Logic_Quest/.
 
-## Done (Phase 6b, in progress)
+## Done (Phase 7, awaiting review)
+
+- Options shuffled everywhere (seeded by the question, recorded by original index). Across the course the right answer is now shown first in under 45% of questions (it was 149 of 168 in older lessons).
+- 7.1 Review schedule (Leitner boxes from the answer log): tests on hand-made histories, merged logs and 300 random histories; five mutations each failed a test.
+- 7.2–7.3 `#/review` session, Home review card, "Stop here" after 5, a finished session counts as one lesson towards the goal (`review` event, no XP). Source for the screen's one claim: Roediger and Karpicke (2006), checked on Crossref (abstract); Cepeda et al. (2006) couldn't be read, so it isn't cited.
+- 7.4 Recommender with reasons on the Up next card; 7.5 Progress by track. Sample-history tests; five mutations each failed a test. Found by the browser check: the card picked the wrong track when two were active on the same day (compared days, not times); fixed with a test that fails on the old code. Also found: the `goalReviews` setting wasn't used at first (fixed with "Stop here").
+- My mistake: one commit (f43f72b) went in with a test that didn't typecheck, because my command chain didn't stop on the failed check; fixed in the next commit (23169f3). I now check the exit code before committing.
+- Checks on the final build: `npm run check` 924/924; browser `review` 31/31, `ui` 1341/1341, `practice` 27/27, `practice-walk` 126/126, `design` 29/29, `sim` 24/24, `agent` 20/20, `workshop` 28/28, `tutor` 22/22, `tutor-ai` 53/53, `profiles` 21/21, `persist` 11/11, `pwa` 7/7, `playground` 40/40. Not run: `update`. Not checked on a phone; not tested over real days (dates are seeded).
+
+## Done (Phase 6b, approved)
 
 - M1 Learner profiles (6b.1–6b.2): unit tests (two deliberately broken versions both failed them); browser `profiles` 20/20. Fixed on the way: Settings could wipe half-typed text (older bug); the top bar was too wide at 360 px with a name (phones show the initial).
 - M2 Discord reminders (6b.3): message tests and a preview run. **No real post sent yet**: needs the owner's `DISCORD_WEBHOOK_URL` secret, and the schedule only runs once the branch is on main.
@@ -111,10 +122,10 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 
 ## Next step
 
-1. Owner reviews the 36 practice items (Phase 6b, M5) and Phase 6 when convenient.
-2. Owner: push the branch, then on the phone add the Gemini key in Settings > AI tutor and try "Ask Gemini" and "Ask Claude" on a real device. Then review Phase 6b as a whole.
-3. Owner: add the `DISCORD_WEBHOOK_URL` repository secret (README has the steps) so the scheduled reminders post; a manual post from this machine already worked.
-4. Then Phase 7 (adaptive learning) needs a plan. `docs/UI_REVAMP_PLAN.md` (written in another session, untracked) also awaits the owner.
+1. Owner: push `claude/adaptive`, merge it, and try Phase 7 on the phone (Home's Up next reason, Review, Progress by track). Then approve or report problems.
+2. Owner reviews content when convenient: the 36 practice items, the 26 tutor answers, Phase 6's agentic lessons.
+3. Done by the owner (2026-10-20): Gemini key added in the app, `DISCORD_WEBHOOK_URL` secret added.
+4. Proposed next: the daily news digest (a separate site plus a Discord summary), which needs the owner's decisions first (scope, a Gemini key as a GitHub secret, a public site, the source list). `docs/UI_REVAMP_PLAN.md` (written in another session, untracked) also awaits the owner.
 
 ## Blockers and questions for the owner
 
@@ -181,3 +192,5 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 - 2026-10-20: Owner reported no login screen, profile icon or new features after merging PR #3. Checked: the deploy ran and the live site has profiles and practice; a single learner sees no picker or icon by design (plan 3.1), and their device was likely showing the cached old version. Explained; offered an always-visible learner icon and a version line. Owner said to proceed with the next implementation: built 6b.9 (workshop notes in backups) and M6 (offline tutor). Not pushed. Not checked on a phone.
 - 2026-10-20: Owner said yes to the learner icon and version line, and to proceed: built both, then M7 (HLD playground, 6b.17–6b.19). Browser on the final build: `playground` 40/40, `ui` 1341/1341; `sim`, `agent`, `design`, `pwa`, `persist`, `practice-walk`, `practice`, `workshop`, `profiles` and `tutor` all passed on the build before the prompts and files were added. `npm run check` 856/856. Not pushed. Not checked on a phone.
 - 2026-10-20: Owner confirmed the tutor is live (it is folded under each lesson's goal), put the Discord webhook and a Gemini key in files outside the repo, and said to proceed. Sent one real Discord reminder (accepted). Ran the Gemini spike (CORS works; free Search grounding is gone for new keys, so answers are grounded in the lesson only), then built M8 and M9. Browser on the final build: `tutor-ai` 53/53, `tutor` 22/22, `profiles` 21/21, `ui` 1341/1341, `persist` 11/11, `sim` 24/24, `agent` 20/20, `design` 29/29, `practice` 27/27, `workshop` 28/28, `playground` 40/40; `npm run check` 885/885. Not run on this build: `pwa`, `update`, `practice-walk`. Not pushed. Not checked on a phone.
+- 2026-10-20: Owner reported M8/M9 tested and working, with the Gemini key and the Discord secret added, and asked for the next plan. Next is Phase 7 (adaptive learning); its plan is not written yet.
+- 2026-10-20: Owner asked to proceed with Phase 7 and for input on a daily news digest (gave a recommendation: a separate repo and site built from the article text, with a Discord summary; awaiting decisions). Built Phase 7 on `claude/adaptive` (option shuffle, review schedule, review session, goal rule, recommender, progress by track). Full browser suite green. Not pushed. Not checked on a phone.

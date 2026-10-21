@@ -36,6 +36,18 @@ describe('rewards config', () => {
     expect(problems({ ...cfg(), dailyGoal: { default: 0, min: 0, max: 3 } })).toContain('dailyGoal');
   });
 
+  it('review intervals must be whole days that grow; session sizes at least 1', () => {
+    const review = (r: object) => ({ ...cfg(), review: { intervals: [1, 3, 7], sessionMax: 10, goalReviews: 5, ...r } });
+    expect(() => validateConfig(review({}))).not.toThrow();
+    expect(problems(review({ intervals: [] }))).toContain('review.intervals');
+    expect(problems(review({ intervals: [1, 3, 3] }))).toContain('increasing');
+    expect(problems(review({ intervals: [0, 2] }))).toContain('review.intervals');
+    expect(problems(review({ intervals: [1, 2.5] }))).toContain('review.intervals');
+    expect(problems(review({ sessionMax: 0 }))).toContain('review.sessionMax');
+    expect(problems(review({ goalReviews: 1.5 }))).toContain('review.goalReviews');
+    expect(problems({ ...cfg(), review: undefined })).toContain('review.intervals');
+  });
+
   it('rejects duplicate badge ids, unknown rules and unknown tracks', () => {
     const c = cfg();
     const badges = c.badges as Record<string, unknown>[];

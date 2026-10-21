@@ -12,6 +12,7 @@ import { ProgressStore, browserStorage } from './progress/store';
 import { Tracker } from './progress/tracker';
 import { registerServiceWorker } from './pwa/register';
 import { REWARDS } from './rewards/config';
+import { daysBetween, localDay } from './rewards/days';
 import { button, el } from './render/dom';
 import { icon, type IconName } from './render/icons';
 import { renderHome } from './render/home';
@@ -25,6 +26,10 @@ import { BoardStore } from './playground/store';
 import { tutorPanel } from './render/tutor';
 import { faqPassages, loadFaqs, type FaqFile } from './tutor/faq';
 import { GeminiKeyStore } from './tutor/key';
+import { reviewTarget, type ReviewTarget } from './review/items';
+import { recommend, trackStats } from './review/recommend';
+import { dueReviews, reviewSummary } from './review/schedule';
+import { renderReview } from './render/review';
 import { buildIndex, lessonPassages, type Index } from './tutor/search';
 import { renderLesson, type LessonView } from './render/lesson';
 import { renderProgress, renderSettings } from './render/progress';
@@ -106,6 +111,46 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
   const withPractice = new Set(practiceTracks(TRACKS));
   // The track whose practice list was last used, so coming back reopens it.
   let practiceOpen: Track | null = null;
+
+  // Phase 7: the review queue is recomputed from the answer log whenever it's shown, like scores.
+  const today = () => localDay(new Date());
+  const reviews = () => reviewSummary(store.events, REWARDS.review.intervals);
+  const practiceById = new Map<string, PracticeItem>();
+  const reviewLookup = {
+    lesson: (id: string) => byId.get(id),
+    practice: (id: string) => practiceById.get(id),
+    lessonHref: (id: string) => routeHash({ name: 'lesson', id }),
+    practiceHref: (item: PracticeItem) => routeHash({ name: 'practice', track: item.track, id: item.id }),
+  };
+  const loadReviews = async (): Promise<ReviewTarget[]> => {
+    const due = dueReviews(reviews(), today());
+    // Practice files load only when a practice question is due.
+    if (due.some((s) => s.lesson.startsWith(practiceKey('')))) {
+      const lists = await Promise.all([...withPractice].map((t) => loadPractice(t, ids)));
+      for (const item of lists.flat()) practiceById.set(item.id, item);
+    }
+    return due.flatMap((s) => reviewTarget(s, reviewLookup) ?? []);
+  };
+  const nextDue = (): string | null => {
+    const t = today();
+    const later = [...reviews().active.values()].map((s) => s.due).filter((d) => d > t).sort()[0];
+    if (!later) return null;
+    const n = daysBetween(t, later);
+    return n === 1 ? 'tomorrow' : `in ${n} days`;
+  };
+  const stats = () => trackStats(lessons, tracker.progress().completed, store.events, reviews(), today());
+  const upNext = () => recommend(lessons, tracker.progress().completed, stats(), today());
+  /** Home's review card, when anything is due. Practice reviews are counted before their files load. */
+  const reviewCard = (): HTMLElement[] => {
+    const due = dueReviews(reviews(), today()).filter((s) => s.lesson.startsWith(practiceKey('')) || reviewTarget(s, reviewLookup));
+    if (due.length === 0) return [];
+    const card = el('section', { class: 'card review-card', 'aria-label': 'Review' });
+    const go = button('Start review', () => {
+      location.hash = routeHash({ name: 'review' });
+    }, { class: 'primary' });
+    card.append(el('small', {}, 'Review'), el('h3', {}, `${due.length} ${due.length === 1 ? 'question' : 'questions'} to review`), el('p', {}, 'Questions you missed before, back for another try. A finished review counts as one lesson towards today’s goal.'), go);
+    return [card];
+  };
   let leaving = false;
 
   function show(route: Route): void {
@@ -114,7 +159,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
     guard.hidden = true;
     clearToast();
     current = route;
-    backToList.hidden = route.name !== 'lesson' && route.name !== 'practice';
+    backToList.hidden = route.name !== 'lesson' && route.name !== 'practice' && route.name !== 'review';
     document.body.dataset.route = route.name;
     for (const { route: r, a } of navLinks) {
       if (r.name === route.name) a.setAttribute('aria-current', 'page');
@@ -130,7 +175,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
     chips.prepend(who);
     if (route.name === 'progress') {
       document.title = 'Progress · Logic Quest';
-      renderProgress(view, tracker, REWARDS);
+      renderProgress(view, tracker, REWARDS, stats(), (id) => routeHash({ name: 'lesson', id }));
     } else if (route.name === 'playground') {
       document.title = 'Design playground · Logic Quest';
       renderPlayground(view, new BoardStore(kv, profileKey(profiles.current.id, 'boards')), {
@@ -139,6 +184,19 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
           const l = byId.get(id);
           return l ? { title: l.title, href: routeHash({ name: 'lesson', id }) } : null;
         },
+      });
+    } else if (route.name === 'review') {
+      document.title = 'Review · Logic Quest';
+      renderReview(view, {
+        load: loadReviews,
+        sessionMax: REWARDS.review.sessionMax,
+        goalReviews: REWARDS.review.goalReviews,
+        today: today(),
+        answer: (lesson, question, option, correct) => tracker.answer(lesson, question, option, correct),
+        finished: (count) => tracker.reviewed(count),
+        celebrate: (f) => celebrate(f, store.settings.calm),
+        homeHref: routeHash(HOME),
+        nextDue,
       });
     } else if (route.name === 'settings') {
       document.title = 'Settings · Logic Quest';
@@ -168,6 +226,8 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
       showPractice(route.track, route.id);
     } else {
       document.title = 'Logic Quest';
+      // When the advice is itself "review first", the separate review card would repeat it.
+      const rec = upNext();
       renderHome(view, lessons, tracker.progress(), REWARDS.coins.bufferCost, (id) => {
         location.hash = routeHash({ name: 'lesson', id });
       }, (track) => {
@@ -177,7 +237,7 @@ function start(root: HTMLElement, lessons: Lesson[]): void {
           practiceOpen = track;
           location.hash = routeHash({ name: 'practice', track, id: item.id });
         }, practiceOpen === track);
-      });
+      }, rec.kind === 'review' ? [] : reviewCard(), rec, routeHash({ name: 'review' }));
       if (store.notice) view.prepend(el('p', { class: 'card notice', role: 'status' }, store.notice));
     }
     window.scrollTo(0, 0);

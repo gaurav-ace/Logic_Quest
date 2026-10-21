@@ -1,5 +1,6 @@
 import type { ClassDiagram } from '../engine/uml';
 import type { DesignExercise, DesignLesson, DesignStep, UmlDiagram } from '../lesson/schema';
+import { inSeededOrder } from '../lesson/shuffle';
 import type { Feedback } from '../progress/tracker';
 import { button, el, scrollTo } from './dom';
 import type { QuizHooks } from './quiz';
@@ -141,7 +142,7 @@ function runExercise(box: HTMLElement, lesson: { diagrams: Record<string, UmlDia
       }, { class: 'option' });
       return b;
     });
-    box.replaceChildren(el('h3', {}, `Fix it: ${q.prompt}`), ...options, fb, rw, next);
+    box.replaceChildren(el('h3', {}, `Fix it: ${q.prompt}`), ...inSeededOrder(options, q.prompt), fb, rw, next);
     scrollTo(box, 'start');
   }
 

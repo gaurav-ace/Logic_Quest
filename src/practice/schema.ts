@@ -58,6 +58,15 @@ export interface DebugPractice extends PracticeBase {
 export const STAGES = ['understand', 'shrink', 'breakdown', 'logic', 'edges', 'combine'] as const;
 export type Stage = (typeof STAGES)[number];
 
+export const STAGE_TITLE: Record<Stage, string> = {
+  understand: 'Understand the problem',
+  shrink: 'Shrink it',
+  breakdown: 'Break it down',
+  logic: 'Logic for one piece',
+  edges: 'Edge cases',
+  combine: 'Put it together',
+};
+
 /** Tap the parts in the order you'd do them. */
 export interface OrderCheck {
   type: 'order';

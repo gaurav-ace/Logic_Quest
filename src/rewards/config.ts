@@ -24,6 +24,13 @@ export interface RewardsConfig {
   /** XP needed for each level; levels[0] is level 1 and must be 0. */
   levels: number[];
   dailyGoal: { default: number; min: number; max: number };
+  /**
+   * Spaced review of missed questions (Phase 7). intervals: days to wait in each box, shortest
+   * first; a right answer after the last box means mastered. sessionMax: questions per session.
+   * goalReviews: after this many the learner may stop; a session that reaches it, or answers all
+   * that were due if fewer, counts as one lesson towards the daily goal.
+   */
+  review: { intervals: number[]; sessionMax: number; goalReviews: number };
   coins: { perGoalDay: number; bufferCost: number; breakCost: number };
   badges: BadgeDef[];
 }
@@ -54,6 +61,13 @@ export function validateConfig(data: unknown): RewardsConfig {
   if (!isCount(goal.min) || !isCount(goal.max) || !isCount(goal.default) || goal.min < 1 || goal.min > goal.max || goal.default < goal.min || goal.default > goal.max) {
     bad('dailyGoal', 'needs 1 <= min <= default <= max');
   }
+
+  const review = obj('review');
+  const iv = review.intervals;
+  if (!Array.isArray(iv) || iv.length < 1 || !iv.every((v, i) => isCount(v) && v >= 1 && (i === 0 || v > (iv[i - 1] as number)))) {
+    bad('review.intervals', 'must be whole numbers of days >= 1, in increasing order');
+  }
+  for (const k of ['sessionMax', 'goalReviews']) if (!isCount(review[k]) || (review[k] as number) < 1) bad(`review.${k}`, 'must be a whole number >= 1');
 
   const ids = new Set<string>();
   const badges = Array.isArray(c.badges) ? c.badges : (bad('badges', 'must be a list'), []);

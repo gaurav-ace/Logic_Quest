@@ -230,6 +230,41 @@ describe('streak and coins', () => {
   });
 });
 
+describe('review sessions and the daily goal (Phase 7)', () => {
+  function review(d: Day, count = 5): ProgressEvent {
+    seq++;
+    return { id: `e${seq}`, type: 'review', at: at(d), day: d, count };
+  }
+
+  it('a finished review session counts as one lesson towards the goal', () => {
+    const p = progress([answer(D0, 'a', 0, false), review(D0)], D0);
+    expect(p.doneToday).toBe(1);
+    expect(p.days.get(D0)).toBe('met');
+    expect(p.streak).toBe(1);
+  });
+
+  it('earns no XP of its own', () => {
+    expect(progress([review(D0)], D0).xp).toBe(0);
+  });
+
+  it('two sessions count as two, and add to lessons finished that day', () => {
+    const p = progress([goal(D0, 3), ...finish(D0), review(D0), review(D0)], D0);
+    expect(p.doneToday).toBe(3);
+    expect(p.days.get(D0)).toBe('met');
+  });
+
+  it('keeps a streak going on days with reviews only', () => {
+    const p = progress([...finish(D0), review(day(1)), review(day(2))], day(2));
+    expect(p.streak).toBe(3);
+    expect(p.coins).toBe(15);
+  });
+
+  it('merging the same session twice counts it once', () => {
+    const r = review(D0);
+    expect(progress(mergeEvents([r], [r]), D0).doneToday).toBe(1);
+  });
+});
+
 describe('badges', () => {
   it('awards lesson-count badges on the day the count is reached', () => {
     const p = progress(finish(D0), D0);

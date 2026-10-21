@@ -38,7 +38,17 @@ export interface BadgeEvent extends Base {
   badge: string;
 }
 
-export type ProgressEvent = AnswerEvent | CompleteEvent | GoalEvent | BadgeEvent;
+/**
+ * A review session finished (Phase 7): `count` missed questions answered again. It counts as one
+ * lesson towards that day's goal. It earns no XP itself; the answers inside it are ordinary
+ * answer events, scored by the usual rules.
+ */
+export interface ReviewEvent extends Base {
+  type: 'review';
+  count: number;
+}
+
+export type ProgressEvent = AnswerEvent | CompleteEvent | GoalEvent | BadgeEvent | ReviewEvent;
 
 const isText = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 200;
 const isIndex = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v < 1000;
@@ -60,6 +70,8 @@ export function eventProblem(v: unknown): string | null {
       return isIndex(e.goal) && e.goal >= 1 ? null : 'bad goal';
     case 'badge':
       return isText(e.badge) ? null : 'bad badge';
+    case 'review':
+      return isIndex(e.count) && e.count >= 1 ? null : 'bad review';
     default:
       return 'unknown event type';
   }

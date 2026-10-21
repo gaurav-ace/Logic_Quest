@@ -1,4 +1,5 @@
 import type { Challenge, QuizQuestion, SimLesson } from '../lesson/schema';
+import { inSeededOrder } from '../lesson/shuffle';
 import { getModel } from '../sim/registry';
 import { holds, type Sample } from '../sim/runner';
 import { defaults, type Metric, type Params, type SimView } from '../sim/types';
@@ -184,7 +185,7 @@ export function renderSim(root: HTMLElement, lesson: SimLesson, hooks: QuizHooks
     });
     const ask = el('p');
     ask.append(el('strong', {}, `Predict first: ${q.prompt}`));
-    box.append(ask, ...opts, feedback, after);
+    box.append(ask, ...inSeededOrder(opts, q.prompt), feedback, after);
     return box;
   }
 

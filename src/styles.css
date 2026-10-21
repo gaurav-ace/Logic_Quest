@@ -1638,7 +1638,8 @@ a:focus-visible {
   border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
 }
 
-.continue small {
+.continue small,
+.review-card > small {
   color: var(--accent);
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -1835,7 +1836,8 @@ a:focus-visible {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
-  .progress-grid > .panel[aria-label='Badges'] {
+  .progress-grid > .panel[aria-label='Badges'],
+  .progress-grid > .track-stats {
     grid-column: 1 / -1;
   }
 }
@@ -2672,4 +2674,72 @@ a.tutor-open {
 
 .ai-steps {
   padding-left: 1.4em;
+}
+
+/* Review (Phase 7): the session, its source line, and the Home card. */
+.review-source a,
+a.review-home {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+}
+
+.review-intro {
+  margin: 0 0 8px;
+}
+
+.review-redo ul {
+  padding-left: 1.2em;
+}
+
+.review-card h3 {
+  margin: 4px 0;
+}
+
+.up-next-why {
+  font-weight: 600;
+}
+
+/* Progress by track (Phase 7). */
+.track-stats h3 {
+  margin: 8px 0;
+}
+
+.track-stat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+}
+
+.track-stat {
+  margin: 0;
+}
+
+.track-stat h4 {
+  margin: 0 0 4px;
+}
+
+.track-stat p {
+  margin: 4px 0;
+}
+
+.stat-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  overflow: hidden;
+}
+
+.stat-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.most-missed {
+  margin: 0;
+  padding-left: 1.2em;
 }

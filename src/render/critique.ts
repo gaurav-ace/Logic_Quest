@@ -1,4 +1,5 @@
 import type { Critique, Lesson } from '../lesson/schema';
+import { inSeededOrder } from '../lesson/shuffle';
 import { buildDiagram } from './diagram';
 import { button, el, scrollTo } from './dom';
 import type { QuizHooks } from './quiz';
@@ -92,7 +93,7 @@ function run(box: HTMLElement, title: string, cr: Critique, hooks: QuizHooks, do
       }, { class: 'option' });
       return b;
     });
-    box.replaceChildren(el('h3', {}, `Fix first: ${q.prompt}`), stage, ...options, fb, rw, next);
+    box.replaceChildren(el('h3', {}, `Fix first: ${q.prompt}`), stage, ...inSeededOrder(options, q.prompt), fb, rw, next);
     scrollTo(box, 'start');
   }
 
