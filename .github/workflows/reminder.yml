@@ -1,13 +1,25 @@
 name: Daily reminder
 
-# Posts a short reminder to the owner's Discord channel twice a day: 08:00 and 21:00 IST
-# (02:30 and 15:30 UTC; India has no daylight saving). GitHub notes scheduled runs can be
-# delayed when Actions is busy, and in a public repo they pause after 60 days with no activity
-# (re-enable from the Actions tab). The cron lines must match CRON in src/reminder/message.ts.
+# Posts a short reminder to the owner's Discord channel: once in the morning (04:00 to 12:00 IST,
+# usually early) and once in the evening (17:00 to 23:00 IST, or skipped). GitHub starts scheduled
+# runs hours late (4 to 5.5 hours in October 2026), so each slot has several attempts, and the
+# Decide step lets only the first one inside its window post. Times are UTC (IST is UTC+5:30, no
+# daylight saving). In a public repo, schedules pause after 60 days with no activity (re-enable
+# from the Actions tab). The cron lines must match CRON in src/reminder/message.ts.
 on:
   schedule:
-    - cron: '30 2 * * *'
-    - cron: '30 15 * * *'
+    # Morning: 00:00, 01:00 ... 06:00 IST.
+    - cron: '30 18 * * *'
+    - cron: '30 19 * * *'
+    - cron: '30 20 * * *'
+    - cron: '30 21 * * *'
+    - cron: '30 22 * * *'
+    - cron: '30 23 * * *'
+    - cron: '30 0 * * *'
+    # Evening: 17:00, 18:00, 19:00 IST.
+    - cron: '30 11 * * *'
+    - cron: '30 12 * * *'
+    - cron: '30 13 * * *'
   workflow_dispatch:
     inputs:
       slot:
@@ -18,6 +30,13 @@ on:
 
 permissions:
   contents: read
+  # To read this workflow's earlier runs, so a slot posts only once a day.
+  actions: read
+
+# One run at a time, so a run always sees whether the one before it posted.
+concurrency:
+  group: reminder
+  cancel-in-progress: false
 
 jobs:
   remind:
@@ -27,7 +46,16 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
+      - name: Decide
+        id: decide
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REMINDER_SCHEDULE: ${{ github.event.schedule }}
+          REMINDER_SLOT: ${{ inputs.slot }}
+        run: node scripts/reminder.ts --decide
+      # The step name is how later runs tell that this one posted (SEND_STEP in scripts/reminder.ts).
       - name: Send the reminder
+        if: steps.decide.outputs.send == 'true'
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           REMINDER_SCHEDULE: ${{ github.event.schedule }}

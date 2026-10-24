@@ -59,6 +59,7 @@ Treat the prototype as a reference for look and behaviour, not as code to extend
 - 2026-10-19, DSA exercises: tap-based (predict the next state, order the lines, fill the blank, pick the bug), so they work on a phone. A real code editor with a sandbox may become a later phase if the owner still wants it.
 - 2026-10-19, layout: docs moved into `docs/`, prototype into `prototype/`, git repo initialised. Owner approved.
 - 2026-10-20, Phase 6b (plan `docs/AI_INTEGRATION_PLAN.md`, approved): local learner profiles, not cloud accounts; Discord reminders at 08:00 and 21:00 IST from a scheduled GitHub workflow (webhook URL in a repository secret); per-section practice and a guided break-it-down workshop (tap-based, no code editor); an HLD playground; an AI tutor in three tiers: offline sourced answers, a Gemini chat on the learner's own free-tier key (Claude Pro can't power an in-app chat, since the Claude API is billed separately), and a hand-off to the Claude app as the fallback.
+- 2026-10-24, reminder times: GitHub starts scheduled runs hours late, so the owner chose to stay on GitHub with repeated early tries: one morning message between 04:00 and 12:00 IST (ideally 04:00–07:00) is the priority; the evening one (17:00–23:00 IST) may be skipped. No outside scheduler.
 
 ## Decisions still open (ask the owner, do not decide alone)
 

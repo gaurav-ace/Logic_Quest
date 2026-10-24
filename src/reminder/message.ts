@@ -17,12 +17,59 @@ export const SITE_URL = 'https://gaurav-ace.github.io/Logic_Quest/';
 export const DISCORD_LIMIT = 2000;
 const PROMPT_MAX = 300;
 
-/** The two cron lines in .github/workflows/reminder.yml: 08:00 and 21:00 IST, in UTC. */
-export const CRON: Record<Slot, string> = { morning: '30 2 * * *', evening: '30 15 * * *' };
+/**
+ * The cron lines in .github/workflows/reminder.yml, in UTC. GitHub starts scheduled runs late
+ * (4 to 5.5 hours late in October 2026), and by different amounts, so each slot has several
+ * attempts and only the first one that starts inside the slot's window posts (see shouldSend).
+ * Morning: 00:00 to 06:00 IST, so even a run with no delay lands after 04:00 IST at least once.
+ * Evening: 17:00 to 19:00 IST, aimed at about 21:00 IST with the usual delay.
+ */
+export const CRON: Record<Slot, string[]> = {
+  morning: ['30 18 * * *', '30 19 * * *', '30 20 * * *', '30 21 * * *', '30 22 * * *', '30 23 * * *', '30 0 * * *'],
+  evening: ['30 11 * * *', '30 12 * * *', '30 13 * * *'],
+};
+
+/**
+ * When each slot may post, in minutes after midnight IST, from start up to but not including end.
+ * The owner's priority (2026-10-24): one morning message, ideally 04:00 to 07:00 IST; a late
+ * evening one is better skipped, since "there's still time today" is wrong after 23:00.
+ */
+export const WINDOW: Record<Slot, { start: number; end: number }> = {
+  morning: { start: 4 * 60, end: 12 * 60 },
+  evening: { start: 17 * 60, end: 23 * 60 },
+};
 
 export function slotFor(schedule: string | undefined, requested: string | undefined): Slot {
   if (requested === 'morning' || requested === 'evening') return requested;
-  return schedule === CRON.evening ? 'evening' : 'morning';
+  return schedule !== undefined && CRON.evening.includes(schedule) ? 'evening' : 'morning';
+}
+
+/** Minutes after midnight IST (UTC+5:30, no daylight saving). */
+export function istMinutes(now: Date): number {
+  return Math.floor((now.getTime() + 330 * 60_000) / 60_000) % 1440;
+}
+
+/** An earlier run of the workflow: when it started and whether its send step succeeded. */
+export interface PastRun {
+  startedAt: Date;
+  sent: boolean;
+}
+
+/**
+ * Whether a scheduled run should post now: inside the slot's window, and no earlier run posted in
+ * that window today. Manual runs always post (they are tests). If the earlier runs couldn't be
+ * read (null), post anyway: a rare double message is better than none.
+ */
+export function shouldSend(slot: Slot, now: Date, manual: boolean, past: PastRun[] | null): { send: boolean; reason: string } {
+  if (manual) return { send: true, reason: 'Manual run.' };
+  const w = WINDOW[slot];
+  const t = istMinutes(now);
+  const hhmm = `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')} IST`;
+  if (t < w.start || t >= w.end) return { send: false, reason: `It is ${hhmm}, outside the ${slot} window.` };
+  if (past === null) return { send: true, reason: `It is ${hhmm}; earlier runs couldn't be checked, so sending.` };
+  const today = istDayNumber(now);
+  const done = past.some((r) => r.sent && istDayNumber(r.startedAt) === today && istMinutes(r.startedAt) >= w.start && istMinutes(r.startedAt) < w.end);
+  return done ? { send: false, reason: `The ${slot} reminder was already sent today.` } : { send: true, reason: `It is ${hhmm}, the first run in the ${slot} window.` };
 }
 
 /** Days since 1970-01-01 in India Standard Time (UTC+5:30, no daylight saving). */

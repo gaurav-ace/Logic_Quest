@@ -102,3 +102,6 @@
 - 7.5 Progress by track: lessons done, first-try share, in review, due, mastered, and the most-missed lessons as links.
 - Browser mode `review` (seeded history, by touch at 360 px).
 
+## Fixes after Phase 7
+
+- Discord reminders arrived at about 13:25 and 00:55 IST instead of 08:00 and 21:00: GitHub started the scheduled runs 4 to 5.5 hours late (run history, 20–23 October 2026). Now the morning has 7 tries (00:00 to 06:00 IST) and the evening 3 (17:00 to 19:00 IST); only the first try inside the window (morning 04:00–12:00, evening 17:00–23:00 IST) posts, checked against the workflow's earlier runs. A late evening reminder is skipped rather than posted after midnight.

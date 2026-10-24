@@ -8,11 +8,16 @@ Phase 5b, Low-level design: **done**, pushed, and approved by the owner on 2026-
 
 **Phase 6b, Practice and tools (plan approved 2026-10-20): in progress on branch `claude/ai_integration`, not pushed.** M1–M9 built and pushed. **Owner reported on 2026-10-20: "all tested and working fine, keys added"** (Gemini key in the app, Discord secret on GitHub); recorded as Phase 6b approved. The content reviews (36 practice items, 26 tutor answers) are still open.
 
-**Phase 7, Adaptive learning (plan approved 2026-10-20, "proceed with phase 7"): built on branch `claude/adaptive`, not pushed, awaiting the owner's review.** The plan's three questions weren't answered, so my recommendations were used (reviews count towards the goal; options shuffled everywhere; intervals 1, 3, 7, 14, 30 days).
+**Phase 7, Adaptive learning (plan approved 2026-10-20, "proceed with phase 7"): built on branch `claude/adaptive`; the owner merged it (PR #6, main at b7968f9); awaiting the owner's review on the phone.** The plan's three questions weren't answered, so my recommendations were used (reviews count towards the goal; options shuffled everywhere; intervals 1, 3, 7, 14, 30 days).
 
 Phase 5, System design (HLD): **done**, pushed and approved by the owner on 2026-10-19.
 
 Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19 without a line-by-line content review; the owner will report any content problems they find later). Live at https://gaurav-ace.github.io/Logic_Quest/.
+
+## Done (fix after Phase 7, 2026-10-24, branch `claude/reminder-times`, not pushed)
+
+- Discord reminders came at about 13:25 and 00:55 IST. Not a time zone mistake (the cron lines were the right UTC times): GitHub's run history shows every scheduled run started 4 to 5.5 hours late (20–23 Oct). Owner chose to keep GitHub only, wants at least one morning message (ideally 04:00–07:00 IST) and is fine with the evening one being skipped. Now 7 morning tries (00:00–06:00 IST) and 3 evening tries (17:00–19:00 IST); a Decide step lets only the first try inside the window (morning 04:00–12:00, evening 17:00–23:00 IST) post, by reading the workflow's earlier runs (`actions: read`); if they can't be read, it posts. Manual runs always post.
+- Checks: reminder tests 16/16, including a replayed day at delays 0–5.5 h (one morning post each time); four mutations each failed a test; `--decide` run locally against the real run history (reads the step names correctly). Not yet seen running on GitHub's scheduler.
 
 ## Done (Phase 7, awaiting review)
 
@@ -122,10 +127,11 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 
 ## Next step
 
-1. Owner: push `claude/adaptive`, merge it, and try Phase 7 on the phone (Home's Up next reason, Review, Progress by track). Then approve or report problems.
-2. Owner reviews content when convenient: the 36 practice items, the 26 tutor answers, Phase 6's agentic lessons.
-3. Done by the owner (2026-10-20): Gemini key added in the app, `DISCORD_WEBHOOK_URL` secret added.
-4. Proposed next: the daily news digest (a separate site plus a Discord summary), which needs the owner's decisions first (scope, a Gemini key as a GitHub secret, a public site, the source list). `docs/UI_REVAMP_PLAN.md` (written in another session, untracked) also awaits the owner.
+1. Owner: push `claude/reminder-times` and merge it; check the next morning's Discord message and the Actions log (one run says "send", the rest "skip").
+2. Owner: try Phase 7 (merged as PR #6) on the phone (Home's Up next reason, Review, Progress by track). Then approve or report problems.
+3. Owner reviews content when convenient: the 36 practice items, the 26 tutor answers, Phase 6's agentic lessons.
+4. Done by the owner (2026-10-20): Gemini key added in the app, `DISCORD_WEBHOOK_URL` secret added.
+5. Proposed next: the daily news digest (a separate site plus a Discord summary), which needs the owner's decisions first (scope, a Gemini key as a GitHub secret, a public site, the source list). `docs/UI_REVAMP_PLAN.md` (written in another session, untracked) also awaits the owner.
 
 ## Blockers and questions for the owner
 
@@ -194,3 +200,4 @@ Phases 0–4: **done** and approved (3 and 4 approved by the owner on 2026-10-19
 - 2026-10-20: Owner confirmed the tutor is live (it is folded under each lesson's goal), put the Discord webhook and a Gemini key in files outside the repo, and said to proceed. Sent one real Discord reminder (accepted). Ran the Gemini spike (CORS works; free Search grounding is gone for new keys, so answers are grounded in the lesson only), then built M8 and M9. Browser on the final build: `tutor-ai` 53/53, `tutor` 22/22, `profiles` 21/21, `ui` 1341/1341, `persist` 11/11, `sim` 24/24, `agent` 20/20, `design` 29/29, `practice` 27/27, `workshop` 28/28, `playground` 40/40; `npm run check` 885/885. Not run on this build: `pwa`, `update`, `practice-walk`. Not pushed. Not checked on a phone.
 - 2026-10-20: Owner reported M8/M9 tested and working, with the Gemini key and the Discord secret added, and asked for the next plan. Next is Phase 7 (adaptive learning); its plan is not written yet.
 - 2026-10-20: Owner asked to proceed with Phase 7 and for input on a daily news digest (gave a recommendation: a separate repo and site built from the article text, with a Discord summary; awaiting decisions). Built Phase 7 on `claude/adaptive` (option shuffle, review schedule, review session, goal rule, recommender, progress by track). Full browser suite green. Not pushed. Not checked on a phone.
+- 2026-10-24: Owner reported Discord reminders at 00:57 and 13:52 IST. Found the cause in GitHub's run history (late scheduled runs, not a time zone error); owner chose to stay on GitHub with earlier, repeated tries. Built on `claude/reminder-times`. Not pushed.
